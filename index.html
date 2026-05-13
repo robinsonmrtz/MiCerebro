@@ -4,51 +4,245 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mi Segundo Cerebro</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧠</text></svg>">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
     <div class="app-container">
 
+<!-- 1. BARRA LATERAL (SIDEBAR) -->
         <aside class="sidebar">
             <div class="perfil">
                 <img src="https://via.placeholder.com/80" alt="Foto de perfil" class="avatar">
-                <h2>Daniela</h2>
-                <p class="score">⭐ Score 57/100</p>
+                <h2>Robinson</h2>
+                <p class="score">⚡ Nivel 1</p>
             </div>
             
+            <!-- Menú de navegación: Agregamos 'id' y 'data-target' -->
             <nav class="menu">
-                <ul>
-                    <li class="activo">🏠 Inicio</li>
-                    <li>📝 Posts</li>
-                    <li>📈 Constancia</li>
-                    <li>💡 Ideas IA</li>
-                    <li>🤖 Asistente</li>
-                    </ul>
+                <ul id="menu-principal">
+                    <!-- data-target conecta el botón con la caja que debe mostrar -->
+                    <li class="activo" data-target="vista-inicio">🏠 Inicio</li>
+                    <li data-target="vista-trabajo">⏱️ Tiempo de Trabajo</li>
+                    <li>💰 Finanzas</li>
+                    <li>🏋️ Gimnasio</li>
+                    <li>📚 Universidad</li>
+                    <li>✅ Hábitos y Tareas</li>
+                    <li>🚀 Proyectos de Software</li>
+                    <li data-target="vista-backup">💾 Backup y Datos</li>
+                </ul>
             </nav>
         </aside>
 
+        <!-- 2. CONTENIDO PRINCIPAL (DERECHA) -->
         <main class="main-content">
             <header class="header">
-                <h1>Buenos días Daniela 👋</h1>
-                <p class="fecha">lunes, 27 de abril</p>
+                <h1>Buenos días Robinson 👋</h1>
+                <p class="fecha">Miércoles, 13 de mayo</p>
             </header>
 
-            <section class="dashboard-widgets">
-                <div class="widget destacado">
-                    <h3>🔥 Tu último post está rompiendo</h3>
-                    <p>737.8K vistas en Instagram - 125% sobre tu promedio</p>
+            <!-- ======================================= -->
+            <!-- VISTA 1: INICIO (Tu Dashboard original) -->
+            <!-- ======================================= -->
+            <div id="vista-inicio" class="vista">
+                <section class="dashboard-widgets">
+                    <div class="widget destacado">
+                        <h3>🔥 Racha de Hábitos</h3>
+                        <p>Llevas 5 días seguidos cumpliendo todas tus tareas.</p>
+                    </div>
+
+                    <div class="seccion-titulo">
+                        <h4>⚡ ESTO TE TOCA HOY</h4>
+                    </div>
+                    <div class="widget tarea">
+                        <div class="icono-tarea">💻</div>
+                        <div class="info-tarea">
+                            <h4>Avanzar en Desarrollo de Software</h4>
+                            <p>Revisar apuntes de la universidad y practicar código.</p>
+                        </div>
+                    </div>
+
+                    <div class="seccion-titulo">
+                        <h4>📅 EN TU AGENDA</h4>
+                    </div>
+                    <div class="widget agenda">
+                        <div class="borde-color-verde"></div>
+                        <div class="icono-agenda">🏋️</div>
+                        <div class="info-agenda">
+                            <h4>Día de Pierna</h4>
+                            <p>Gimnasio a las 6:00 p.m.</p>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- ======================================= -->
+            <!-- VISTA 2: TIEMPO DE TRABAJO              -->
+            <!-- ======================================= -->
+            <div id="vista-trabajo" class="vista" style="display: none;">
+                
+                <!-- PARTE SUPERIOR: EL RELOJ -->
+                <div class="widget modulo-trabajo">
+                    <div class="seccion-titulo" style="margin-top: 0;">
+                        <h4>⏱️ TEMPORIZADOR DE TRABAJO</h4>
+                    </div>
+                    
+                    <div class="configuracion-tiempo">
+                        <div class="input-grupo">
+                            <label>Meta (Hrs)</label>
+                            <input type="number" id="input-meta" value="8" min="1" max="24">
+                        </div>
+                        <div class="input-grupo">
+                            <label>Avisar (Min)</label>
+                            <input type="number" id="input-bloque" value="60" min="1">
+                        </div>
+                        <div class="input-grupo">
+                            <label>Descanso (Min)</label>
+                            <input type="number" id="input-descanso" value="10" min="1">
+                        </div>
+                    </div>
+
+                    <div class="pantalla-reloj">
+                        <h1 id="tiempo-display">00:00:00</h1>
+                        <p id="estado-display" class="estado-inactivo">Listo para empezar</p>
+                    </div>
+
+                    <div class="controles-reloj">
+                        <button id="btn-trabajar" class="btn btn-empezar">▶️ Trabajar</button>
+                        <button id="btn-descansar" class="btn btn-descansar">☕ Descansar</button>
+                        <button id="btn-detener" class="btn btn-detener">⏹️ Terminar</button>
+                    </div>
                 </div>
-            </section>
-            
-            <div class="zona-pruebas-json">
-                <button onclick="guardarDatosDePrueba()">Guardar Datos de Prueba</button>
-                <button onclick="descargarJSON()">Exportar mi Data (JSON)</button>
+
+                <!-- PARTE INFERIOR: ANALÍTICA Y REGISTROS (Nuevo) -->
+                <div class="analitica-trabajo">
+                    <div class="seccion-titulo">
+                        <h4>📊 TUS MÉTRICAS Y REGISTROS</h4>
+                    </div>
+                    
+                    <!-- Tarjetas de Resumen -->
+                    <div class="kpi-grid">
+                        <div class="kpi-card">
+                            <h5>Promedio Diario</h5>
+                            <p id="kpi-promedio">0 hrs</p>
+                        </div>
+                        <div class="kpi-card">
+                            <h5>Mejor Racha</h5>
+                            <p id="kpi-racha">0 días</p>
+                        </div>
+                        <div class="kpi-card">
+                            <h5>Día Estrella</h5>
+                            <p id="kpi-dia">N/A</p>
+                        </div>
+                        <div class="kpi-card">
+                            <h5>Mejor Mes</h5>
+                            <p id="kpi-mes">N/A</p>
+                        </div>
+                    </div>
+
+                    <!-- El Gráfico (Ahora en su propia caja segura) -->
+                    <!-- El Gráfico con Filtros -->
+                    <div class="grafico-contenedor">
+                        <div class="cabecera-grafico" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                            <h5 style="margin: 0; color: #555;">Evolución de Horas</h5>
+                            
+                            <!-- Controles de Filtro -->
+                            <div class="controles-filtro" style="display: flex; gap: 10px; align-items: center;">
+                                <select id="filtro-tiempo" class="input-filtro">
+                                    <option value="7">Últimos 7 días</option>
+                                    <option value="30">Últimos 30 días</option>
+                                    <option value="custom">Fecha personalizada</option>
+                                </select>
+                                
+                                <!-- Se muestra solo si elige "Fecha personalizada" -->
+                                <div id="rango-fechas" style="display: none; gap: 5px; align-items: center;">
+                                    <input type="date" id="fecha-inicio" class="input-filtro">
+                                    <span style="font-size: 12px; color: #888;">a</span>
+                                    <input type="date" id="fecha-fin" class="input-filtro">
+                                    <button id="btn-aplicar-filtro" class="btn-filtrar">Aplicar</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <canvas id="graficoTrabajo" style="max-height: 300px;"></canvas>
+                    </div>
+
+                    <!-- La Tabla de Historial -->
+                    <div class="tabla-contenedor">
+                        <table id="tabla-registros" class="tabla-historial">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Meta</th>
+                                    <th>Trabajado</th>
+                                    <th>Descansado</th>
+                                    <th>Estado</th>
+                                    <th>Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-cuerpo">
+                                </tbody>
+                        </table>
+                        
+                        <div class="paginacion" style="margin-top: 15px; display: flex; justify-content: center; align-items: center; gap: 15px;">
+                            <button id="btn-anterior" class="btn-mini">⬅️ Anterior</button>
+                            <span id="info-paginacion">Página 1 de 1</span>
+                            <button id="btn-siguiente" class="btn-mini">Siguiente ➡️</button>
+                        </div>
+                    </div>
+
+                    <div id="modal-confirmar" class="modal-overlay">
+                        <div class="modal-caja">
+                            <h3>¿Eliminar registro?</h3>
+                            <p>Esta acción borrará permanentemente los datos de esta sesión de trabajo.</p>
+                            <div class="modal-botones">
+                                <button id="confirmar-si" class="btn-confirmar-eliminar">Eliminar ahora</button>
+                                <button id="confirmar-no" class="btn-cancelar-modal">Mantener registro</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="vista-backup" class="vista" style="display: none;">
+                <div class="widget" style="text-align: center; padding: 40px;">
+                    <div class="seccion-titulo" style="margin-top: 0;">
+                        <h4>💾 GESTIÓN DE DATOS Y RESPALDOS</h4>
+                    </div>
+                    <p style="color: #666; margin-bottom: 30px;">
+                        Desde aquí puedes descargar una copia de seguridad de toda tu información <br>
+                        o restaurar un archivo JSON que hayas guardado previamente.
+                    </p>
+
+                    <div class="controles-backup" style="display: flex; justify-content: center; gap: 20px;">
+                        <div class="card-backup">
+                            <button onclick="descargarJSON()" class="btn" style="background-color: #1A73E8; color: white; width: 200px;">
+                                ⬇️ Exportar JSON
+                            </button>
+                            <p style="font-size: 11px; color: #888; margin-top: 10px;">Descarga tu copia de hoy</p>
+                        </div>
+
+                        <div class="card-backup">
+                            <button onclick="document.getElementById('input-importar').click()" class="btn" style="background-color: #2ECC71; color: white; width: 200px;">
+                                ⬆️ Importar JSON
+                            </button>
+                            <input type="file" id="input-importar" style="display: none;" accept=".json" onchange="importarJSON(event)">
+                            <p style="font-size: 11px; color: #888; margin-top: 10px;">Restaura un archivo antiguo</p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </main>
 
     </div>
 
+<!-- Librería externa para gráficos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Conectamos nuestros scripts en orden -->
     <script src="storage.js"></script>
+    <script src="app.js"></script>
+    <script src="temporizador.js"></script>
+    <script src="metricas.js"></script> <!-- NUESTRO CEREBRO DE GRÁFICOS -->
 </body>
 </html>

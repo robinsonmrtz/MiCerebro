@@ -1,54 +1,79 @@
 // ==========================================
 // ARCHIVO DE ALMACENAMIENTO: storage.js
-// Aquí manejamos cómo se guardan los datos en 
-// tu navegador (LocalStorage) y cómo se exportan.
 // ==========================================
+const VERSION_ACTUAL = "1.2"; // Subimos versión por el campo 'descansado'
 
-// Definimos la versión actual de nuestra estructura de datos.
-// Si mañana agregamos "Gimnasio", cambiaremos esto a 1.1 o 2.0
-const VERSION_ACTUAL = "1.0"; 
-
-// Esta función asegura que los datos siempre tengan el formato correcto
 function obtenerDatosBase() {
     return {
         version: VERSION_ACTUAL,
         finanzas: [],
         habitos: [],
-        tareas: []
-        // Aquí agregaremos "gimnasio: []" a futuro
+        tareas: [],
+        registro_trabajo: [] 
     };
 }
 
-// Función para guardar datos simulados en el navegador (LocalStorage)
-function guardarDatosDePrueba() {
-    const misDatos = obtenerDatosBase();
-    misDatos.finanzas.push({ concepto: "Sueldo", cantidad: 1000 });
-    
-    // Guardamos en el navegador convirtiendo el objeto a texto (JSON)
-    localStorage.setItem('miCerebroData', JSON.stringify(misDatos));
-    alert("Datos de prueba guardados en tu navegador.");
+function cargarDatos() {
+    const guardado = localStorage.getItem('miCerebroData');
+    if (guardado) {
+        const datos = JSON.parse(guardado);
+        if (!datos.registro_trabajo) datos.registro_trabajo = [];
+        return datos;
+    }
+    return obtenerDatosBase();
 }
 
-// Función para descargar tus datos en un archivo .json a tu computadora
-function descargarJSON() {
-    // 1. Buscamos los datos en el navegador
-    const datosGuardados = localStorage.getItem('miCerebroData');
+// ACTUALIZADO: Ahora recibe 'segundosDescansados'
+function guardarSesionTrabajo(fechaStr, metaHoras, segundosTrabajados, segundosDescansados) {
+    const datos = cargarDatos();
     
-    if (!datosGuardados) {
-        alert("No hay datos para exportar aún.");
-        return;
-    }
+    datos.registro_trabajo.push({
+        id: Date.now(), 
+        fecha: fechaStr,
+        meta: metaHoras,
+        trabajado: segundosTrabajados,
+        descansado: segundosDescansados // <-- NUEVO DATO
+    });
+    
+    localStorage.setItem('miCerebroData', JSON.stringify(datos));
+}
 
-    // 2. Creamos un archivo virtual (Blob) con tus datos
+// ACTUALIZADO: Esta función ahora solo borra, el modal se encarga de preguntar
+function borrarRegistroTrabajo(idABorrar) {
+    const datos = cargarDatos();
+    datos.registro_trabajo = datos.registro_trabajo.filter(reg => reg.id !== idABorrar);
+    localStorage.setItem('miCerebroData', JSON.stringify(datos));
+    
+    // Refrescamos los gráficos y la tabla
+    if (typeof actualizarGraficos === 'function') {
+        actualizarGraficos();
+    }
+}
+
+// Función para importar JSON
+function importarJSON(event) {
+    const archivo = event.target.files[0];
+    if (!archivo) return;
+    const lector = new FileReader();
+    lector.onload = function(e) {
+        try {
+            const datosImportados = JSON.parse(e.target.result);
+            if (datosImportados.registro_trabajo) {
+                localStorage.setItem('miCerebroData', JSON.stringify(datosImportados));
+                alert("¡Datos restaurados!");
+                location.reload();
+            }
+        } catch (error) { alert("Archivo no válido"); }
+    };
+    lector.readAsText(archivo);
+}
+
+// Función para descargar JSON
+function descargarJSON() {
+    const datosGuardados = localStorage.getItem('miCerebroData');
+    if (!datosGuardados) return;
     const blob = new Blob([datosGuardados], { type: "application/json" });
     const url = URL.createObjectURL(blob);
-    
-    // 3. Creamos un botón invisible y lo "hacemos clic" para descargar
     const a = document.createElement("a");
-    a.href = url;
-    a.download = "mi_respaldo_cerebro.json"; // Nombre del archivo que se descargará
-    a.click();
-    
-    // Limpiamos la memoria
-    URL.revokeObjectURL(url);
+    a.href = url; a.download = "respaldo_cerebro.json"; a.click();
 }

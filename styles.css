@@ -107,3 +107,423 @@ body {
     background-color: #eee;
     border-radius: 10px;
 }
+
+/* ==========================================
+   NUEVOS WIDGETS: Tareas y Agenda
+========================================== */
+
+/* Titulitos pequeños en mayúscula (ej. ESTO TE TOCA HOY) */
+.seccion-titulo h4 {
+    font-size: 12px;
+    color: #888;
+    letter-spacing: 1px;
+    margin-top: 30px;
+    margin-bottom: 10px;
+}
+
+/* Diseño general para las tarjetas de listas (Tareas y Agenda) */
+.widget.tarea, .widget.agenda {
+    display: flex; /* Alinea el icono y el texto uno al lado del otro */
+    align-items: center; /* Los centra verticalmente */
+    padding: 15px 20px;
+}
+
+/* Iconos de las tareas */
+.icono-tarea, .icono-agenda {
+    font-size: 24px;
+    margin-right: 15px;
+    background-color: #F4F6F8;
+    padding: 10px;
+    border-radius: 10px;
+}
+
+/* Textos dentro de las tareas */
+.info-tarea h4, .info-agenda h4 {
+    margin: 0 0 5px 0;
+    font-size: 15px;
+    color: #333;
+}
+
+.info-tarea p, .info-agenda p {
+    margin: 0;
+    font-size: 13px;
+    color: #777;
+}
+
+/* El detallito de la línea verde en la agenda que vi en tu foto */
+.widget.agenda {
+    position: relative;
+    overflow: hidden; /* Para que la línea verde no se salga del borde redondeado */
+}
+
+.borde-color-verde {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 5px;
+    background-color: #2ECC71; /* Color verde */
+}
+
+/* ==========================================
+   SISTEMA DE VISTAS (SPA) Y NAVEGACIÓN
+========================================== */
+
+/* Hacemos que la "mano" aparezca en todos los items del menú al pasar el ratón */
+#menu-principal li:hover {
+    background-color: #f0f0f0;
+}
+
+/* ==========================================
+   MÓDULO DE TIEMPO DE TRABAJO
+========================================== */
+.modulo-trabajo { text-align: center; padding: 30px; }
+.configuracion-tiempo { display: flex; justify-content: center; gap: 20px; margin-bottom: 30px; margin-top: 15px; }
+.input-grupo { display: flex; flex-direction: column; text-align: left; }
+.input-grupo label { font-size: 12px; color: #888; margin-bottom: 5px; font-weight: bold; }
+.input-grupo input { padding: 10px; border: 1px solid #E0E0E0; border-radius: 8px; font-size: 16px; width: 100px; outline: none; }
+.input-grupo input:focus { border-color: #1A73E8; }
+
+.pantalla-reloj { background-color: #F8F9FA; border-radius: 20px; padding: 40px 20px; margin-bottom: 30px; }
+#tiempo-display { font-size: 64px; margin: 0; color: #222; font-family: 'Courier New', Courier, monospace; letter-spacing: 2px; }
+#estado-display { margin: 10px 0 0 0; font-size: 14px; font-weight: bold; text-transform: uppercase; }
+.estado-inactivo { color: #888; }
+.estado-trabajando { color: #2ECC71; }
+.estado-descansando { color: #F39C12; }
+
+.controles-reloj { display: flex; justify-content: center; gap: 15px; }
+.btn { padding: 12px 24px; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; transition: transform 0.1s; }
+.btn:active { transform: scale(0.95); }
+.btn-empezar { background-color: #2ECC71; color: white; }
+.btn-descansar { background-color: #F39C12; color: white; }
+.btn-detener { background-color: #E74C3C; color: white; }
+
+/* ==========================================
+   ANALÍTICA DE TRABAJO (Métricas y Tabla)
+========================================== */
+
+
+/* ==========================================
+   DISEÑO EXPANDIDO PARA MÉTRICAS (SOLUCIÓN)
+   ========================================== */
+
+/* Contenedor principal: sin límites estrechos */
+.analitica-trabajo {
+    width: 100%;
+    margin-top: 30px;
+}
+
+/* Las tarjetas de promedios ocupan el ancho total */
+.kpi-grid {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 25px;
+    width: 100%;
+}
+
+/* Gráfica y Tabla: forzamos a ocupar el 100% real */
+.grafico-contenedor, 
+.tabla-contenedor {
+    background-color: #ffffff;
+    padding: 30px;
+    border-radius: 20px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+    margin-bottom: 30px;
+    width: 100%; 
+    box-sizing: border-box; /* Crucial para que el padding no la estire de más */
+}
+
+/* La gráfica necesita una altura clara para no verse aplastada */
+.grafico-contenedor {
+    height: 450px; 
+}
+
+/* Estilo de la tabla para que use cada centímetro */
+.tabla-historial {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+.tabla-historial th {
+    background-color: #f8f9fa;
+    color: #5f6368;
+    font-size: 13px;
+    padding: 18px 10px;
+    border-bottom: 2px solid #eaecf0;
+    text-align: center;
+}
+
+.tabla-historial td {
+    padding: 20px 10px;
+    border-bottom: 1px solid #f1f3f4;
+    text-align: center;
+    color: #3c4043;
+    font-size: 15px;
+}
+
+/* Alineamos la fecha a la izquierda para mejor lectura */
+.tabla-historial th:first-child,
+.tabla-historial td:first-child {
+    text-align: left;
+    padding-left: 25px;
+}
+
+/* Los botones de paginación ahora se ven más modernos */
+.btn-mini {
+    padding: 10px 20px;
+    background-color: #ffffff;
+    border: 1px solid #dadce0;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.btn-mini:hover {
+    background-color: #f1f3f4;
+    border-color: #bdc1c6;
+}
+
+/* Grid de las 4 tarjetas de KPIs */
+.kpi-grid { display: flex; gap: 15px; margin-bottom: 20px; }
+.kpi-card { flex: 1; background-color: #FFFFFF; padding: 20px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.03); text-align: center; }
+.kpi-card h5 { margin: 0 0 10px 0; font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
+.kpi-card p { margin: 0; font-size: 24px; font-weight: bold; color: #1A73E8; } /* Azul destacado */
+
+/* Contenedores para Gráfico y Tabla */
+
+
+
+/* Diseño de la Tabla */
+.tabla-historial { width: 100%; border-collapse: collapse; text-align: left; }
+.tabla-historial th { padding: 15px 10px; border-bottom: 2px solid #F4F6F8; color: #888; font-size: 12px; text-transform: uppercase; }
+.tabla-historial td { padding: 15px 10px; border-bottom: 1px solid #F4F6F8; font-size: 14px; color: #333; }
+
+/* Botón de Borrar (Rojito) */
+.btn-borrar { background-color: #ffeaea; color: #E74C3C; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: bold; transition: 0.2s; }
+.btn-borrar:hover { background-color: #E74C3C; color: white; }
+
+/* Etiquetas de Cumplimiento (Verde o Rojo) */
+.badge-exito { background-color: #e8f8f5; color: #2ECC71; padding: 5px 10px; border-radius: 15px; font-size: 12px; font-weight: bold; }
+.badge-fallo { background-color: #fdf2e9; color: #F39C12; padding: 5px 10px; border-radius: 15px; font-size: 12px; font-weight: bold; }
+
+/* ==========================================
+   FILTROS DEL GRÁFICO
+========================================== */
+.input-filtro {
+    padding: 6px 10px;
+    border: 1px solid #E0E0E0;
+    border-radius: 6px;
+    font-size: 12px;
+    outline: none;
+    color: #333;
+}
+.input-filtro:focus { border-color: #1A73E8; }
+
+.btn-filtrar {
+    background-color: #1A73E8;
+    color: white;
+    border: none;
+    padding: 7px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    font-weight: bold;
+}
+.btn-filtrar:hover { background-color: #1557b0; }
+
+/* ==========================================
+   AJUSTES PARA UNA TABLA MÁS ESPACIOSA
+   ========================================== */
+
+.tabla-contenedor {
+    background-color: #FFFFFF;
+    padding: 25px; /* Más espacio interno en la caja blanca */
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    overflow-x: auto; /* Permite scroll horizontal si la pantalla es muy pequeña */
+    width: 100%; /* Que ocupe todo el ancho disponible */
+    box-sizing: border-box;
+}
+
+.tabla-historial {
+    width: 100%;
+    border-collapse: separate; /* Cambiamos a separate para dar espacio entre filas */
+    border-spacing: 0 8px; /* Espacio vertical entre filas para que no se vean pegadas */
+}
+
+.tabla-historial th {
+    padding: 12px 15px;
+    color: #888;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border-bottom: 2px solid #f0f2f5;
+    text-align: center;
+}
+
+.tabla-historial td {
+    padding: 18px 15px; /* Aumentamos el padding para que las filas sean más altas */
+    background-color: #fff;
+    color: #333;
+    font-size: 14px;
+    text-align: center;
+    border-bottom: 1px solid #f0f2f5; /* Una línea sutil entre registros */
+}
+
+/* Alineamos la fecha a la izquierda para que se lea mejor */
+.tabla-historial td:first-child, 
+.tabla-historial th:first-child {
+    text-align: left;
+    padding-left: 25px;
+}
+
+/* Efecto hover: cuando pasas el ratón por una fila, se resalta */
+.tabla-historial tr:hover td {
+    background-color: #f8f9ff;
+    transition: background-color 0.2s;
+}
+
+/* Botón de borrar más estilizado */
+.btn-borrar {
+    background: none;
+    border: 1px solid #ffdada;
+    color: #E74C3C;
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-borrar:hover {
+    background-color: #E74C3C;
+    color: white;
+    transform: scale(1.1);
+}
+
+/* FORZAR ANCHO COMPLETO PARA LA ANALÍTICA */
+.analitica-trabajo {
+    width: 100%;
+    max-width: 1200px; /* O el ancho que prefieras */
+    margin: 30px auto;
+}
+
+.grafico-contenedor {
+    width: 100%;
+    height: 350px; /* Altura fija para que la gráfica no desaparezca */
+    background: white;
+    padding: 20px;
+    border-radius: 15px;
+    margin-bottom: 25px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+}
+
+.tabla-contenedor {
+    width: 100%;
+    background: white;
+    padding: 20px;
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    overflow-x: auto;
+}
+
+.tabla-historial {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 600px; /* Evita que se encoja demasiado */
+}
+
+.tabla-historial th, .tabla-historial td {
+    padding: 15px;
+    text-align: center;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+/* MODAL STYLES (Asegurarnos de que funcione) */
+/* ==========================================
+   NUEVO MODAL ESTILO "APPLE/GOOGLE"
+   ========================================== */
+.modal-overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px); /* Efecto de desenfoque al fondo */
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    animation: fadeIn 0.3s ease;
+}
+
+.modal-caja {
+    background: white;
+    padding: 40px;
+    border-radius: 24px;
+    text-align: center;
+    max-width: 350px;
+    width: 90%;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+    transform: translateY(0);
+    animation: slideUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.modal-caja h3 {
+    font-size: 22px;
+    color: #1d1d1f;
+    margin-bottom: 10px;
+}
+
+.modal-caja p {
+    color: #86868b;
+    font-size: 15px;
+    line-height: 1.5;
+    margin-bottom: 30px;
+}
+
+/* Botones con nuestro estilo */
+.modal-botones {
+    display: flex;
+    flex-direction: column; /* Uno sobre otro para que se vea más moderno */
+    gap: 12px;
+}
+
+.btn-confirmar-eliminar {
+    background-color: #E74C3C;
+    color: white;
+    border: none;
+    padding: 14px;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-cancelar-modal {
+    background-color: #f5f5f7;
+    color: #1d1d1f;
+    border: none;
+    padding: 14px;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-confirmar-eliminar:hover {
+    background-color: #c0392b;
+    transform: scale(1.02);
+}
+
+.btn-cancelar-modal:hover {
+    background-color: #e8e8ed;
+    transform: scale(1.02);
+}
+
+/* Animaciones */
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp { 
+    from { transform: translateY(20px); opacity: 0; } 
+    to { transform: translateY(0); opacity: 1; } 
+}
