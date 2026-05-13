@@ -1,0 +1,109 @@
+/* ==========================================
+   ARCHIVO DE ESTILOS: styles.css
+   Aquí definimos colores, espacios y posiciones.
+========================================== */
+
+/* 1. CONFIGURACIÓN GENERAL */
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Un tipo de letra limpio */
+    background-color: #F4F6F8; /* Un gris muy clarito como el de tu imagen */
+    color: #333;
+}
+
+/* 2. ESTRUCTURA PRINCIPAL (Dividir pantalla en 2) */
+.app-container {
+    display: flex; /* Esto pone la barra y el contenido uno al lado del otro */
+    height: 100vh; /* Ocupa el 100% de la altura de tu pantalla */
+}
+
+/* 3. BARRA LATERAL (Izquierda) */
+.sidebar {
+    width: 250px;
+    background-color: #FFFFFF; /* Fondo blanco */
+    padding: 20px;
+    box-shadow: 2px 0 5px rgba(0,0,0,0.05); /* Sombra suave para separar */
+    display: flex;
+    flex-direction: column;
+}
+
+.perfil {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.avatar {
+    border-radius: 50%; /* Hace la imagen redonda */
+    width: 80px;
+    height: 80px;
+}
+
+.score {
+    background-color: #FFF9C4; /* Color amarillito del score */
+    padding: 5px 10px;
+    border-radius: 15px;
+    font-size: 14px;
+    font-weight: bold;
+    display: inline-block;
+}
+
+/* 4. MENÚ DE NAVEGACIÓN */
+.menu ul {
+    list-style: none; /* Quita los puntos de la lista */
+    padding: 0;
+}
+
+.menu li {
+    padding: 12px 15px;
+    margin-bottom: 5px;
+    cursor: pointer;
+    border-radius: 10px;
+    color: #666;
+    font-weight: 500;
+}
+
+/* Así se ve el botón cuando está seleccionado (como el de Inicio en tu foto) */
+.menu li.activo {
+    background-color: #E8F0FE; /* Azul clarito */
+    color: #1A73E8; /* Letra azul oscuro */
+}
+
+/* 5. CONTENIDO PRINCIPAL (Derecha) */
+.main-content {
+    flex: 1; /* Ocupa todo el espacio restante a la derecha */
+    padding: 40px;
+    overflow-y: auto; /* Permite hacer scroll si hay mucha información */
+}
+
+.header h1 {
+    margin: 0 0 5px 0;
+    color: #222;
+}
+
+.header .fecha {
+    color: #888;
+    margin-top: 0;
+    margin-bottom: 30px;
+}
+
+/* 6. TARJETAS (WIDGETS) */
+.widget {
+    background-color: #FFFFFF;
+    padding: 20px;
+    border-radius: 15px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.03);
+    margin-bottom: 20px;
+}
+
+.widget h3 {
+    margin-top: 0;
+}
+
+/* Solo para que no estorben nuestros botones técnicos */
+.zona-pruebas-json {
+    margin-top: 50px;
+    padding: 20px;
+    background-color: #eee;
+    border-radius: 10px;
+}
