@@ -1,0 +1,26 @@
+<div class="seccion-titulo">
+    <h2>💾 Copia de Seguridad</h2>
+    <p>Exporta tus datos para guardarlos o impórtalos para restaurar tu progreso.</p>
+</div>
+
+<div class="backup-grid">
+    <div class="backup-card">
+        <div class="backup-icono">📤</div>
+        <h3>Exportar Datos</h3>
+        <p>Genera un archivo JSON con todos tus hábitos, sesiones de trabajo y configuraciones.</p>
+        <button onclick="window.exportarDatos()" class="btn-primario" style="width: 100%;">Descargar Backup</button>
+    </div>
+
+    <div class="backup-card">
+        <div class="backup-icono">📥</div>
+        <h3>Importar Datos</h3>
+        <p>Selecciona un archivo de respaldo previo. <br><strong>Atención:</strong> Esto reemplazará los datos actuales.</p>
+        
+        <label class="btn-secundario" style="display: block; text-align: center; cursor: pointer;">
+            Seleccionar Archivo
+            <input type="file" id="input-import" onchange="window.importarDatos(event)" style="display: none;">
+        </label>
+    </div>
+</div>
+
+<div id="backup-status" style="margin-top: 20px; text-align: center; font-weight: bold; color: #1e8e3e;"></div>

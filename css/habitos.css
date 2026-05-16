@@ -1,0 +1,349 @@
+/* ==========================================
+   DISEÑO MÓDULO HÁBITOS - CORREGIDO
+   ========================================== */
+
+/* Calendario: Sin sombras y con días */
+.calendario-contenedor { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 25px; }
+.calendario-slider { display: flex; gap: 15px; padding: 10px; overflow-x: auto; scrollbar-width: none; }
+.dia-circulo { min-width: 65px; height: 65px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; background: #e0e0e0; transition: transform 0.2s; }
+.dia-circulo.activo { transform: scale(1.1); border: 2px solid #1A73E8; }
+.inner-circulo { width: 55px; height: 55px; background: white; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.dia-nombre { font-size: 10px; color: #888; font-weight: bold; text-transform: uppercase; }
+.dia-numero { font-size: 18px; font-weight: 800; line-height: 1; }
+
+/* Grupos y Tarjetas (Acordeón) */
+.habito-grupo-container { background: white; border-radius: 20px; margin-bottom: 20px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.04); }
+.habito-grupo-header { display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
+.habito-grupo-titulo { font-size: 16px; font-weight: 700; text-transform: uppercase; }
+.habito-grupo-indicadores { display: flex; align-items: center; gap: 12px; }
+.grupo-progreso-mini { width: 30px; height: 30px; border-radius: 50%; position: relative; background: #eee; }
+.grupo-progreso-mini::after { content: ''; position: absolute; width: 22px; height: 22px; background: white; border-radius: 50%; top: 4px; left: 4px; }
+.flecha-grupo { font-size: 12px; color: #bdc3c7; transition: transform 0.3s; }
+.flecha-grupo.contraido { transform: rotate(180deg); }
+
+.habitos-grupo-contenido { display: flex; flex-direction: column; gap: 12px; margin-top: 15px; }
+.habitos-grupo-contenido.oculto { display: none; }
+
+.habito-card { background: #f8f9fa; border-radius: 16px; padding: 15px; display: flex; align-items: center; justify-content: space-between; border-left: 6px solid #1A73E8; border: 1px solid #f1f3f4; }
+.habito-card.interactiva { cursor: pointer; }
+.habito-card.completado { background: #f0fff4; border-color: #d3f9d8; }
+
+.habito-info { display: flex; align-items: center; gap: 15px; flex: 1; }
+.habito-icono-bg { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; background: rgba(26,115,232,0.1); }
+
+/* Botones e Interfaz */
+.btn-iniciar-redondo, .btn-sumar-habito { width: 42px; height: 42px; border-radius: 50%; border: 1px solid #dadce0; background: white; color: #1A73E8; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.btn-iniciar-redondo:hover, .btn-sumar-habito:hover { background: #1A73E8; color: white; }
+
+/* MODALES DE HÁBITOS (CREAR/EDITAR) */
+.modal-ancho { max-width: 500px !important; width: 90%; }
+.form-grid { display: flex; flex-direction: column; gap: 15px; text-align: left; margin-top: 15px; }
+.form-grid label { font-size: 12px; color: #5f6368; font-weight: 700; text-transform: uppercase; display: flex; flex-direction: column; gap: 5px; }
+.form-grid input, .form-grid select { padding: 12px; border: 1px solid #dadce0; border-radius: 10px; background: #f8f9fa; outline: none; }
+.fila-form { display: flex; gap: 10px; }
+.fila-form label { flex: 1; }
+.modal-botones-row { display: flex; gap: 10px; margin-top: 20px; }
+
+/* MODAL DE ACCIÓN (BLUR / GRIT STYLE) */
+.modal-blur { backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); background: rgba(0, 0, 0, 0.3); }
+.modal-transparente { background: rgba(255, 255, 255, 0.95); border-radius: 25px; position: relative; padding: 40px 30px; }
+
+/* Botón X y ⋮ corregidos */
+.opciones-esquina { position: absolute; top: 20px; right: 20px; display: flex; gap: 10px; align-items: center; }
+.btn-cerrar-limpio { background: none; border: none; font-size: 24px; color: #888; cursor: pointer; line-height: 1; }
+.btn-puntos { background: none; border: none; font-size: 22px; cursor: pointer; color: #bdc3c7; }
+.dropdown-opciones { position: absolute; right: 0; top: 35px; background: white; border-radius: 10px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); display: none; z-index: 100; width: 120px; overflow: hidden; border: 1px solid #eee; }
+.dropdown-opciones button { width: 100%; padding: 12px; border: none; background: none; text-align: left; cursor: pointer; font-size: 13px; border-bottom: 1px solid #f9f9f9; }
+.dropdown-opciones button:hover { background: #f8f9fa; color: #1A73E8; }
+
+/* Elementos internos del modal acción */
+.circulo-progreso-grande { width: 120px; height: 120px; border-radius: 50%; margin: 0 auto 25px; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 20px rgba(0,0,0,0.05); }
+.btn-redondo { width: 55px; height: 55px; border-radius: 50%; border: none; font-size: 24px; cursor: pointer; }
+.btn-sumar { background: #e8f0fe; color: #1A73E8; }
+.btn-restar { background: #f8f9fa; color: #5f6368; border: 1px solid #dadce0; }
+
+/* Estilos para el cronómetro dentro del modal */
+.cronometro-modal-display { font-family: 'Share Tech Mono', monospace; font-size: 40px; color: #E74C3C; margin: 20px 0; font-weight: bold; }
+.btn-reiniciar-racha { width: 100%; padding: 15px; border-radius: 12px; border: none; background: #f39c12; color: white; font-weight: bold; font-size: 16px; cursor: pointer; margin-top: 10px; }
+
+.fab-button { 
+    position: fixed; 
+    bottom: 40px; 
+    right: 40px; 
+    width: 65px; 
+    height: 65px; 
+    border-radius: 50%; 
+    background: #1A73E8; 
+    color: white; 
+    font-size: 30px; 
+    border: none; 
+    box-shadow: 0 5px 20px rgba(26,115,232,0.4); 
+    cursor: pointer; 
+    z-index: 1000; /* Asegura que esté por encima de todo */
+    transition: transform 0.2s; 
+}
+
+/* ==========================================
+   CORRECCIÓN DE BOTONES Y NAVEGACIÓN
+   ========================================== */
+
+/* 1. Flechas del Calendario (nav-cal) */
+.nav-cal {
+    background: white;
+    border: 1px solid #dadce0;
+    color: #1A73E8;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 18px;
+    transition: all 0.2s;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.nav-cal:hover {
+    background-color: #f8f9fa;
+    transform: scale(1.1);
+    border-color: #1A73E8;
+}
+
+/* 2. Botón Flotante (+) - FAB */
+.fab-button {
+    position: fixed;
+    bottom: 40px;
+    right: 40px;
+    width: 65px;
+    height: 65px;
+    border-radius: 50%;
+    background: #1A73E8;
+    color: white;
+    font-size: 28px;
+    border: none;
+    box-shadow: 0 5px 20px rgba(26,115,232,0.4);
+    cursor: pointer;
+    z-index: 2000; /* Super alto para que nunca quede atrás */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s, background-color 0.2s;
+}
+
+.fab-button:hover {
+    transform: scale(1.1) rotate(90deg);
+    background-color: #1557b0;
+}
+
+/* 3. Botones del Modal (Guardar y Cancelar) */
+/* Los definimos aquí para que el módulo de hábitos sea independiente */
+.btn-primario {
+    background-color: #1A73E8;
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 14px;
+}
+
+.btn-primario:hover {
+    background-color: #1557b0;
+    box-shadow: 0 4px 12px rgba(26,115,232,0.3);
+}
+
+.btn-secundario {
+    background-color: #f1f3f4;
+    color: #3c4043;
+    border: 1px solid #dadce0;
+    padding: 12px 20px;
+    border-radius: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 14px;
+}
+
+.btn-secundario:hover {
+    background-color: #e8eaed;
+}
+
+/* Aseguramos que la fila de botones en el modal tenga espacio */
+.modal-botones-row {
+    display: flex;
+    gap: 12px;
+    margin-top: 25px;
+    width: 100%;
+}
+
+.modal-botones-row button {
+    flex: 1; /* Hace que ambos botones midan lo mismo */
+}
+
+/* ==========================================
+   DISEÑO DE TARJETAS DE GRUPO (CORREGIDO)
+   ========================================== */
+
+/* El contenedor principal de la tarjeta de grupo */
+.habito-grupo-container { 
+    background: white; 
+    border-radius: 20px; 
+    margin-bottom: 25px; 
+    padding: 20px; 
+    box-shadow: 0 4px 20px rgba(0,0,0,0.06); /* Sombra para que se vea la tarjeta */
+    
+    /* IMPORTANTE: Definimos el borde arriba para que el JS pueda cambiarle el color */
+    border-top-width: 6px;
+    border-top-style: solid;
+    border-top-color: #202124; /* Color por defecto */
+    
+    transition: transform 0.2s ease;
+}
+
+/* Cabecera del grupo (lo que siempre se ve) */
+.habito-grupo-header { 
+    display: flex; 
+    align-items: center; 
+    justify-content: space-between; 
+    cursor: pointer; 
+    user-select: none;
+}
+
+.habito-grupo-titulo { 
+    font-size: 16px; 
+    font-weight: 700; 
+    text-transform: uppercase; 
+    letter-spacing: 0.5px;
+    margin: 0;
+}
+
+/* Indicadores de la derecha (Círculo y Flecha) */
+.habito-grupo-indicadores { 
+    display: flex; 
+    align-items: center; 
+    gap: 15px; 
+}
+
+.grupo-progreso-mini { 
+    width: 32px; 
+    height: 32px; 
+    border-radius: 50%; 
+    position: relative; 
+    background: #eee; 
+}
+
+.grupo-progreso-mini::after { 
+    content: ''; 
+    position: absolute; 
+    width: 24px; 
+    height: 24px; 
+    background: white; 
+    border-radius: 50%; 
+    top: 4px; 
+    left: 4px; 
+}
+
+.flecha-grupo { 
+    font-size: 14px; 
+    color: #bdc3c7; 
+    font-weight: bold;
+    transition: transform 0.3s ease; 
+}
+
+/* Cuando el grupo está cerrado, la flecha mira hacia abajo */
+.flecha-grupo.contraido { 
+    transform: rotate(180deg); 
+}
+
+/* Contenido de hábitos (lo que se oculta) */
+.habitos-grupo-contenido { 
+    display: flex; 
+    flex-direction: column; 
+    gap: 15px; 
+    margin-top: 20px; 
+    transition: all 0.3s ease;
+}
+
+.habitos-grupo-contenido.oculto { 
+    display: none; 
+}
+
+/* Estilo de las tarjetas individuales dentro del grupo */
+/* --- DISEÑO MINIMALISTA --- */
+/* --- DISEÑO MINIMALISTA --- */
+.input-minimalista {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    font-size: 15px;
+    background: #fdfdfd;
+    transition: all 0.2s;
+    margin-top: 5px;
+}
+.input-minimalista:focus {
+    border-color: #1A73E8;
+    background: #fff;
+    outline: none;
+    box-shadow: 0 0 0 4px rgba(26, 115, 232, 0.1);
+}
+
+.card-crear-grupo {
+    background: #f1f3f4;
+    padding: 18px;
+    border-radius: 18px;
+    margin-bottom: 25px;
+}
+
+.item-grupo-lista {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #fff;
+    padding: 14px;
+    border-radius: 14px;
+    margin-bottom: 10px;
+    border: 1px solid #f0f0f0;
+}
+
+.color-mini-input {
+    width: 35px;
+    height: 35px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+}
+
+.btn-borrar-txt {
+    border: none;
+    background: transparent;
+    color: #e74c3c;
+    font-size: 18px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.btn-reiniciar-racha {
+    width: 100%;
+    padding: 15px;
+    background: #f39c12;
+    color: white;
+    border: none;
+    border-radius: 14px;
+    font-weight: bold;
+    cursor: pointer;
+}
+.btn-reiniciar-racha:hover { background: #e67e22; }
+
+#accion-icono-display {
+    width: 100px;
+    height: 100px;
+    background: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
