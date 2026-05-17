@@ -1,12 +1,19 @@
 /* =========================================================================
    FILE: escaner.js
-   ESTADO: Versión Blindada — Con Contrato de Arquitectura
+   ESTADO: Versión Blindada — Con Contrato de Arquitectura (Auto-Guardado)
    ========================================================================= */
  
 const fs = require('fs');
 const path = require('path');
  
 const moduloSeleccionado = process.argv[2] ? process.argv[2].toLowerCase() : null;
+const nombreArchivoSalida = 'escaneo_completo.txt';
+let contenidoSalida = ''; // Aquí guardaremos todo el texto
+
+// Función auxiliar para agregar texto a nuestra variable en lugar de la consola
+function agregarTexto(texto) {
+    contenidoSalida += texto + '\n';
+}
  
 // ============================================================
 // 📐 CONTRATO DE ARQUITECTURA — LEER ANTES DE TOCAR CUALQUIER COSA
@@ -55,7 +62,6 @@ const CONTRATO = `
    - js/modulos/temporizador.js → reloj de trabajo, alarmas, recuperación de sesión
    - js/modulos/metricas.js     → gráficas, KPIs, tabla de historial de trabajo
    - js/modulos/habitos.js      → hábitos, grupos, cronómetros, calendario
-
 
 6. ESTRUCTURA DE DATOS (futura base de datos):
 - usuarios: { id, nombre }
@@ -110,42 +116,51 @@ let archivosAEscanear = [];
 if (moduloSeleccionado) {
     if (mapaModulos[moduloSeleccionado]) {
         archivosAEscanear = mapaModulos[moduloSeleccionado];
-        console.log(`================================================================`);
-        console.log(`🔎 RADIOGRAFÍA FOCALIZADA: Módulo [${moduloSeleccionado.toUpperCase()}]`);
-        console.log(`================================================================\n`);
+        agregarTexto(`================================================================`);
+        agregarTexto(`🔎 RADIOGRAFÍA FOCALIZADA: Módulo [${moduloSeleccionado.toUpperCase()}]`);
+        agregarTexto(`================================================================\n`);
     } else {
         console.log(`❌ El módulo "${moduloSeleccionado}" no está registrado en el escáner.`);
         console.log(`💡 Módulos disponibles: trabajo, habitos, base, todo`);
         process.exit(1);
     }
 } else {
-    console.log(`================================================================`);
-    console.log(`🌐 RADIOGRAFÍA GENERAL: Escaneando todo el proyecto completo`);
-    console.log(`================================================================\n`);
+    agregarTexto(`================================================================`);
+    agregarTexto(`🌐 RADIOGRAFÍA GENERAL: Escaneando todo el proyecto completo`);
+    agregarTexto(`================================================================\n`);
     archivosAEscanear = mapaModulos['todo'];
 }
  
 // Siempre imprimimos el contrato al inicio del escaneo
-console.log(CONTRATO);
+agregarTexto(CONTRATO);
  
 function procesarYMostrarArchivo(rutaRelativa) {
     const rutaAbsoluta = path.join(__dirname, rutaRelativa);
     if (fs.existsSync(rutaAbsoluta)) {
         try {
             const contenido = fs.readFileSync(rutaAbsoluta, 'utf8');
-            console.log(`// ====================================================`);
-            console.log(`// RUTA DEL ARCHIVO: ${rutaRelativa}`);
-            console.log(`// ====================================================`);
-            console.log(contenido);
-            console.log(`\n\n`);
+            agregarTexto(`// ====================================================`);
+            agregarTexto(`// RUTA DEL ARCHIVO: ${rutaRelativa}`);
+            agregarTexto(`// ====================================================`);
+            agregarTexto(contenido);
+            agregarTexto(`\n\n`);
         } catch (error) {
-            console.log(`// ⚠️ Error al leer ${rutaRelativa}: ${error.message}\n\n`);
+            agregarTexto(`// ⚠️ Error al leer ${rutaRelativa}: ${error.message}\n\n`);
         }
     } else {
-        console.log(`// ⚠️ Archivo no encontrado: ${rutaRelativa}\n\n`);
+        agregarTexto(`// ⚠️ Archivo no encontrado: ${rutaRelativa}\n\n`);
     }
 }
  
 archivosAEscanear.forEach(ruta => {
     procesarYMostrarArchivo(ruta);
 });
+
+// Finalmente, guardamos todo el texto acumulado en el archivo
+try {
+    fs.writeFileSync(path.join(__dirname, nombreArchivoSalida), contenidoSalida, 'utf8');
+    console.log(`✅ ¡ÉXITO! El escáner terminó de leer los archivos.`);
+    console.log(`📁 Abre el archivo "${nombreArchivoSalida}" en tu Visual Studio Code para ver el código completo.`);
+} catch (error) {
+    console.log(`❌ Hubo un error al intentar guardar el archivo: ${error.message}`);
+}

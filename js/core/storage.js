@@ -1,14 +1,13 @@
 // ==========================================
 // CORE: storage.js (El Almacén de Datos)
-// VERSIÓN: 2.0 — Punto único de escritura, con versión y config de hábitos
+// VERSIÓN: 2.1 — Agrega horaInicio y horaFin al registro de trabajo
 // ==========================================
 
-const VERSION_DATOS = "2.0";
+const VERSION_DATOS = "2.1";
 
 function cargarDatos() {
     const datos = localStorage.getItem('datos_cerebro');
     if (datos) return JSON.parse(datos);
-    // Estructura base con versión incluida
     return { 
         version: VERSION_DATOS,
         registro_trabajo: [], 
@@ -20,12 +19,12 @@ function cargarDatos() {
 }
 
 function guardarDatos(datos) {
-    // Siempre estampamos la versión al guardar
     datos.version = VERSION_DATOS;
     localStorage.setItem('datos_cerebro', JSON.stringify(datos));
 }
 
-function guardarSesionTrabajo(fecha, meta, trabajado, descansado) {
+// ✅ Agrega horaInicio y horaFin — compatibe con registros viejos (quedan con null)
+function guardarSesionTrabajo(fecha, meta, trabajado, descansado, horaInicio = null, horaFin = null) {
     let datos = cargarDatos();
     if (!datos.registro_trabajo) datos.registro_trabajo = [];
     
@@ -33,14 +32,19 @@ function guardarSesionTrabajo(fecha, meta, trabajado, descansado) {
     if (registroExistente) {
         registroExistente.meta = meta;
         registroExistente.trabajado = trabajado;
-        registroExistente.descansado = 0; 
+        registroExistente.descansado = 0;
+        // Solo actualiza horaInicio si no tenía una ya
+        if (!registroExistente.horaInicio && horaInicio) registroExistente.horaInicio = horaInicio;
+        registroExistente.horaFin = horaFin;
     } else {
         datos.registro_trabajo.push({
             id: Date.now(),
             fecha: fecha,
             meta: meta,
             trabajado: trabajado,
-            descansado: 0 
+            descansado: 0,
+            horaInicio: horaInicio,
+            horaFin: horaFin
         });
     }
     
@@ -65,7 +69,6 @@ function guardarHabitosDefinicion(listaHabitos) {
     guardarDatos(datos);
 }
 
-// ✅ NUEVA: centraliza todo cambio de config (grupos, paleta)
 function guardarConfigHabitos(config) {
     let datos = cargarDatos();
     datos.config_habitos = config;

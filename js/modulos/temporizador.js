@@ -9,6 +9,9 @@ let detectorInactividadActivo = false;
 let fechaEnCurso = "";
 let intervaloAlarmaInactividad = null;
 
+// ✅ Hora de inicio del día — se registra al primer clic de Trabajar
+let horaInicioSesion = null;
+
 let audioCtxGlobal = null;
 
 function obtenerAudioCtx() {
@@ -28,6 +31,11 @@ function formatearTiempo(segundosTotales) {
     return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
+function obtenerHoraActual() {
+    const ahora = new Date();
+    return `${String(ahora.getHours()).padStart(2,'0')}:${String(ahora.getMinutes()).padStart(2,'0')}`;
+}
+
 function playTone(freq, startTime, duration) {
     const ctx = obtenerAudioCtx();
     const osc = ctx.createOscillator();
@@ -43,7 +51,6 @@ function playTone(freq, startTime, duration) {
     osc.stop(startTime + duration);
 }
 
-// Sonido original — para avisos de bloque y descanso terminado
 function activarAlarma(mensaje) {
     const ctx = obtenerAudioCtx();
     const now = ctx.currentTime;
@@ -52,7 +59,6 @@ function activarAlarma(mensaje) {
     if (Notification.permission === "granted") new Notification("⏱️ Cerebro", { body: mensaje });
 }
 
-// Sonido de inactividad — igual al original
 function tocarAlarmaInactividad() {
     const ctx = obtenerAudioCtx();
     const now = ctx.currentTime;
@@ -98,7 +104,8 @@ function guardarEstadoContinuo() {
     const hoy = new Date().toLocaleDateString('es-CO');
     localStorage.setItem('sesionTrabajoTemporal', JSON.stringify({
         fecha: hoy, estado: estadoActual, inicioTrabajo: inicioMatematico, inicioDescanso: tiempoInicioDescanso,
-        segundosTrabajados, segundosDescansoActual, meta: metaInput ? metaInput.value : 8
+        segundosTrabajados, segundosDescansoActual, meta: metaInput ? metaInput.value : 8,
+        horaInicio: horaInicioSesion
     }));
 }
 
@@ -143,7 +150,6 @@ function iniciarTrabajo(esRecuperacion = false) {
     encenderSensorVigilante();
     estadoActual = 'trabajando';
     clearInterval(intervaloReloj);
-    // ✅ Resetea el descanso para que la próxima vez empiece desde cero
     segundosDescansoActual = 0;
     tiempoInicioDescanso = 0;
     fechaEnCurso = new Date().toLocaleDateString('es-CO');
@@ -151,6 +157,10 @@ function iniciarTrabajo(esRecuperacion = false) {
     if (!esRecuperacion) {
         segundosTrabajados = obtenerAcumuladoHoy();
         inicioMatematico = Date.now() - (segundosTrabajados * 1000);
+        // ✅ Solo registra hora de inicio si es la primera vez del día
+        if (!horaInicioSesion) {
+            horaInicioSesion = obtenerHoraActual();
+        }
     }
     
     const minutesAviso = inputBloqueAviso ? (parseInt(inputBloqueAviso.value) || 60) : 60;
@@ -162,11 +172,12 @@ function iniciarTrabajo(esRecuperacion = false) {
         if (fechaAhora !== fechaEnCurso) {
             const meta = document.getElementById('input-meta') ? document.getElementById('input-meta').value : 8;
             if(typeof guardarSesionTrabajo === 'function') {
-                guardarSesionTrabajo(fechaEnCurso, parseFloat(meta), segundosTrabajados, 0);
+                guardarSesionTrabajo(fechaEnCurso, parseFloat(meta), segundosTrabajados, 0, horaInicioSesion, obtenerHoraActual());
             }
             inicioMatematico = Date.now();
             segundosTrabajados = 0;
             ultimoTramoAvisado = 0;
+            horaInicioSesion = null;
             fechaEnCurso = fechaAhora;
             localStorage.removeItem('memoria_diaria_trabajo');
             localStorage.removeItem('sesionTrabajoTemporal');
@@ -233,15 +244,18 @@ function detenerTodo() {
     
     guardarAcumuladoHoy(segundosTrabajados);
     const meta = document.getElementById('input-meta') ? document.getElementById('input-meta').value : 8;
+    const horaFin = obtenerHoraActual();
     
     if(typeof guardarSesionTrabajo === 'function') {
-        guardarSesionTrabajo(new Date().toLocaleDateString('es-CO'), parseFloat(meta), segundosTrabajados, 0);
+        // ✅ Pasa hora de inicio y fin al guardar
+        guardarSesionTrabajo(new Date().toLocaleDateString('es-CO'), parseFloat(meta), segundosTrabajados, 0, horaInicioSesion, horaFin);
     }
     
     segundosTrabajados = 0;
     segundosDescansoActual = 0; 
     inicioMatematico = 0; 
-    tiempoInicioDescanso = 0; 
+    tiempoInicioDescanso = 0;
+    horaInicioSesion = null;
     estadoActual = 'inactivo';
     
     if(pantallaTiempo) pantallaTiempo.innerText = "00:00:00"; 
@@ -252,6 +266,7 @@ function detenerTodo() {
 window.resetearAcumuladoTrabajo = function() {
     localStorage.removeItem('memoria_diaria_trabajo');
     segundosTrabajados = 0;
+    horaInicioSesion = null;
     if(estadoActual === 'inactivo' && pantallaTiempo) pantallaTiempo.innerText = "00:00:00";
 }
 
@@ -268,9 +283,10 @@ function recuperarEstadoTemporal() {
         if(document.getElementById('input-meta')) document.getElementById('input-meta').value = temp.meta || 8;
         segundosTrabajados = temp.segundosTrabajados || 0;
         inicioMatematico = temp.inicioTrabajo || 0;
-        // ✅ Nunca restauramos el descanso acumulado — siempre empieza desde cero
         segundosDescansoActual = 0;
         tiempoInicioDescanso = 0;
+        // ✅ Recupera la hora de inicio guardada
+        horaInicioSesion = temp.horaInicio || null;
 
         if (temp.estado === 'trabajando') {
             segundosTrabajados = Math.floor((Date.now() - inicioMatematico) / 1000);

@@ -22,9 +22,18 @@
 
 <div class="analitica-trabajo">
     <div class="kpi-grid">
-        <div class="widget"><h4>Promedio Diario</h4><p id="kpi-promedio">0 hrs</p></div>
-        <div class="widget"><h4>Racha de Metas</h4><p id="kpi-racha">0 días</p></div>
-        <div class="widget"><h4>Mejor Día</h4><p id="kpi-mejor-dia">-</p></div>
+        <div class="widget">
+            <h4>Promedio Semanal</h4>
+            <p id="kpi-promedio-semanal">0m</p>
+        </div>
+        <div class="widget">
+            <h4>Promedio Histórico</h4>
+            <p id="kpi-promedio-historico">0m</p>
+        </div>
+        <div class="widget">
+            <h4>Mejor Día</h4>
+            <p id="kpi-mejor-dia">-</p>
+        </div>
     </div>
     
     <div class="grafico-contenedor">
@@ -56,7 +65,14 @@
     <div class="tabla-contenedor">
         <table class="tabla-historial">
             <thead>
-                <tr><th>Fecha</th><th>Meta</th><th>Trabajado</th><th>Estado</th><th>Acción</th></tr>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Meta</th>
+                    <th>Trabajado</th>
+                    <th>Horario</th>
+                    <th>Meta cumplida</th>
+                    <th>Acción</th>
+                </tr>
             </thead>
             <tbody id="tabla-cuerpo"></tbody>
         </table>
