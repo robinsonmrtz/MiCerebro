@@ -6,9 +6,20 @@ let segundosTrabajados = 0, segundosDescansoActual = 0;
 let intervaloReloj, estadoActual = 'inactivo'; 
 let inicioMatematico = 0, tiempoInicioDescanso = 0, ultimoTramoAvisado = 0, limiteDescanso = 0; 
 let detectorInactividadActivo = false; 
+let fechaEnCurso = "";
+let intervaloAlarmaInactividad = null;
 
-// NUEVO: Variable para vigilar la regla de medianoche
-let fechaEnCurso = ""; 
+let audioCtxGlobal = null;
+
+function obtenerAudioCtx() {
+    if (!audioCtxGlobal || audioCtxGlobal.state === 'closed') {
+        audioCtxGlobal = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtxGlobal.state === 'suspended') audioCtxGlobal.resume();
+    return audioCtxGlobal;
+}
+
+document.addEventListener('click', () => { obtenerAudioCtx(); });
 
 let pantallaTiempo, pantallaEstado, btnTrabajar, btnDescansar, btnDetener, inputBloqueAviso, inputDescansoMin;
 
@@ -17,27 +28,58 @@ function formatearTiempo(segundosTotales) {
     return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
-function activarAlarma(mensaje) {
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const playTone = (freq, startTime, duration) => {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(freq, startTime);
-        gain.gain.setValueAtTime(0, startTime);
-        gain.gain.linearRampToValueAtTime(0.5, startTime + 0.02);
-        gain.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start(startTime);
-        osc.stop(startTime + duration);
-    };
+function playTone(freq, startTime, duration) {
+    const ctx = obtenerAudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, startTime);
+    gain.gain.setValueAtTime(0, startTime);
+    gain.gain.linearRampToValueAtTime(0.5, startTime + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(startTime);
+    osc.stop(startTime + duration);
+}
 
-    const now = audioCtx.currentTime;
+// Sonido original — para avisos de bloque y descanso terminado
+function activarAlarma(mensaje) {
+    const ctx = obtenerAudioCtx();
+    const now = ctx.currentTime;
     playTone(880.00, now, 0.4); 
     playTone(1108.73, now + 0.15, 0.6); 
-
     if (Notification.permission === "granted") new Notification("⏱️ Cerebro", { body: mensaje });
+}
+
+// Sonido de inactividad — igual al original
+function tocarAlarmaInactividad() {
+    const ctx = obtenerAudioCtx();
+    const now = ctx.currentTime;
+    playTone(880.00, now, 0.4);
+    playTone(1108.73, now + 0.15, 0.6);
+}
+
+function activarAlarmaIntermitente() {
+    detenerAlarmaIntermitente();
+    tocarAlarmaInactividad();
+    if (Notification.permission === "granted") {
+        new Notification("⏸️ Inactividad detectada", { body: "Presiona Descansar para silenciar" });
+    }
+    intervaloAlarmaInactividad = setInterval(() => {
+        if (estadoActual === 'pausado') {
+            tocarAlarmaInactividad();
+        } else {
+            detenerAlarmaIntermitente();
+        }
+    }, 4000);
+}
+
+function detenerAlarmaIntermitente() {
+    if (intervaloAlarmaInactividad) {
+        clearInterval(intervaloAlarmaInactividad);
+        intervaloAlarmaInactividad = null;
+    }
 }
 
 function obtenerAcumuladoHoy() {
@@ -63,7 +105,6 @@ function guardarEstadoContinuo() {
 function actualizarInterfazEstado() {
     if(!pantallaEstado) return;
     const metaSegundos = (parseFloat(document.getElementById('input-meta').value) || 8) * 3600;
-    
     if (estadoActual === 'trabajando') {
         if (segundosTrabajados >= metaSegundos) {
             pantallaEstado.innerText = "⭐ ¡META CUMPLIDA!";
@@ -84,8 +125,8 @@ async function encenderSensorVigilante() {
             const detector = new IdleDetector();
             detector.addEventListener('change', () => {
                 if (detector.userState === 'idle' && estadoActual === 'trabajando') {
-                    pausarTrabajo(); 
-                    activarAlarma("El reloj se ha pausado por inactividad");
+                    pausarTrabajo();
+                    activarAlarmaIntermitente();
                 }
             });
             await detector.start({ threshold: 60000 });
@@ -98,11 +139,13 @@ function iniciarTrabajo(esRecuperacion = false) {
     if (estadoActual === 'trabajando') return;
     if (Notification.permission !== "granted" && Notification.permission !== "denied") Notification.requestPermission(); 
     
+    detenerAlarmaIntermitente();
     encenderSensorVigilante();
     estadoActual = 'trabajando';
     clearInterval(intervaloReloj);
-    
-    // Anclamos el día de inicio
+    // ✅ Resetea el descanso para que la próxima vez empiece desde cero
+    segundosDescansoActual = 0;
+    tiempoInicioDescanso = 0;
     fechaEnCurso = new Date().toLocaleDateString('es-CO');
     
     if (!esRecuperacion) {
@@ -115,27 +158,22 @@ function iniciarTrabajo(esRecuperacion = false) {
     actualizarInterfazEstado();
 
     intervaloReloj = setInterval(() => {
-        // --- 🕛 REGLA DE LA MEDIANOCHE ---
         const fechaAhora = new Date().toLocaleDateString('es-CO');
         if (fechaAhora !== fechaEnCurso) {
-            // 1. Guarda el día viejo
             const meta = document.getElementById('input-meta') ? document.getElementById('input-meta').value : 8;
             if(typeof guardarSesionTrabajo === 'function') {
                 guardarSesionTrabajo(fechaEnCurso, parseFloat(meta), segundosTrabajados, 0);
             }
-            // 2. Resetea los contadores para el nuevo día
             inicioMatematico = Date.now();
             segundosTrabajados = 0;
             ultimoTramoAvisado = 0;
-            fechaEnCurso = fechaAhora; // Actualiza el ancla
+            fechaEnCurso = fechaAhora;
             localStorage.removeItem('memoria_diaria_trabajo');
             localStorage.removeItem('sesionTrabajoTemporal');
         }
-        // ---------------------------------
 
         segundosTrabajados = Math.floor((Date.now() - inicioMatematico) / 1000);
         if(pantallaTiempo) pantallaTiempo.innerText = formatearTiempo(segundosTrabajados);
-        
         actualizarInterfazEstado();
         
         if (minutesAviso > 0) {
@@ -163,11 +201,14 @@ function pausarTrabajo() {
 
 function iniciarDescanso(esRecuperacion = false) {
     if (estadoActual === 'descansando') return;
+    detenerAlarmaIntermitente();
     estadoActual = 'descansando';
     if(pantallaEstado) { pantallaEstado.innerText = "DESCANSANDO..."; pantallaEstado.className = "estado-descansando"; }
     clearInterval(intervaloReloj);
     
-    if (!esRecuperacion) tiempoInicioDescanso = Date.now() - (segundosDescansoActual * 1000);
+    segundosDescansoActual = 0;
+    tiempoInicioDescanso = Date.now();
+
     limiteDescanso = inputDescansoMin ? (parseInt(inputDescansoMin.value) || 20) * 60 : 1200;
     let alarmaSonada = false;
 
@@ -186,6 +227,7 @@ function iniciarDescanso(esRecuperacion = false) {
 
 function detenerTodo() {
     if (segundosTrabajados === 0 && estadoActual === 'inactivo') return;
+    detenerAlarmaIntermitente();
     localStorage.removeItem('sesionTrabajoTemporal');
     clearInterval(intervaloReloj);
     
@@ -223,19 +265,20 @@ function recuperarEstadoTemporal() {
             localStorage.removeItem('sesionTrabajoTemporal');
             return;
         }
-
         if(document.getElementById('input-meta')) document.getElementById('input-meta').value = temp.meta || 8;
         segundosTrabajados = temp.segundosTrabajados || 0;
-        segundosDescansoActual = temp.segundosDescansoActual || 0; 
         inicioMatematico = temp.inicioTrabajo || 0;
-        tiempoInicioDescanso = temp.inicioDescanso || 0;
+        // ✅ Nunca restauramos el descanso acumulado — siempre empieza desde cero
+        segundosDescansoActual = 0;
+        tiempoInicioDescanso = 0;
 
         if (temp.estado === 'trabajando') {
-            segundosTrabajados = Math.floor((Date.now() - inicioMatematico) / 1000); estadoActual = 'inactivo';
+            segundosTrabajados = Math.floor((Date.now() - inicioMatematico) / 1000);
+            estadoActual = 'inactivo';
             iniciarTrabajo(true);
         } else if (temp.estado === 'descansando') {
-            segundosDescansoActual = Math.floor((Date.now() - tiempoInicioDescanso) / 1000); estadoActual = 'inactivo';
-            iniciarDescanso(true);
+            estadoActual = 'inactivo';
+            iniciarDescanso(false);
         } else if (temp.estado === 'pausado') {
             estadoActual = 'pausado';
             if(pantallaTiempo) pantallaTiempo.innerText = formatearTiempo(segundosTrabajados);
