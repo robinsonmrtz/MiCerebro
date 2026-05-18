@@ -76,18 +76,27 @@ function dibujarGrafica(registros) {
     const ctx = canvas.getContext('2d');
     if(graficoActual) graficoActual.destroy();
     
-    // Ordenar los datos cronológicamente (más antiguo a la izquierda, más nuevo a la derecha)
+    // ✅ LEEMOS LOS COLORES DIRECTAMENTE DESDE TU CSS
+    const rootStyles = getComputedStyle(document.documentElement);
+    const colorInicio = rootStyles.getPropertyValue('--accent-inicio').trim() || '#ffd000';
+    const colorHoras = rootStyles.getPropertyValue('--accent-horas').trim() || '#4fed3a';
+
+    // Generamos automáticamente el fondo difuminado a partir del color de tu línea
+    let chartBgColor = 'rgba(124, 58, 237, 0.15)'; 
+    if (colorHoras.startsWith('#') && colorHoras.length === 7) {
+        chartBgColor = colorHoras + '26'; // Le añade un 15% de transparencia nativa en formato Hex
+    }
+
     const registrosOrdenados = [...registros].sort((a, b) => parsearFecha(a.fecha) - parsearFecha(b.fecha));
     
-    // Mostrar la cantidad correcta según el filtro seleccionado
     const selectorFiltro = document.getElementById('filtro-tiempo');
     const filtro = selectorFiltro ? selectorFiltro.value : 'all';
     
     let datosParaGrafica = registrosOrdenados;
     if (filtro === 'all' || filtro === '7') {
-        datosParaGrafica = registrosOrdenados.slice(-7); // Por defecto muestra los últimos 7 días
+        datosParaGrafica = registrosOrdenados.slice(-7); 
     } else if (filtro === '30') {
-        datosParaGrafica = registrosOrdenados.slice(-30); // Muestra los últimos 30 días
+        datosParaGrafica = registrosOrdenados.slice(-30); 
     }
     
     graficoActual = new Chart(ctx, {
@@ -98,27 +107,25 @@ function dibujarGrafica(registros) {
                 { 
                     label: 'Horas Trabajadas', 
                     data: datosParaGrafica.map(r => (r.trabajado / 3600).toFixed(2)), 
-                    borderColor: '#1A73E8', 
-                    backgroundColor: 'rgba(26, 115, 232, 0.1)', 
+                    borderColor: colorHoras,                                             /* 🌟 Tu nuevo color maestro del CSS */
+                    backgroundColor: chartBgColor,                                       /* 🌟 Fondo degradado automático */
                     fill: true, 
                     tension: 0.4,
                     yAxisID: 'y'
                 },
                 {
-                    label: 'Hora Inicio',
+                    label: 'Hora de Inicio',
                     data: datosParaGrafica.map(r => {
-                        if(!r.horaInicio) return null;
-                        const [h, m] = r.horaInicio.split(':');
-                        return parseFloat(h) + parseFloat(m)/60;
+                        if (!r.horaInicio || r.horaInicio === '-') return null;
+                        const partes = r.horaInicio.split(':');
+                        return parseInt(partes[0], 10) + (parseInt(partes[1], 10) / 60);
                     }),
-                    borderColor: '#2ECC71',
-                    backgroundColor: 'rgba(46, 204, 113, 0.1)',
+                    borderColor: colorInicio,                                             /* 🌟 Tu línea de hora de inicio */
+                    backgroundColor: 'transparent',
                     fill: false,
                     tension: 0.4,
-                    yAxisID: 'y2',
-                    borderDash: [4, 4]
+                    yAxisID: 'y2'
                 }
-                // ✅ Se eliminó el bloque de "Hora Fin" para mantener el gráfico más limpio
             ]
         },
         options: { 
@@ -161,20 +168,19 @@ function dibujarGrafica(registros) {
         }
     });
 }
+
+
 function renderizarTabla(registros) {
     const tablaCuerpo = document.getElementById('tabla-cuerpo');
     const btnAnt = document.getElementById('btn-anterior');
     const btnSig = document.getElementById('btn-siguiente');
     
-    // 1. Mantenemos el orden cronológico general para que las páginas se calculen bien
     const registrosOrdenados = [...registros].sort((a, b) => parsearFecha(a.fecha) - parsearFecha(b.fecha));
     
     const totalPaginas = Math.ceil(registrosOrdenados.length / registrosPorPagina) || 1;
     if (paginaActual > totalPaginas) paginaActual = totalPaginas;
     const inicio = (paginaActual - 1) * registrosPorPagina;
     
-    // ✅ CORRECCIÓN: Cortamos los 10 registros de la página y les aplicamos .reverse()
-    // Esto hace que el más nuevo de la página actual aparezca arriba del todo.
     const visibles = registrosOrdenados.slice(inicio, inicio + registrosPorPagina).reverse();
 
     tablaCuerpo.innerHTML = '';
@@ -189,7 +195,7 @@ function renderizarTabla(registros) {
         fila.innerHTML = `
             <td style="font-weight: 600;">${reg.fecha}</td>
             <td>${reg.meta}h</td>
-            <td style="color: #1A73E8; font-weight: bold;">${tiempoTrabajadoBonito}</td>
+            <td style="color: var(--accent); font-weight: bold;">${tiempoTrabajadoBonito}</td>
             <td style="color: #5f6368;">${inicio} → ${fin}</td>
             <td>${cumplio ? '<span class="badge-exito">SÍ</span>' : '<span class="badge-fallo">NO</span>'}</td>
             <td><button class="btn-borrar" onclick="preguntarBorrar(${reg.id})">🗑️ Borrar</button></td>
@@ -225,7 +231,6 @@ function actualizarKPIs() {
     const totalSegsHistorico = todos.reduce((s, r) => s + r.trabajado, 0);
     const promedioHistorico = totalSegsHistorico / todos.length;
 
-    // Promedio histórico sin el último día (para comparar)
     let indicadorHistorico = { texto: '', color: '#888' };
     if (todos.length > 1) {
         const sinUltimo = todos.slice(0, -1);
@@ -240,7 +245,7 @@ function actualizarKPIs() {
         `;
     }
 
-    // --- PROMEDIO SEMANAL (lunes a hoy de esta semana) ---
+    // --- PROMEDIO SEMANAL ---
     const lunes = getLunesActual();
     const registrosSemana = todos.filter(r => {
         const f = parsearFecha(r.fecha);
@@ -251,7 +256,6 @@ function actualizarKPIs() {
     if (registrosSemana.length > 0) {
         const promedioSemanal = registrosSemana.reduce((s, r) => s + r.trabajado, 0) / registrosSemana.length;
 
-        // Compara contra la semana sin el último día
         if (registrosSemana.length > 1) {
             const sinUltimoSemana = registrosSemana.slice(0, -1);
             const promedioSemanaAnterior = sinUltimoSemana.reduce((s, r) => s + r.trabajado, 0) / sinUltimoSemana.length;
@@ -272,7 +276,7 @@ function actualizarKPIs() {
     // --- MEJOR DÍA ---
     if(document.getElementById('kpi-mejor-dia')) {
         const mejor = todos.reduce((max, r) => r.trabajado > max.trabajado ? r : max);
-        document.getElementById('kpi-mejor-dia').innerText = `${segundosAHorasMinutos(mejor.trabajado)} (${mejor.fecha})`;
+        document.getElementById('kpi-mejor-dia').innerHTML = `${segundosAHorasMinutos(mejor.trabajado)} <span class="fecha-mejor-dia">(${mejor.fecha})</span>`;
     }
 }
 
@@ -287,14 +291,13 @@ window.inicializarMetricas = function() {
     const rangoFechas = document.getElementById('rango-fechas');
     const btnAplicarFiltro = document.getElementById('btn-aplicar-filtro');
 
-if (filtroSelect) {
+    if (filtroSelect) {
         filtroSelect.onchange = (e) => {
             if (e.target.value === 'custom') {
                 if(rangoFechas) rangoFechas.style.display = 'flex';
             } else {
                 if(rangoFechas) rangoFechas.style.display = 'none';
                 
-                // ✅ Ajuste al cambiar filtro: Calcular la última página del nuevo grupo de datos
                 const nuevosRegs = obtenerRegistrosFiltrados();
                 paginaActual = Math.ceil(nuevosRegs.length / registrosPorPagina) || 1;
                 
@@ -312,7 +315,6 @@ if (filtroSelect) {
     const btnSi = document.getElementById('confirmar-si');
     const btnNo = document.getElementById('confirmar-no');
 
-// ✅ Lógica estándar: Siguiente = avanzar página (fechas más recientes), Anterior = retroceder página (fechas más antiguas)
     if(btnSig) btnSig.onclick = () => { 
         const totalPaginas = Math.ceil(obtenerRegistrosFiltrados().length / registrosPorPagina);
         if (paginaActual < totalPaginas) { paginaActual++; actualizarGraficos(); } 
@@ -331,10 +333,9 @@ if (filtroSelect) {
     
     if(btnNo) btnNo.onclick = () => { document.getElementById('modal-confirmar').style.display = 'none'; };
 
-        // ✅ CORRECCIÓN: Al iniciar la app, calcular cuántas páginas hay en total y posicionarnos en la última (lo más reciente)
-        const registrosFiltrados = obtenerRegistrosFiltrados();
-        const totalPaginasAlInicio = Math.ceil(registrosFiltrados.length / registrosPorPagina) || 1;
-        paginaActual = totalPaginasAlInicio; 
+    const registrosFiltrados = obtenerRegistrosFiltrados();
+    const totalPaginasAlInicio = Math.ceil(registrosFiltrados.length / registrosPorPagina) || 1;
+    paginaActual = totalPaginasAlInicio; 
 
-        actualizarGraficos();
+    actualizarGraficos();
 }

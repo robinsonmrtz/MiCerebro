@@ -2,14 +2,14 @@
 // MÓDULO DE TIEMPO DE TRABAJO: temporizador.js
 // ==========================================
 
-let segundosTrabajados = 0, segundosDescansoActual = 0;   
+let segundosTrabajados = 0, segundosDescansoActual = 0, segundosDescansoAcumulado = 0;   
 let intervaloReloj, estadoActual = 'inactivo'; 
 let inicioMatematico = 0, tiempoInicioDescanso = 0, ultimoTramoAvisado = 0, limiteDescanso = 0; 
 let detectorInactividadActivo = false; 
 let fechaEnCurso = "";
 let intervaloAlarmaInactividad = null;
 
-// ✅ Hora de inicio del día — se registra al primer clic de Trabajar
+// Hora de inicio del día — se registra al primer clic de Trabajar
 let horaInicioSesion = null;
 
 let audioCtxGlobal = null;
@@ -104,7 +104,9 @@ function guardarEstadoContinuo() {
     const hoy = new Date().toLocaleDateString('es-CO');
     localStorage.setItem('sesionTrabajoTemporal', JSON.stringify({
         fecha: hoy, estado: estadoActual, inicioTrabajo: inicioMatematico, inicioDescanso: tiempoInicioDescanso,
-        segundosTrabajados, segundosDescansoActual, meta: metaInput ? metaInput.value : 8,
+        segundosTrabajados, segundosDescansoActual,
+        segundosDescansoAcumulado, // ✅ Guardamos el acumulado para recargas de página
+        meta: metaInput ? metaInput.value : 8,
         horaInicio: horaInicioSesion
     }));
 }
@@ -121,6 +123,62 @@ function actualizarInterfazEstado() {
             pantallaEstado.className = "estado-trabajando";
         }
     }
+}
+
+// ✅ Sincroniza la barra de progreso y el panel lateral
+function actualizarPanelUI() {
+    const metaInput = document.getElementById('input-meta');
+    if(!metaInput) return; // Si no existe el input, es que no estamos en la vista de trabajo
+
+    const fill = document.getElementById('barra-meta-fill');
+    const barraLabel = document.getElementById('barra-meta-label');
+    const panelTrabajado = document.getElementById('panel-trabajado');
+    const panelDescansado = document.getElementById('panel-descansado');
+    const panelRestante = document.getElementById('panel-restante');
+    const panelPct = document.getElementById('panel-pct');
+    const panelMetaVal = document.getElementById('panel-meta-val');
+    const panelBloques = document.getElementById('panel-bloques');
+    const panelInicio = document.getElementById('panel-inicio');
+    const panelEstado = document.getElementById('panel-estado');
+
+    const segs = segundosTrabajados || 0;
+    const meta = parseFloat(metaInput.value) || 8;
+    const metaSegs = meta * 3600;
+    const pct = Math.min(100, Math.round((segs / metaSegs) * 100));
+
+    const restSegs = Math.max(0, metaSegs - segs);
+    const rh = Math.floor(restSegs / 3600);
+    const rm = Math.floor((restSegs % 3600) / 60);
+
+    // ✅ Cálculo del tiempo total descansado (Historial del día + descanso activo)
+    const totalDescansoHoy = segundosDescansoAcumulado + (estadoActual === 'descansando' ? segundosDescansoActual : 0);
+
+    // Barra de progreso
+    if (fill) fill.style.width = pct + '%';
+    if (barraLabel) barraLabel.textContent = `Meta: ${meta}h`;
+    
+    // Panel de sesión
+    if (panelTrabajado) panelTrabajado.textContent = formatearTiempo(segs);
+    if (panelDescansado) panelDescansado.textContent = formatearTiempo(totalDescansoHoy); // ✅ Muestra el acumulado
+    if (panelMetaVal) panelMetaVal.textContent = `${meta}h 00m`;
+    if (panelRestante) panelRestante.textContent = `${rh}h ${String(rm).padStart(2,'0')}m`;
+    if (panelPct) panelPct.textContent = pct + '%';
+
+    if (panelEstado) {
+        let txt = 'Inactivo';
+        let clase = '';
+        if (estadoActual === 'trabajando') { txt = 'Trabajando'; clase = 'activo'; }
+        else if (estadoActual === 'pausado') { txt = 'Pausado'; clase = 'descansando'; }
+        else if (estadoActual === 'descansando') { txt = 'Descansando'; clase = 'descansando'; }
+        panelEstado.innerHTML = `<span class="status-dot ${clase}"></span>${txt}`;
+    }
+
+    if (panelInicio) {
+        panelInicio.textContent = horaInicioSesion ? horaInicioSesion : '--:--';
+    }
+
+    const bloqueMin = parseInt(document.getElementById('input-bloque')?.value) || 60;
+    if (panelBloques) panelBloques.textContent = Math.floor(segs / (bloqueMin * 60));
 }
 
 async function encenderSensorVigilante() {
@@ -148,6 +206,12 @@ function iniciarTrabajo(esRecuperacion = false) {
     
     detenerAlarmaIntermitente();
     encenderSensorVigilante();
+
+    // ✅ Si veníamos de descansar, sumamos ese descanso al acumulado histórico del día
+    if (estadoActual === 'descansando') {
+        segundosDescansoAcumulado += segundosDescansoActual;
+    }
+
     estadoActual = 'trabajando';
     clearInterval(intervaloReloj);
     segundosDescansoActual = 0;
@@ -157,7 +221,6 @@ function iniciarTrabajo(esRecuperacion = false) {
     if (!esRecuperacion) {
         segundosTrabajados = obtenerAcumuladoHoy();
         inicioMatematico = Date.now() - (segundosTrabajados * 1000);
-        // ✅ Solo registra hora de inicio si es la primera vez del día
         if (!horaInicioSesion) {
             horaInicioSesion = obtenerHoraActual();
         }
@@ -172,10 +235,11 @@ function iniciarTrabajo(esRecuperacion = false) {
         if (fechaAhora !== fechaEnCurso) {
             const meta = document.getElementById('input-meta') ? document.getElementById('input-meta').value : 8;
             if(typeof guardarSesionTrabajo === 'function') {
-                guardarSesionTrabajo(fechaEnCurso, parseFloat(meta), segundosTrabajados, 0, horaInicioSesion, obtenerHoraActual());
+                guardarSesionTrabajo(fechaEnCurso, parseFloat(meta), segundosTrabajados, segundosDescansoAcumulado, horaInicioSesion, obtenerHoraActual());
             }
             inicioMatematico = Date.now();
             segundosTrabajados = 0;
+            segundosDescansoAcumulado = 0; // ✅ Reseteamos el descanso para el nuevo día
             ultimoTramoAvisado = 0;
             horaInicioSesion = null;
             fechaEnCurso = fechaAhora;
@@ -242,17 +306,23 @@ function detenerTodo() {
     localStorage.removeItem('sesionTrabajoTemporal');
     clearInterval(intervaloReloj);
     
+    // ✅ Si terminamos el día mientras estábamos descansando, aseguramos de sumar ese último descanso
+    if (estadoActual === 'descansando') {
+        segundosDescansoAcumulado += segundosDescansoActual;
+    }
+    
     guardarAcumuladoHoy(segundosTrabajados);
     const meta = document.getElementById('input-meta') ? document.getElementById('input-meta').value : 8;
     const horaFin = obtenerHoraActual();
     
     if(typeof guardarSesionTrabajo === 'function') {
-        // ✅ Pasa hora de inicio y fin al guardar
-        guardarSesionTrabajo(new Date().toLocaleDateString('es-CO'), parseFloat(meta), segundosTrabajados, 0, horaInicioSesion, horaFin);
+        // ✅ Guardamos también el acumulado total en el historial final del día
+        guardarSesionTrabajo(new Date().toLocaleDateString('es-CO'), parseFloat(meta), segundosTrabajados, segundosDescansoAcumulado, horaInicioSesion, horaFin);
     }
     
     segundosTrabajados = 0;
     segundosDescansoActual = 0; 
+    segundosDescansoAcumulado = 0; // ✅ Se reinicia
     inicioMatematico = 0; 
     tiempoInicioDescanso = 0;
     horaInicioSesion = null;
@@ -266,6 +336,7 @@ function detenerTodo() {
 window.resetearAcumuladoTrabajo = function() {
     localStorage.removeItem('memoria_diaria_trabajo');
     segundosTrabajados = 0;
+    segundosDescansoAcumulado = 0; // ✅ También resetea descansos
     horaInicioSesion = null;
     if(estadoActual === 'inactivo' && pantallaTiempo) pantallaTiempo.innerText = "00:00:00";
 }
@@ -282,10 +353,10 @@ function recuperarEstadoTemporal() {
         }
         if(document.getElementById('input-meta')) document.getElementById('input-meta').value = temp.meta || 8;
         segundosTrabajados = temp.segundosTrabajados || 0;
+        segundosDescansoAcumulado = temp.segundosDescansoAcumulado || 0; // ✅ Recuperar histórico
         inicioMatematico = temp.inicioTrabajo || 0;
         segundosDescansoActual = 0;
         tiempoInicioDescanso = 0;
-        // ✅ Recupera la hora de inicio guardada
         horaInicioSesion = temp.horaInicio || null;
 
         if (temp.estado === 'trabajando') {
@@ -294,6 +365,9 @@ function recuperarEstadoTemporal() {
             iniciarTrabajo(true);
         } else if (temp.estado === 'descansando') {
             estadoActual = 'inactivo';
+            // ✅ Truco ninja: si el usuario refrescó la página mientras descansaba, 
+            // volcamos su descanso anterior en el acumulado para que no se pierda ni un segundo en la tarjeta.
+            segundosDescansoAcumulado += (temp.segundosDescansoActual || 0);
             iniciarDescanso(false);
         } else if (temp.estado === 'pausado') {
             estadoActual = 'pausado';
@@ -319,6 +393,10 @@ window.inicializarTemporizador = function() {
     btnTrabajar.onclick = () => iniciarTrabajo(false);
     btnDescansar.onclick = () => iniciarDescanso(false);
     btnDetener.onclick = detenerTodo;
+
+    if (window.intervaloPanelUI) clearInterval(window.intervaloPanelUI);
+    window.intervaloPanelUI = setInterval(actualizarPanelUI, 1000);
+    actualizarPanelUI(); 
 
     recuperarEstadoTemporal();
 }

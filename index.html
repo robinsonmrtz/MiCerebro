@@ -1,16 +1,16 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mi Segundo Cerebro</title>
-    </style>
+    <title>MiCerebro</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧠</text></svg>">
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/trabajo.css">
     <link rel="stylesheet" href="css/habitos.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#1A73E8">
+    <meta name="theme-color" content="#050912">
     <script>
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/sw.js');
@@ -21,43 +21,158 @@
 
     <div class="app-container">
 
-<!-- 1. BARRA LATERAL (SIDEBAR) -->
-        <aside class="sidebar">
-            <div class="perfil">
-                <div class="avatar" style="width: 80px; height: 80px; background: #e0e0e0; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 40px; margin: 0 auto 15px auto;">👨‍💻</div>
-                <h2>Robinson</h2>
-                <p class="score">⚡ Nivel 1</p>
+        <!-- SIDEBAR -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-inner">
+
+                <!-- Brand -->
+                <div class="sidebar-brand">
+                    <div class="brand-icon">🧠</div>
+                    <div class="brand-text">
+                        <span class="brand-name">MiCerebro</span>
+                        <span class="brand-sub">Robinson · Nivel 1</span>
+                    </div>
+                </div>
+
+                <!-- Nav -->
+                <nav class="menu">
+                    <ul id="menu-principal">
+                        <li class="activo" data-target="inicio">
+                            <i class="ti ti-home"></i><span>Inicio</span>
+                        </li>
+                        <li data-target="trabajo">
+                            <i class="ti ti-clock"></i><span>Tiempo de Trabajo</span>
+                        </li>
+                        <li data-target="habitos">
+                            <i class="ti ti-check"></i><span>Hábitos</span>
+                        </li>
+                        <li>
+                            <i class="ti ti-cash"></i><span>Finanzas</span>
+                        </li>
+                        <li>
+                            <i class="ti ti-barbell"></i><span>Gimnasio</span>
+                        </li>
+                        <li>
+                            <i class="ti ti-school"></i><span>Universidad</span>
+                        </li>
+                        <li>
+                            <i class="ti ti-rocket"></i><span>Proyectos</span>
+                        </li>
+                        <li data-target="backup">
+                            <i class="ti ti-database"></i><span>Backup y Datos</span>
+                        </li>
+                    </ul>
+                </nav>
+
+                <!-- Bottom -->
+                <div class="sidebar-bottom">
+                    <div class="plan-box">
+                        <div class="plan-label">Plan activo</div>
+                        <div class="plan-name">Productividad Total</div>
+                    </div>
+                    <div class="theme-toggle-row">
+                        <i class="ti ti-moon" id="theme-icon"></i>
+                        <span class="theme-toggle-label" id="theme-label">Modo oscuro</span>
+                        <label class="switch" aria-label="Cambiar tema">
+                            <input type="checkbox" id="theme-toggle">
+                            <span class="switch-track"></span>
+                        </label>
+                    </div>
+                </div>
+
             </div>
-            
-            <!-- Menú de navegación: Agregamos 'id' y 'data-target' -->
-            <nav class="menu">
-                <ul id="menu-principal">
-                    <li class="activo" data-target="inicio">🏠 Inicio</li>
-                    <li data-target="trabajo">⏱️ Tiempo de Trabajo</li>
-                    <li data-target="habitos">✅ Hábitos</li>
-                    <li>💰 Finanzas</li>
-                    <li>🏋️ Gimnasio</li>
-                    <li>📚 Universidad</li>
-                    <li>✅ Hábitos y Tareas</li>
-                    <li>🚀 Proyectos de Software</li>
-                    <li data-target="backup">💾 Backup y Datos</li>
-                </ul>
-            </nav>
         </aside>
 
-        <!-- 2. CONTENIDO PRINCIPAL (DERECHA) -->
-        <main id="contenedor-vistas" class="main-content">
-        </main>
+        <!-- MAIN -->
+        <div class="main-wrapper">
+            <!-- Topbar -->
+            <div class="topbar">
+                <button class="sidebar-toggle-btn" id="sidebar-toggle-btn" aria-label="Mostrar/ocultar menú">
+                    <i class="ti ti-layout-sidebar"></i>
+                </button>
+                <span class="topbar-title" id="topbar-title">Inicio</span>
+            </div>
+
+            <!-- Contenido -->
+            <main id="contenedor-vistas" class="main-content"></main>
+        </div>
 
     </div>
 
-    <!-- Conectamos nuestros scripts en orden -->
+    <!-- Overlay para móvil -->
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="js/core/storage.js"></script>
     <script src="js/modulos/metricas.js"></script>
     <script src="js/modulos/temporizador.js"></script>
     <script src="js/modulos/habitos.js"></script>
     <script src="js/core/app.js"></script>
+
+    <script>
+        // ── SIDEBAR TOGGLE ──────────────────────────────────────────
+        const sidebarEl   = document.getElementById('sidebar');
+        const overlayEl   = document.getElementById('sidebar-overlay');
+        const toggleBtn   = document.getElementById('sidebar-toggle-btn');
+
+        function isMobile() { return window.innerWidth < 768; }
+
+        toggleBtn.addEventListener('click', () => {
+            const open = sidebarEl.classList.toggle('open');
+            sidebarEl.classList.toggle('collapsed', !open && !isMobile());
+            if (isMobile()) overlayEl.classList.toggle('visible', open);
+        });
+
+        overlayEl.addEventListener('click', () => {
+            sidebarEl.classList.remove('open');
+            overlayEl.classList.remove('visible');
+        });
+
+        // Cerrar sidebar en móvil al navegar
+        document.getElementById('menu-principal').addEventListener('click', () => {
+            if (isMobile()) {
+                sidebarEl.classList.remove('open');
+                overlayEl.classList.remove('visible');
+            }
+        });
+
+        // Título del topbar al cambiar sección
+        document.getElementById('menu-principal').addEventListener('click', (e) => {
+            const li = e.target.closest('li');
+            if (!li) return;
+            const label = li.querySelector('span')?.textContent || li.textContent.trim();
+            document.getElementById('topbar-title').textContent = label;
+        });
+
+        // ── DARK / LIGHT MODE ───────────────────────────────────────
+        const themeToggle = document.getElementById('theme-toggle');
+        const themeIcon   = document.getElementById('theme-icon');
+        const themeLabel  = document.getElementById('theme-label');
+        const html        = document.documentElement;
+
+        // Leer preferencia guardada
+        const savedTheme = localStorage.getItem('micerebro_theme') || 'dark';
+        applyTheme(savedTheme);
+
+        themeToggle.addEventListener('change', () => {
+            const newTheme = themeToggle.checked ? 'light' : 'dark';
+            applyTheme(newTheme);
+            localStorage.setItem('micerebro_theme', newTheme);
+        });
+
+        function applyTheme(theme) {
+            html.setAttribute('data-theme', theme);
+            if (theme === 'light') {
+                themeToggle.checked = true;
+                themeIcon.className = 'ti ti-sun';
+                themeLabel.textContent = 'Modo claro';
+            } else {
+                themeToggle.checked = false;
+                themeIcon.className = 'ti ti-moon';
+                themeLabel.textContent = 'Modo oscuro';
+            }
+        }
+    </script>
 
 </body>
 </html>

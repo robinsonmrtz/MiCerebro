@@ -1,68 +1,138 @@
-<div class="seccion-titulo">
-    <h2>⏱️ Tiempo de Trabajo</h2>
-    <p>Gestiona y acumula tus sesiones diarias.</p>
+<div class="trabajo-header">
+    <div class="seccion-titulo">
+        <h2>Tiempo de Trabajo</h2>
+        <p>Sesiones en curso · acumula, mide y supera tus metas diarias.</p>
+    </div>
 </div>
 
-<div class="temporizador-contenedor">
-    <div class="configuracion-tiempo">
-        <label>Aviso trabajo (min): <input type="number" id="input-bloque" value="60"></label>
-        <label>Límite descanso (min): <input type="number" id="input-descanso" value="20"></label>
-        <label>Meta diaria (horas): <input type="number" id="input-meta" value="8" step="0.5"></label>
+<div class="kpi-strip">
+    <div class="kpi-card" style="--kpi-accent:#14af36">
+        <div class="kpi-card-emoji">📈</div>
+        <div class="kpi-card-label">Promedio semanal</div>
+        <div class="kpi-card-value" id="kpi-promedio-semanal">0m</div>
+        <div class="kpi-card-sub">Últimos 7 días</div>
+    </div>
+    <div class="kpi-card" style="--kpi-accent:#f59e0b">
+        <div class="kpi-card-emoji">🏆</div>
+        <div class="kpi-card-label">Mejor día</div>
+        <div class="kpi-card-value" id="kpi-mejor-dia">-</div>
+        <div class="kpi-card-sub">Récord histórico</div>
+    </div>
+    <div class="kpi-card" style="--kpi-accent:#4227d6">
+        <div class="kpi-card-emoji">🧮</div>
+        <div class="kpi-card-label">Promedio histórico</div>
+        <div class="kpi-card-value" id="kpi-promedio-historico">0m</div>
+        <div class="kpi-card-sub">Todos los registros</div>
+    </div>
+</div>
+
+<div class="trabajo-grid">
+
+    <div class="temporizador-contenedor">
+
+        <div class="configuracion-tiempo">
+            <label>⏰ Aviso trabajo (min): <input type="number" id="input-bloque" value="60"></label>
+            <label>☕ Límite descanso (min): <input type="number" id="input-descanso" value="20"></label>
+            <label>🎯 Meta diaria (horas): <input type="number" id="input-meta" value="8" step="0.5"></label>
+        </div>
+
+        <div id="tiempo-display">00:00:00</div>
+        <div id="estado-display" class="estado-inactivo">DÍA TERMINADO</div>
+
+        <div class="barra-meta-wrap">
+            <div class="barra-meta-labels">
+                <span>0h</span>
+                <span id="barra-meta-label">Meta: 8h</span>
+            </div>
+            <div class="barra-meta-track">
+                <div class="barra-meta-fill" id="barra-meta-fill"></div>
+            </div>
+        </div>
+
+        <div class="controles">
+            <button id="btn-trabajar" class="btn-primario">▶ Trabajar</button>
+            <button id="btn-descansar" class="btn-secundario">☕ Descansar</button>
+            <button id="btn-detener" class="btn-peligro">⏹ Terminar día</button>
+        </div>
+
     </div>
 
-    <div id="tiempo-display">00:00:00</div>
-    <div id="estado-display" class="estado-inactivo">DÍA TERMINADO</div>
-    
-    <div class="controles">
-        <button id="btn-trabajar" class="btn-primario">▶️ Trabajar</button>
-        <button id="btn-descansar" class="btn-secundario">☕ Descansar</button>
-        <button id="btn-detener" class="btn-peligro">⏹️ Terminar</button>
+    <div class="panel-sesion">
+
+        <div class="sesion-card">
+            <div class="sesion-card-title">Estado de sesión</div>
+            <div class="sesion-stat-row">
+                <span class="sesion-stat-label">Estado actual</span>
+                <span class="sesion-stat-value" id="panel-estado">
+                    <span class="status-dot" id="panel-dot"></span>Inactivo
+                </span>
+            </div>
+            <div class="sesion-stat-row">
+                <span class="sesion-stat-label">Inicio del día</span>
+                <span class="sesion-stat-value" id="panel-inicio">--:--</span>
+            </div>
+            <div class="sesion-stat-row">
+                <span class="sesion-stat-label">Tiempo trabajado</span>
+                <span class="sesion-stat-value" id="panel-trabajado">00:00:00</span>
+            </div>
+            <div class="sesion-stat-row">
+                <span class="sesion-stat-label">Tiempo descansado</span>
+                <span class="sesion-stat-value" id="panel-descansado">00:00:00</span>
+            </div>
+            <div class="sesion-stat-row">
+                <span class="sesion-stat-label">Bloques completados</span>
+                <span class="sesion-stat-value" id="panel-bloques">0</span>
+            </div>
+        </div>
+
+        <div class="sesion-card">
+            <div class="sesion-card-title">Meta de hoy</div>
+            <div class="sesion-stat-row">
+                <span class="sesion-stat-label">Meta</span>
+                <span class="sesion-stat-value" id="panel-meta-val">8h 00m</span>
+            </div>
+            <div class="sesion-stat-row">
+                <span class="sesion-stat-label">Restante</span>
+                <span class="sesion-stat-value" id="panel-restante" style="color:#f59e0b">8h 00m</span>
+            </div>
+            <div class="sesion-stat-row">
+                <span class="sesion-stat-label">Progreso</span>
+                <span class="sesion-stat-value" id="panel-pct" style="color:#10b981">0%</span>
+            </div>
+        </div>
+
     </div>
 </div>
 
 <div class="analitica-trabajo">
-    <div class="kpi-grid">
-        <div class="widget">
-            <h4>Promedio Semanal</h4>
-            <p id="kpi-promedio-semanal">0m</p>
-        </div>
-        <div class="widget">
-            <h4>Promedio Histórico</h4>
-            <p id="kpi-promedio-historico">0m</p>
-        </div>
-        <div class="widget">
-            <h4>Mejor Día</h4>
-            <p id="kpi-mejor-dia">-</p>
-        </div>
-    </div>
-    
+
     <div class="grafico-contenedor">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
-            <h3 style="color: #3c4043; font-size: 18px;">Rendimiento</h3>
-            
-            <div style="display: flex; gap: 10px; align-items: center;">
-                <select id="filtro-tiempo" style="padding: 8px; border-radius: 8px; border: 1px solid #dadce0;">
+        <div class="grafico-header">
+            <span class="grafico-titulo">Rendimiento semanal</span>
+            <div class="filtro-grupo">
+                <select id="filtro-tiempo" class="filtro-select">
                     <option value="all">Todos los registros</option>
                     <option value="7">Últimos 7 días</option>
                     <option value="30">Últimos 30 días</option>
-                    <option value="custom">Rango Personalizado</option>
+                    <option value="custom">Rango personalizado</option>
                 </select>
-                
-                <div id="rango-fechas" style="display: none; gap: 8px; align-items: center; background: #f8f9fa; padding: 5px 10px; border-radius: 8px;">
-                    <input type="date" id="fecha-inicio" style="border:1px solid #ddd; padding:4px; border-radius:4px;">
-                    <span style="color:#888;">a</span>
-                    <input type="date" id="fecha-fin" style="border:1px solid #ddd; padding:4px; border-radius:4px;">
-                    <button id="btn-aplicar-filtro" class="btn-mini" style="background:#1A73E8; color:white; border:none;">Ver</button>
+                <div id="rango-fechas" class="rango-fechas">
+                    <input type="date" id="fecha-inicio">
+                    <span>a</span>
+                    <input type="date" id="fecha-fin">
+                    <button id="btn-aplicar-filtro" class="btn-mini" style="background:var(--accent);color:#fff;border:none;">Ver</button>
                 </div>
             </div>
         </div>
-        
         <div class="canvas-wrapper">
             <canvas id="graficoTrabajo"></canvas>
         </div>
     </div>
-    
+
     <div class="tabla-contenedor">
+        <div class="tabla-header-row">
+            <span class="tabla-titulo">Historial de sesiones</span>
+        </div>
         <table class="tabla-historial">
             <thead>
                 <tr>
@@ -76,12 +146,13 @@
             </thead>
             <tbody id="tabla-cuerpo"></tbody>
         </table>
-        <div class="paginacion-controles" style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
-            <button id="btn-anterior" class="btn-mini">⬅️ Anterior</button>
-            <span id="info-paginacion" style="font-size: 14px; font-weight: 500; color: #888;"></span>
-            <button id="btn-siguiente" class="btn-mini">Siguiente ➡️</button>
+        <div class="paginacion-controles">
+            <button id="btn-anterior" class="btn-mini">← Anterior</button>
+            <span id="info-paginacion"></span>
+            <button id="btn-siguiente" class="btn-mini">Siguiente →</button>
         </div>
     </div>
+
 </div>
 
 <div id="modal-confirmar" class="modal-overlay">
