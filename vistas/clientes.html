@@ -1,0 +1,330 @@
+<div id="vista-lista-clientes">
+
+    <div class="clientes-header">
+        <div class="seccion-titulo" style="margin-bottom:0">
+            <h2>Clientes</h2>
+            <p>Gestiona tu portafolio, ingresos y entregas activas.</p>
+        </div>
+        <button onclick="window.abrirModalNuevoCliente()" class="btn-primario">
+            <i class="ti ti-plus" aria-hidden="true"></i> Nuevo cliente
+        </button>
+    </div>
+
+    <div class="kpi-strip-4">
+        <div class="kpi-card">
+            <div class="kpi-card-sub" style="display:flex; justify-content:space-between; align-items:center;">
+                <span>Ingresos</span>
+                <select id="filtro-mes-global" onchange="window.cambiarMesGlobal(this.value)" class="select-mes-kpi"></select>
+            </div>
+            <div class="kpi-card-val" id="kpi-global-ingresos">$0.00</div>
+            <div class="kpi-card-vs" id="kpi-global-ingresos-vs">— vs mes anterior</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-card-sub">Videos entregados</div>
+            <div class="kpi-card-val" id="kpi-global-entregados">0</div>
+            <div class="kpi-card-vs" id="kpi-global-entregados-vs">— vs mes anterior</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-card-sub">Trabajos pendientes</div>
+            <div class="kpi-card-val" id="kpi-global-pendientes">0</div>
+            <div class="kpi-card-vs" id="kpi-global-pendientes-clientes">en 0 clientes</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-card-sub">Clientes activos</div>
+            <div class="kpi-card-val" id="kpi-global-activos">0</div>
+            <div class="kpi-card-vs" id="kpi-global-activos-total">de 0 en total</div>
+        </div>
+    </div>
+
+    <div id="lista-clientes-grid"></div>
+
+</div>
+
+
+<div id="vista-panel-cliente" style="display:none">
+
+    <button class="back-btn" onclick="window.cerrarPanelCliente()">
+        <i class="ti ti-arrow-left" aria-hidden="true"></i> Volver a clientes
+    </button>
+
+    <div class="panel-cliente-header">
+        <div class="cliente-avatar" id="panel-avatar" style="width:52px;height:52px;font-size:18px;flex-shrink:0"></div>
+        <div class="panel-ch-info">
+            <div class="panel-ch-name" id="titulo-panel-cliente">Cargando…</div>
+            <div class="panel-ch-meta" id="panel-ch-meta">—</div>
+        </div>
+        <div class="panel-kpis" id="panel-kpis">
+            <div class="panel-kpi">
+                <div class="panel-kpi-val" id="pkpi-mes">$0</div>
+                <div class="panel-kpi-label" style="display:flex; align-items:center; justify-content:center;">
+                    <select id="filtro-mes-cliente" onchange="window.cambiarMesCliente(this.value)" class="select-mes-kpi" style="font-size:10px; color:var(--text-lo); margin-top:0"></select>
+                </div>
+            </div>
+            <div class="panel-kpi" style="transition: all 0.3s" id="caja-kpi-balance">
+                <div class="panel-kpi-val" id="pkpi-balance">$0</div>
+                <div class="panel-kpi-label" id="pkpi-balance-label">Balance</div>
+            </div>
+            <div class="panel-kpi">
+                <div class="panel-kpi-val" id="pkpi-entregados" style="color:var(--text-hi)">0</div>
+                <div class="panel-kpi-label">Entregados</div>
+            </div>
+            <div class="panel-kpi">
+                <div class="panel-kpi-val" id="pkpi-pendientes" style="color:var(--text-hi)">0</div>
+                <div class="panel-kpi-label">Pendientes</div>
+            </div>
+        </div>
+        <div style="display:flex; gap:10px; flex-shrink:0; align-items:center;">
+            <button onclick="window.abrirModalPago()" class="btn-secondary" style="border-color:var(--status-ok); color:var(--status-ok);">
+                <i class="ti ti-cash" aria-hidden="true"></i> Adelanto
+            </button>
+            <button onclick="window.abrirModalNuevoVideo()" class="btn-primary">
+                <i class="ti ti-plus" aria-hidden="true"></i> Video
+            </button>
+        </div>
+    </div>
+
+    <div class="notion-filter-bar">
+        <div class="notion-search-wrapper">
+            <input type="text" id="buscar-video-notion" placeholder="Buscar video por título…"
+                   oninput="window.filtrarVideosPorTexto(this.value)">
+        </div>
+        <div class="notion-pills-wrapper">
+            <button onclick="window.filtrarVideosPorEstado('todos')"       class="btn-notion-pill active" id="pill-todos">Todo</button>
+            <button onclick="window.filtrarVideosPorEstado('sin_empezar')" class="btn-notion-pill"        id="pill-sin_empezar">Sin empezar</button>
+            <button onclick="window.filtrarVideosPorEstado('en_curso')"    class="btn-notion-pill"        id="pill-en_curso">En curso</button>
+            <button onclick="window.filtrarVideosPorEstado('listo')"       class="btn-notion-pill"        id="pill-listo">Listo</button>
+        </div>
+    </div>
+
+    <div class="tabla-contenedor" style="overflow-x:auto">
+        <table class="tabla-historial" style="min-width:1100px">
+            <thead>
+                <tr>
+                    <th style="width:55px;text-align:center" onclick="window.cambiarOrdenVideos('numero')" class="th-clickable">
+                        # <span id="sort-numero" class="th-sort-indicator"></span>
+                    </th>
+                    <th onclick="window.cambiarOrdenVideos('nombre')" class="th-clickable">
+                        Nombre del video <span id="sort-nombre" class="th-sort-indicator"></span>
+                    </th>
+                    <th>Recibido</th>
+                    <th onclick="window.cambiarOrdenVideos('entrega')" class="th-clickable">
+                        Entrega <span id="sort-entrega" class="th-sort-indicator"></span>
+                    </th>
+                    <th>Guion</th>
+                    <th>Estado</th>
+                    <th>Tiempo</th>
+                    <th>Cobrado</th>
+                    <th>Subido</th>
+                    <th>Métricas</th>
+                    <th>Últ. edición</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody id="tabla-videos-cliente"></tbody>
+        </table>
+    </div>
+
+</div>
+
+
+<div id="modal-cliente" class="modal-overlay" style="display:none;z-index:2000">
+    <div class="modal-caja" style="max-width:440px;width:90%">
+
+        <h3 id="modal-cliente-titulo">Nuevo cliente</h3>
+
+        <div class="avatar-preview-wrap" style="margin:14px 0 6px">
+            <img id="cliente-preview-foto" src="" alt="Preview" class="avatar-preview-img">
+        </div>
+
+        <div class="modal-cliente-grid">
+            <label>
+                Nombre del canal / cliente
+                <input type="hidden" id="cliente-id">
+                <input type="text" id="cliente-nombre" class="input-minimalista"
+                       placeholder="Ej. MrBeast en Español"
+                       oninput="window.actualizarAvatarPreview()">
+            </label>
+            <label>
+                Servicio prestado
+                <input type="text" id="cliente-proyecto" class="input-minimalista"
+                       placeholder="Ej. Edición de YouTube">
+            </label>
+            <label>
+                País <span style="font-weight:400;text-transform:none">(genera bandera automática)</span>
+                <input type="text" id="cliente-pais" class="input-minimalista"
+                       placeholder="Colombia, España, México…">
+            </label>
+            <label>
+                URL foto de perfil <span style="font-weight:400;text-transform:none">(opcional)</span>
+                <input type="text" id="cliente-foto" class="input-minimalista"
+                       placeholder="https://…"
+                       oninput="window.actualizarAvatarPreview()">
+            </label>
+        </div>
+
+        <div class="modal-botones-row" style="margin-top:22px">
+            <button class="btn-secondary" onclick="window.cerrarModalCliente()">Cancelar</button>
+            <button class="btn-primary"   onclick="window.guardarCliente()">Guardar cliente</button>
+        </div>
+
+    </div>
+</div>
+
+
+<div id="modal-video-completo" class="modal-overlay" style="display:none;z-index:2000">
+    <div class="modal-caja modal-ancho">
+
+        <h3 id="modal-video-titulo" style="margin-bottom:18px">Agregar video</h3>
+        <input type="hidden" id="v-id-edit">
+
+        <div class="modal-video-section">
+            <div class="modal-video-section-title">Información general</div>
+            <div style="display:grid;grid-template-columns:70px 1fr 140px;gap:12px;margin-bottom:12px">
+                <label class="modal-video-label">
+                    Nº
+                    <input type="number" id="v-numero" class="input-minimalista" style="text-align:center">
+                </label>
+                <label class="modal-video-label">
+                    Título del video
+                    <input type="text" id="v-nombre" class="input-minimalista" placeholder="Ej. El misterio de…">
+                </label>
+                <label class="modal-video-label">
+                    Estado
+                    <select id="v-estado" class="input-minimalista">
+                        <option value="sin_empezar">Sin empezar</option>
+                        <option value="en_curso">En curso</option>
+                        <option value="listo">Listo</option>
+                    </select>
+                </label>
+            </div>
+            <div style="display:grid;grid-template-columns: repeat(5, 1fr);gap:12px">
+                <label class="modal-video-label">Recibido  <input type="date" id="v-f-recibido"  class="input-minimalista"></label>
+                <label class="modal-video-label">Entrega   <input type="date" id="v-f-entrega"   class="input-minimalista"></label>
+                <label class="modal-video-label">Subido    <input type="date" id="v-f-subido"    class="input-minimalista"></label>
+                <label class="modal-video-label">Pago      <input type="date" id="v-f-pago"      class="input-minimalista"></label>
+                <label class="modal-video-label">Tiempo de trabajo <input type="text" id="v-tiempo" class="input-minimalista" placeholder="4h 30m"></label>
+            </div>
+            <div style="margin-top:12px">
+                <label class="modal-video-label">Palabras del guion <input type="number" id="v-palabras" class="input-minimalista" value="0"></label>
+            </div>
+        </div>
+
+        <div class="modal-video-section">
+            <div class="modal-video-section-title">💰 Lo que nos paga el cliente</div>
+            <div class="modal-video-grid-2">
+                <label class="modal-video-label">
+                    Pago base ($)
+                    <input type="number" id="v-inversion" class="input-minimalista" value="0" step="0.01">
+                </label>
+                <label class="modal-video-label">
+                    Bono extra ($)
+                    <input type="number" id="v-bono" class="input-minimalista" value="0" step="0.01">
+                </label>
+            </div>
+        </div>
+
+        <div class="modal-video-section">
+            <div class="modal-video-section-title">📊 Métricas de redes sociales</div>
+            <div class="modal-video-grid-4">
+
+                <div class="red-card-modal">
+                    <div class="red-card-modal-title" style="color:#ff4757">
+                        <i class="ti ti-brand-youtube" aria-hidden="true"></i> YouTube
+                    </div>
+                    <label class="modal-video-label">Vistas   <input type="number" id="v-yt-vistas" class="input-minimalista" value="0"></label>
+                    <label class="modal-video-label" style="margin-top:8px">Likes    <input type="number" id="v-yt-likes"  class="input-minimalista" value="0"></label>
+                    <label class="modal-video-label" style="margin-top:8px">URL      <input type="text"   id="v-yt-url"    class="input-minimalista" placeholder="https://…"></label>
+                    <label class="modal-video-label" style="margin-top:8px">Nota     <input type="text"   id="v-yt-nota"   class="input-minimalista" placeholder="Opcional…"></label>
+                </div>
+
+                <div class="red-card-modal">
+                    <div class="red-card-modal-title" style="color:#1877f2">
+                        <i class="ti ti-brand-facebook" aria-hidden="true"></i> Facebook
+                    </div>
+                    <label class="modal-video-label">Vistas   <input type="number" id="v-fb-vistas" class="input-minimalista" value="0"></label>
+                    <label class="modal-video-label" style="margin-top:8px">Likes    <input type="number" id="v-fb-likes"  class="input-minimalista" value="0"></label>
+                    <label class="modal-video-label" style="margin-top:8px">URL      <input type="text"   id="v-fb-url"    class="input-minimalista" placeholder="https://…"></label>
+                    <label class="modal-video-label" style="margin-top:8px">Nota     <input type="text"   id="v-fb-nota"   class="input-minimalista" placeholder="Opcional…"></label>
+                </div>
+
+                <div class="red-card-modal">
+                    <div class="red-card-modal-title" style="color:var(--text-base)">
+                        <i class="ti ti-brand-tiktok" aria-hidden="true"></i> TikTok
+                    </div>
+                    <label class="modal-video-label">Vistas   <input type="number" id="v-tk-vistas" class="input-minimalista" value="0"></label>
+                    <label class="modal-video-label" style="margin-top:8px">Likes    <input type="number" id="v-tk-likes"  class="input-minimalista" value="0"></label>
+                    <label class="modal-video-label" style="margin-top:8px">URL      <input type="text"   id="v-tk-url"    class="input-minimalista" placeholder="https://…"></label>
+                    <label class="modal-video-label" style="margin-top:8px">Nota     <input type="text"   id="v-tk-nota"   class="input-minimalista" placeholder="Opcional…"></label>
+                </div>
+
+                <div class="red-card-modal">
+                    <div class="red-card-modal-title" style="color:#e1306c">
+                        <i class="ti ti-brand-instagram" aria-hidden="true"></i> Instagram
+                    </div>
+                    <label class="modal-video-label">Vistas   <input type="number" id="v-ig-vistas" class="input-minimalista" value="0"></label>
+                    <label class="modal-video-label" style="margin-top:8px">Likes    <input type="number" id="v-ig-likes"  class="input-minimalista" value="0"></label>
+                    <label class="modal-video-label" style="margin-top:8px">URL      <input type="text"   id="v-ig-url"    class="input-minimalista" placeholder="https://…"></label>
+                    <label class="modal-video-label" style="margin-top:8px">Nota     <input type="text"   id="v-ig-nota"   class="input-minimalista" placeholder="Opcional…"></label>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="modal-botones-row">
+            <button class="btn-secondary" onclick="window.cerrarModalVideo()">Cancelar</button>
+            <button class="btn-primary"   onclick="window.guardarVideoModal()">Guardar video</button>
+        </div>
+
+    </div>
+</div>
+
+<div id="modal-pago" class="modal-overlay" style="display:none;z-index:2000">
+    <div class="modal-caja" style="max-width:400px;width:90%">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px">
+            <h3 style="margin:0">Registrar Pago / Adelanto</h3>
+            <button class="back-btn" style="margin:0; font-size:11px" onclick="window.verHistorialPagos()">Ver historial</button>
+        </div>
+        
+        <div class="modal-cliente-grid">
+            <label>
+                Monto ($)
+                <input type="number" id="pago-monto" class="input-minimalista" placeholder="Ej. 500" step="0.01">
+            </label>
+            <label>
+                Fecha del pago
+                <input type="date" id="pago-fecha" class="input-minimalista">
+            </label>
+            <label>
+                Nota / Concepto (Opcional)
+                <input type="text" id="pago-nota" class="input-minimalista" placeholder="Ej. Pago por adelantado 4 videos...">
+            </label>
+        </div>
+
+        <div class="modal-botones-row" style="margin-top:22px">
+            <button class="btn-secondary" onclick="window.cerrarModalPago()">Cancelar</button>
+            <button class="btn-primary"   onclick="window.guardarPago()">Guardar pago</button>
+        </div>
+    </div>
+</div>
+
+<div id="modal-historial-pagos" class="modal-overlay" style="display:none;z-index:2010">
+    <div class="modal-caja" style="max-width:440px;width:90%">
+        <h3 style="margin-bottom:16px">Historial de Pagos</h3>
+        <div style="max-height:300px; overflow-y:auto">
+            <table class="tabla-historial" style="width:100%; min-width:100%">
+                <thead>
+                    <tr>
+                        <th style="padding: 8px">Fecha</th>
+                        <th style="padding: 8px">Monto</th>
+                        <th style="padding: 8px">Nota</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="tabla-pagos-body"></tbody>
+            </table>
+        </div>
+        <div class="modal-botones-row" style="margin-top:16px">
+            <button class="btn-secondary" onclick="window.cerrarHistorialPagos()">Cerrar historial</button>
+        </div>
+    </div>
+</div>

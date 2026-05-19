@@ -95,6 +95,14 @@ const mapaModulos = {
         'js/core/app.js',
         'js/core/storage.js'
     ],
+    'clientes': [
+        'vistas/clientes.html',
+        'css/clientes.css',
+        'js/modulos/clientes.js',
+        'js/core/storage.js',
+        'js/core/app.js',
+        'vistas/backup.html'
+    ],
     'todo': [
         'index.html',
         'css/styles.css',

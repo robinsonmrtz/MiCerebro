@@ -7,14 +7,20 @@ const VERSION_DATOS = "2.1";
 
 function cargarDatos() {
     const datos = localStorage.getItem('datos_cerebro');
-    if (datos) return JSON.parse(datos);
+    if (datos) {
+        let parseado = JSON.parse(datos);
+        // Protegemos tus datos viejos: si no existe la carpeta clientes, la crea vacía
+        if (!parseado.clientes) parseado.clientes = []; 
+        return parseado;
+    }
     return { 
         version: VERSION_DATOS,
         registro_trabajo: [], 
         habitos: [], 
         registro_habitos: {},
         config_habitos: null,
-        finanzas: []
+        finanzas: [],
+        clientes: [] // <--- NUEVO MÓDULO PREPARADO
     };
 }
 

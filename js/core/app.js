@@ -33,7 +33,11 @@ async function cargarVista(nombreVista) {
                     if (typeof inicializarTemporizador === 'function') inicializarTemporizador();
                     if (typeof inicializarMetricas === 'function') inicializarMetricas();
                 }, 50);
-            } else if (nombreVista === 'habitos') {
+            } else if (nombreVista === 'clientes') {
+                setTimeout(() => {
+                    if (typeof inicializarClientes === 'function') inicializarClientes();
+                }, 50);
+            } else if  (nombreVista === 'habitos') {
                 setTimeout(() => {
                     if (typeof inicializarHabitos === 'function') inicializarHabitos();
                 }, 50);

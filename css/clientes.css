@@ -1,0 +1,755 @@
+/* ============================================================
+   MICEREBRO — clientes.css
+   Módulo de Clientes. Solo estilos propios de este módulo.
+   Botones, modales base y tablas viven en styles.css.
+   ============================================================ */
+
+
+/* ── Header ─────────────────────────────────────────── */
+.clientes-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 22px;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.clientes-header .seccion-titulo { margin-bottom: 0; }
+
+
+/* ── KPI Strip (4 cards) ────────────────────────────── */
+.kpi-strip-4 {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.kpi-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: 12px;
+    padding: 16px 18px;
+    position: relative;
+    overflow: hidden;
+    transition: background 0.25s, border-color 0.25s;
+}
+
+.kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--accent);
+    border-radius: 12px 12px 0 0;
+}
+
+.kpi-card-sub {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+    color: var(--text-lo);
+    margin-bottom: 8px;
+}
+
+.kpi-card-val {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1;
+    margin-bottom: 5px;
+}
+
+.kpi-card-vs {
+    font-size: 11px;
+    color: var(--text-lo);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.kpi-card-vs.sube { color: var(--status-ok); }
+.kpi-card-vs.baja { color: var(--status-danger); }
+
+
+/* ── Lista de clientes (filas horizontales) ─────────── */
+#lista-clientes-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.cliente-card-horizontal {
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: 12px;
+    padding: 14px 18px;
+    display: grid;
+    grid-template-columns: 44px 1fr 130px 80px 110px 110px;
+    align-items: center;
+    gap: 16px;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.cliente-card-horizontal:hover {
+    background: var(--bg-hover);
+    border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+/* Avatar */
+.cliente-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: var(--bg-input);
+    border: 1px solid var(--border-card);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--clr-white);
+}
+
+/* Nombre y servicio */
+.cliente-nombre {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-hi);
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.cliente-proyecto {
+    font-size: 11px;
+    color: var(--text-lo);
+}
+
+/* Ingresos del mes */
+.cliente-col-dinero { text-align: right; }
+
+.cliente-monto {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-hi);
+    margin-bottom: 2px;
+}
+
+.cliente-metrica {
+    font-size: 11px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    justify-content: flex-end;
+}
+
+.cliente-metrica.sube { color: var(--status-ok); }
+.cliente-metrica.baja { color: var(--status-danger); }
+
+/* Videos count */
+.cliente-col-videos { text-align: center; }
+
+.videos-num {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-hi);
+    line-height: 1;
+}
+
+.videos-lbl {
+    font-size: 10px;
+    color: var(--text-lo);
+    margin-top: 2px;
+}
+
+/* Estado badge */
+.cliente-col-estado { display: flex; justify-content: center; }
+
+.badge-estado {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    white-space: nowrap;
+}
+
+.badge-estado.aldia {
+    background: color-mix(in srgb, var(--status-ok) 12%, transparent);
+    color: var(--status-ok);
+}
+
+.badge-estado.pendiente {
+    background: color-mix(in srgb, var(--status-warn) 12%, transparent);
+    color: var(--status-warn);
+}
+
+.badge-estado.atrasado {
+    background: color-mix(in srgb, var(--status-danger) 12%, transparent);
+    color: var(--status-danger);
+}
+
+/* Acciones */
+.cliente-col-acciones {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 5px;
+}
+
+/* Botones de acción mini (heredan base de .btn-ghost en styles.css) */
+.btn-accion-mini {
+    width: 30px;
+    height: 30px;
+    border-radius: 7px;
+    border: 1px solid var(--border-card);
+    background: var(--bg-input);
+    color: var(--text-lo);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.15s;
+    flex-shrink: 0;
+}
+
+.btn-accion-mini:hover { color: var(--text-hi); border-color: var(--text-lo); }
+.btn-accion-mini.primary:hover { color: var(--accent); border-color: var(--accent); background: var(--bg-active); }
+.btn-accion-mini.danger:hover  { color: var(--status-danger); border-color: var(--status-danger); background: color-mix(in srgb, var(--status-danger) 10%, transparent); }
+
+/* Estado vacío */
+.estado-vacio {
+    text-align: center;
+    padding: 48px 20px;
+    color: var(--text-lo);
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: 12px;
+    font-size: 13px;
+}
+
+.estado-vacio i {
+    font-size: 36px;
+    display: block;
+    margin-bottom: 12px;
+    opacity: 0.4;
+}
+
+
+/* ── Panel del cliente (vista 2) ────────────────────── */
+.back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-lo);
+    font-size: 12px;
+    cursor: pointer;
+    margin-bottom: 16px;
+    background: none;
+    border: none;
+    padding: 0;
+    transition: color 0.15s;
+}
+
+.back-btn:hover { color: var(--accent); }
+
+/* Header del panel con stats */
+.panel-cliente-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.panel-ch-info { flex: 1; min-width: 180px; }
+
+.panel-ch-name {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-hi);
+    margin-bottom: 3px;
+}
+
+.panel-ch-meta {
+    font-size: 12px;
+    color: var(--text-lo);
+}
+
+/* KPIs del panel del cliente */
+.panel-kpis {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.panel-kpi {
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: 10px;
+    padding: 10px 16px;
+    text-align: center;
+    min-width: 90px;
+}
+
+.panel-kpi-val {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1;
+}
+
+.panel-kpi-label {
+    font-size: 10px;
+    color: var(--text-lo);
+    margin-top: 3px;
+    white-space: nowrap;
+}
+
+
+/* ── Barra de filtros (estilo Notion) ───────────────── */
+.notion-filter-bar {
+    display: flex;
+    gap: 14px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    align-items: center;
+    background: var(--bg-card);
+    padding: 11px 16px;
+    border-radius: 10px;
+    border: 1px solid var(--border-card);
+}
+
+.notion-search-wrapper {
+    flex: 1;
+    min-width: 220px;
+}
+
+/* El input hereda .input-minimalista de habitos.css o styles.css */
+.notion-search-wrapper input {
+    margin: 0;
+    width: 100%;
+    background: var(--bg-input);
+    border: 1px solid var(--border-card);
+    border-radius: 8px;
+    padding: 7px 12px;
+    font-size: 12px;
+    color: var(--text-base);
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.notion-search-wrapper input:focus { border-color: var(--accent); }
+
+.notion-pills-wrapper {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.btn-notion-pill {
+    background: var(--bg-input);
+    border: 1px solid var(--border-card);
+    color: var(--text-lo);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 5px 13px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.btn-notion-pill:hover {
+    color: var(--text-base);
+    border-color: var(--text-lo);
+}
+
+.btn-notion-pill.active {
+    background: var(--bg-active);
+    color: var(--accent);
+    border-color: var(--accent);
+}
+
+
+/* ── Tabla de videos ────────────────────────────────── */
+.tabla-contenedor { margin-bottom: 0; }
+
+.th-clickable {
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s, color 0.15s;
+}
+
+.th-clickable:hover {
+    background: var(--bg-input) !important;
+    color: var(--text-hi) !important;
+}
+
+.th-sort-indicator {
+    font-size: 10px;
+    color: var(--accent);
+    font-weight: 700;
+    margin-left: 4px;
+}
+
+/* Barra de palabras del guion */
+.progress-bg {
+    background: var(--border-card);
+    border-radius: 4px;
+    height: 5px;
+    width: 100%;
+    overflow: hidden;
+}
+
+.progress-fill {
+    background: var(--accent);
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+/* Select de estado inline en tabla (estilo Notion) */
+.notion-status-select {
+    appearance: none;
+    -webkit-appearance: none;
+    border: none;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 10px;
+    font-weight: 700;
+    cursor: pointer;
+    text-align: center;
+    outline: none;
+    transition: filter 0.15s;
+    font-family: inherit;
+    letter-spacing: 0.3px;
+}
+
+.notion-status-select:hover { filter: brightness(1.15); }
+.notion-status-select option { background: var(--bg-card); color: var(--text-hi); }
+
+.bg-notion-red    { background: color-mix(in srgb, var(--status-danger) 15%, transparent); color: var(--status-danger); }
+.bg-notion-yellow { background: color-mix(in srgb, var(--status-warn) 15%, transparent);   color: var(--status-warn); }
+.bg-notion-green  { background: color-mix(in srgb, var(--status-ok) 15%, transparent);     color: var(--status-ok); }
+
+/* Link externo en tabla */
+.act-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-input);
+    border: 1px solid var(--border-card);
+    cursor: pointer;
+    color: var(--text-lo);
+    font-size: 13px;
+    transition: all 0.15s;
+    text-decoration: none;
+}
+
+.act-btn:hover         { color: var(--text-hi); }
+.act-btn.primary:hover { color: var(--accent); border-color: var(--accent); background: var(--bg-active); }
+.act-btn.danger:hover  { color: var(--status-danger); border-color: var(--status-danger); background: color-mix(in srgb, var(--status-danger) 10%, transparent); }
+
+
+/* ── Panel expandible redes + finanzas ──────────────── */
+.redes-row td {
+    padding: 0 !important;
+    border: none !important;
+}
+
+.redes-panel-grid {
+    background: var(--bg-input);
+    border-bottom: 1px solid var(--border-card);
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* Fila de cards de redes (2 en la parte superior) */
+.redes-top-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+}
+
+/* Fila de cards financieras (3 en la parte inferior) */
+.redes-bottom-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+}
+
+/* Card de datos (redes / finanzas) */
+.data-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: 10px;
+    padding: 12px 14px;
+}
+
+.data-card h5 {
+    font-size: 11px;
+    font-weight: 700;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--text-hi);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.data-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    padding: 4px 0;
+    color: var(--text-lo);
+    border-bottom: 1px solid var(--border-card);
+}
+
+.data-row:last-of-type { border-bottom: none; }
+
+.data-row span:last-child {
+    color: var(--text-hi);
+    font-weight: 600;
+}
+
+/* Fila de totales — más prominente */
+.data-row.total {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-hi);
+    border-top: 1px solid var(--border-card);
+    border-bottom: none;
+    padding-top: 8px;
+    margin-top: 4px;
+}
+
+.data-row.total span:last-child {
+    color: var(--status-ok);
+}
+
+/* Input invisible para editar valores inline */
+.input-invisible {
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--text-hi);
+    font-weight: 600;
+    width: 100%;
+    text-align: right;
+    border-radius: 4px;
+    padding: 1px 4px;
+    font-size: 12px;
+    font-family: inherit;
+    transition: background 0.15s, border-color 0.15s;
+    outline: none;
+}
+
+.input-invisible:hover,
+.input-invisible:focus {
+    background: var(--bg-input);
+    border-color: var(--border-card);
+}
+
+.input-invisible:focus { border-color: var(--accent); }
+
+
+/* ── Modal de cliente ───────────────────────────────── */
+.modal-cliente-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-top: 16px;
+    text-align: left;
+}
+
+.modal-cliente-grid label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: var(--text-lo);
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.avatar-preview-wrap {
+    text-align: center;
+    margin-bottom: 6px;
+}
+
+.avatar-preview-img {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--accent);
+    display: block;
+    margin: 0 auto;
+}
+
+
+/* ── Modal de video (ancho) ─────────────────────────── */
+.modal-ancho {
+    width: 95%;
+    max-width: 860px !important;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.modal-ancho::-webkit-scrollbar { width: 6px; }
+.modal-ancho::-webkit-scrollbar-thumb { background: var(--border-card); border-radius: 4px; }
+
+/* Secciones del modal de video */
+.modal-video-section {
+    background: var(--bg-input);
+    border: 1px solid var(--border-card);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 14px;
+}
+
+.modal-video-section-title {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--text-lo);
+    margin-bottom: 12px;
+}
+
+.modal-video-grid-4 {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+}
+
+.modal-video-grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+
+.modal-video-grid-2 {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+}
+
+.modal-video-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-lo);
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+/* Cards de redes dentro del modal */
+.red-card-modal {
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: 9px;
+    padding: 12px 14px;
+}
+
+.red-card-modal-title {
+    font-size: 11px;
+    font-weight: 700;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+/* Input minimalista dentro de los modales */
+.input-minimalista {
+    width: 100%;
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 12px;
+    color: var(--text-base);
+    outline: none;
+    transition: border-color 0.2s;
+    font-family: inherit;
+    margin-top: 0;
+    box-sizing: border-box;
+}
+
+.input-minimalista:focus { border-color: var(--accent); }
+.input-minimalista option { background: var(--bg-card); color: var(--text-hi); }
+
+
+/* ── Responsive ─────────────────────────────────────── */
+@media (max-width: 1024px) {
+    .cliente-card-horizontal {
+        grid-template-columns: 44px 1fr 110px 70px 100px 100px;
+        gap: 10px;
+    }
+
+    .redes-top-row    { grid-template-columns: repeat(2, 1fr); }
+    .redes-bottom-row { grid-template-columns: repeat(2, 1fr) !important; }
+}
+
+@media (max-width: 768px) {
+    .kpi-strip { grid-template-columns: repeat(2, 1fr); }
+
+    .cliente-card-horizontal {
+        grid-template-columns: 44px 1fr auto;
+        gap: 10px;
+    }
+
+    .cliente-col-dinero,
+    .cliente-col-videos,
+    .cliente-col-estado { display: none; }
+
+    .redes-top-row    { grid-template-columns: 1fr 1fr; }
+    .redes-bottom-row { grid-template-columns: 1fr !important; }
+
+    .modal-video-grid-4 { grid-template-columns: repeat(2, 1fr); }
+    .modal-video-grid-3 { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ── Dropdown de Meses en KPIs ──────────────────────── */
+.select-mes-kpi {
+    background: transparent;
+    border: none;
+    color: var(--text-lo);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    outline: none;
+    cursor: pointer;
+    font-family: inherit;
+    padding: 0;
+    margin: 0;
+}
+.select-mes-kpi option {
+    background: var(--bg-card);
+    color: var(--text-hi);
+    text-transform: capitalize;
+}
+.select-mes-kpi:hover {
+    color: var(--text-base);
+}
