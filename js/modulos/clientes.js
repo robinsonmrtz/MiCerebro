@@ -1,6 +1,6 @@
 // =========================================================================
 // MÓDULO CLIENTES — clientes.js
-// Foco: Flujo de caja real. Ingresos = Pagos adelantados. Balance = Pagos - Videos Listos.
+// Foco: Flujo de caja real. Balance invertido. Palabras dinámicas.
 // =========================================================================
 
 let clienteActualId = null;
@@ -132,8 +132,12 @@ function calcularMetricasGlobales() {
 
     const stats = clientes.map(cliente => {
         let ingMesAct = 0, ingMesAntTotal = 0;
-        let pendientes = 0, sinEmpezar = 0, enCurso = 0, tieneActividad = false;
+        let pendientes = 0, sinEmpezar = 0, enCurso = 0;
         let totalPagado = 0, totalConsumido = 0;
+        
+        // --- LOGICA DE CLIENTE INACTIVO ---
+        // Rastreamos la última vez que pasó ALGO con este cliente
+        let ultimaFecha = new Date(cliente.fecha_creacion || 0).getTime();
 
         // Entradas: Los Pagos (La Bolsa)
         (cliente.pagos || []).forEach(p => {
@@ -141,8 +145,9 @@ function calcularMetricasGlobales() {
             totalPagado += monto;
             const f = new Date(p.fecha + 'T00:00:00');
             if (!isNaN(f)) {
+                if (f.getTime() > ultimaFecha) ultimaFecha = f.getTime(); // Registra fecha del pago
                 if (f.getMonth() === mesAct && f.getFullYear() === anoAct) {
-                    ingresosMesAct += monto; ingMesAct += monto; tieneActividad = true;
+                    ingresosMesAct += monto; ingMesAct += monto; 
                 } else if (f.getMonth() === mesAnt && f.getFullYear() === anoAnt) {
                     ingMesAntTotal += monto;
                     if (!esMesActual || f.getDate() <= diaAct) ingresosMesAntHasta += monto;
@@ -156,13 +161,24 @@ function calcularMetricasGlobales() {
 
             if (v.estado === 'sin_empezar') { sinEmpezar++; pendientes++; totalPendientes++; clientesConPend.add(cliente.id); }
             else if (v.estado === 'en_curso') { enCurso++; pendientes++; totalPendientes++; clientesConPend.add(cliente.id); }
-            else if (v.estado === 'listo') { totalConsumido += cobrado; } // Solo resta de la bolsa cuando está Listo
+            else if (v.estado === 'listo') { totalConsumido += cobrado; }
+
+            // Registra la fecha más reciente de cualquier actividad de este video
+            const fechasVideo = [v.fecha_recibido, v.fecha_entrega, v.fecha_subido, v.fecha_pago].filter(Boolean);
+            fechasVideo.forEach(fv => {
+                const df = new Date(fv + 'T00:00:00').getTime();
+                if (!isNaN(df) && df > ultimaFecha) ultimaFecha = df;
+            });
+            if (v.ultima_edicion) {
+                const due = new Date(v.ultima_edicion).getTime();
+                if (!isNaN(due) && due > ultimaFecha) ultimaFecha = due;
+            }
 
             const strFecha = v.fecha_entrega || v.fecha_pago || v.fecha_recibido || (v.ultima_edicion ? v.ultima_edicion.split('T')[0] : null);
             if (strFecha && v.estado === 'listo') {
                 const f = new Date(strFecha + 'T00:00:00');
                 if (!isNaN(f)) {
-                    if (f.getMonth() === mesAct && f.getFullYear() === anoAct) { entregadosMesAct++; tieneActividad = true; }
+                    if (f.getMonth() === mesAct && f.getFullYear() === anoAct) { entregadosMesAct++; }
                     else if (f.getMonth() === mesAnt && f.getFullYear() === anoAnt) {
                         if (!esMesActual || f.getDate() <= diaAct) entregadosMesAntHasta++;
                     }
@@ -170,7 +186,11 @@ function calcularMetricasGlobales() {
             }
         });
 
-        if (tieneActividad || pendientes > 0) totalActivos++;
+        // Cálculo de Inactividad (> 30 días sin nada de actividad y sin pendientes)
+        const diffDias = (Date.now() - ultimaFecha) / (1000 * 60 * 60 * 24);
+        const inactivo = (pendientes === 0 && diffDias > 30);
+
+        if (!inactivo) totalActivos++;
 
         let tendenciaClase = '', tendenciaTexto = '— Igual';
         if (ingMesAntTotal === 0 && ingMesAct > 0) { tendenciaClase = 'sube'; tendenciaTexto = '↑ Nuevo'; }
@@ -180,7 +200,7 @@ function calcularMetricasGlobales() {
         return {
             id: cliente.id, nombre: cliente.nombre, proyecto: cliente.proyecto, foto: cliente.foto, pais: cliente.pais,
             totalVideos: (cliente.videos || []).length, pendientes, sinEmpezar, enCurso, ingMesAct, tendenciaClase, tendenciaTexto,
-            balance: totalPagado - totalConsumido
+            balance: totalPagado - totalConsumido, inactivo
         };
     });
 
@@ -230,8 +250,13 @@ function renderizarListaClientes() {
             : `<div class="cliente-avatar" ${inicialesToAvatar(c.nombre)}>${c.nombre.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase()}</div>`;
 
         let badgeClase, badgeTxt;
-        if (c.pendientes === 0) { badgeClase = 'aldia'; badgeTxt = 'Al día'; } 
-        else {
+        if (c.pendientes === 0) {
+            if (c.inactivo) {
+                badgeClase = 'inactivo'; badgeTxt = 'Inactivo';
+            } else {
+                badgeClase = 'aldia'; badgeTxt = 'Al día'; 
+            }
+        } else {
             let detalles = [];
             if (c.enCurso > 0) detalles.push(`${c.enCurso} en curso`);
             if (c.sinEmpezar > 0) detalles.push(`${c.sinEmpezar} sin empezar`);
@@ -239,10 +264,10 @@ function renderizarListaClientes() {
             badgeTxt = detalles.join(', ');
         }
 
-        // Etiqueta inteligente de Balance para cada cliente
+        // Etiqueta inteligente de Balance Invertida
         let badgeBalance;
-        if (c.balance > 0) badgeBalance = `<div style="font-size:10px; color:var(--status-ok); font-weight:700; margin-top:4px">A favor: $${c.balance.toFixed(2)}</div>`;
-        else if (c.balance < 0) badgeBalance = `<div style="font-size:10px; color:var(--status-danger); font-weight:700; margin-top:4px">Deuda: -$${Math.abs(c.balance).toFixed(2)}</div>`;
+        if (c.balance > 0) badgeBalance = `<div style="font-size:10px; color:var(--status-danger); font-weight:700; margin-top:4px">Consignación: $${c.balance.toFixed(2)}</div>`;
+        else if (c.balance < 0) badgeBalance = `<div style="font-size:10px; color:var(--status-ok); font-weight:700; margin-top:4px">Por cobrar: $${Math.abs(c.balance).toFixed(2)}</div>`;
         else badgeBalance = `<div style="font-size:10px; color:var(--text-lo); font-weight:700; margin-top:4px">Balance al día</div>`;
 
         return `
@@ -356,11 +381,11 @@ window.renderizarKpisCliente = function() {
     const caja = document.getElementById('caja-kpi-balance');
     if (balEl && balLbl && caja) {
         if (balance > 0) {
-            balEl.textContent = `$${balance.toFixed(2)}`; balEl.style.color = 'var(--status-ok)'; balLbl.textContent = 'Saldo a favor';
-            caja.style.borderColor = 'color-mix(in srgb, var(--status-ok) 30%, transparent)'; caja.style.background = 'color-mix(in srgb, var(--status-ok) 5%, transparent)';
-        } else if (balance < 0) {
-            balEl.textContent = `-$${Math.abs(balance).toFixed(2)}`; balEl.style.color = 'var(--status-danger)'; balLbl.textContent = 'Pendiente cobro';
+            balEl.textContent = `$${balance.toFixed(2)}`; balEl.style.color = 'var(--status-danger)'; balLbl.textContent = 'Consignación';
             caja.style.borderColor = 'color-mix(in srgb, var(--status-danger) 30%, transparent)'; caja.style.background = 'color-mix(in srgb, var(--status-danger) 5%, transparent)';
+        } else if (balance < 0) {
+            balEl.textContent = `$${Math.abs(balance).toFixed(2)}`; balEl.style.color = 'var(--status-ok)'; balLbl.textContent = 'Por cobrar';
+            caja.style.borderColor = 'color-mix(in srgb, var(--status-ok) 30%, transparent)'; caja.style.background = 'color-mix(in srgb, var(--status-ok) 5%, transparent)';
         } else {
             balEl.textContent = `$0.00`; balEl.style.color = 'var(--text-hi)'; balLbl.textContent = 'Balance en cero';
             caja.style.borderColor = 'var(--border-card)'; caja.style.background = 'var(--bg-card)';
@@ -447,7 +472,30 @@ window.filtrarVideosPorTexto = function (valor) { filtroVideoTexto = valor.toLow
 window.filtrarVideosPorEstado = function (estado) { filtroVideoEstado = estado; actualizarPills(); renderizarTablaVideos(); };
 function actualizarPills() { ['todos', 'sin_empezar', 'en_curso', 'listo'].forEach(p => { const el = document.getElementById(`pill-${p}`); if (el) el.classList.toggle('active', p === filtroVideoEstado); }); }
 window.cambiarOrdenVideos = function (col) { if (ordenVideoColumna === col) { ordenVideoDireccion = ordenVideoDireccion === 'asc' ? 'desc' : 'asc'; } else { ordenVideoColumna = col; ordenVideoDireccion = 'asc'; } renderizarTablaVideos(); };
-function actualizarIndicadoresOrden() { ['numero', 'nombre', 'entrega'].forEach(c => { const el = document.getElementById(`sort-${c}`); if (el) el.textContent = c === ordenVideoColumna ? (ordenVideoDireccion === 'asc' ? '▲' : '▼') : ''; }); }
+
+// Función inteligente para convertir "4h 30m" o "4.5" a número (horas)
+function parsearHoras(tiempoStr) {
+    if (!tiempoStr) return 0;
+    let hrs = 0;
+    const str = String(tiempoStr).toLowerCase().trim();
+    const matchH = str.match(/(\d+)\s*h/);
+    const matchM = str.match(/(\d+)\s*m/);
+    if (matchH || matchM) {
+        if (matchH) hrs += parseInt(matchH[1], 10);
+        if (matchM) hrs += parseInt(matchM[1], 10) / 60;
+    } else {
+        const f = parseFloat(str);
+        if (!isNaN(f)) hrs = f;
+    }
+    return hrs;
+}
+
+function actualizarIndicadoresOrden() { 
+    ['numero', 'nombre', 'entrega', 'guion', 'tiempo', 'subido'].forEach(c => { 
+        const el = document.getElementById(`sort-${c}`); 
+        if (el) el.textContent = c === ordenVideoColumna ? (ordenVideoDireccion === 'asc' ? '▲' : '▼') : ''; 
+    }); 
+}
 
 function renderizarTablaVideos() {
     const cuerpo = document.getElementById('tabla-videos-cliente');
@@ -465,15 +513,50 @@ function renderizarTablaVideos() {
         if (ordenVideoColumna === 'numero') { va = a.numero_video || 0; vb = b.numero_video || 0; }
         else if (ordenVideoColumna === 'nombre') { va = (a.nombre || '').toLowerCase(); vb = (b.nombre || '').toLowerCase(); }
         else if (ordenVideoColumna === 'entrega') { va = a.fecha_entrega || '9999'; vb = b.fecha_entrega || '9999'; }
+        else if (ordenVideoColumna === 'guion') { va = a.palabras_guion || 0; vb = b.palabras_guion || 0; }
+        else if (ordenVideoColumna === 'tiempo') { va = parsearHoras(a.tiempo_trabajo); vb = parsearHoras(b.tiempo_trabajo); }
+        else if (ordenVideoColumna === 'subido') { va = a.fecha_subido || '9999'; vb = b.fecha_subido || '9999'; }
         else return 0;
         if (va < vb) return ordenVideoDireccion === 'asc' ? -1 : 1;
         if (va > vb) return ordenVideoDireccion === 'asc' ? 1 : -1; return 0;
     });
 
     actualizarIndicadoresOrden();
+    
+    // Obtenemos el promedio de palabras o asumimos 3000 por defecto
+    const promedioPal = cliente.promedio_palabras || 3000;
+
     cuerpo.innerHTML = lista.map(v => {
         const cobrado = (v.finanzas?.inversion || 0) + (v.finanzas?.bono || 0);
-        const palabras = v.palabras_guion || 0; const pctPal = Math.min(100, (palabras / 3000) * 100);
+        
+        // Cálculo dinámico de barra de palabras basado en el promedio de cada cliente
+        const palabras = v.palabras_guion || 0; 
+        const pctPal = Math.min(100, (palabras / promedioPal) * 100);
+        
+        // --- CÁLCULO 1: RENTABILIDAD POR HORA ---
+        const horasTrabajadas = parsearHoras(v.tiempo_trabajo);
+        let rentabilidadHtml = '';
+        if (horasTrabajadas > 0 && cobrado > 0) {
+            rentabilidadHtml = `<div style="font-size:10px; color:var(--text-lo); font-weight:600; margin-top:3px" title="Rentabilidad">$${(cobrado/horasTrabajadas).toFixed(1)}/hr</div>`;
+        }
+
+        // --- CÁLCULO 2: SEMÁFORO DE ENTREGA ---
+        let colorEntrega = 'var(--text-hi)';
+        if (v.fecha_entrega) {
+            if (v.estado === 'listo') {
+                colorEntrega = 'var(--text-lo)'; // Gris (Desactivado si ya se entregó)
+            } else {
+                const hoy = new Date(); hoy.setHours(0,0,0,0);
+                const [y, m, d] = v.fecha_entrega.split('-');
+                const fEntrega = new Date(y, m - 1, d);
+                const diffDays = Math.ceil((fEntrega - hoy) / (1000 * 60 * 60 * 24));
+                
+                if (diffDays <= 0) colorEntrega = 'var(--status-danger)'; // Hoy o vencido (Rojo)
+                else if (diffDays <= 3) colorEntrega = 'var(--status-warn)'; // 1 a 3 días (Amarillo)
+                else colorEntrega = 'var(--status-ok)'; // Más de 3 días (Verde)
+            }
+        }
+
         const rYT = v.redes?.youtube || {}; const rFB = v.redes?.facebook || {}; const rTK = v.redes?.tiktok || {}; const rIG = v.redes?.instagram || {};
         const totalVistas = (rYT.vistas || 0) + (rFB.vistas || 0) + (rTK.vistas || 0) + (rIG.vistas || 0);
         const totalLikes = (rYT.likes || 0) + (rFB.likes || 0) + (rTK.likes || 0) + (rIG.likes || 0);
@@ -485,8 +568,8 @@ function renderizarTablaVideos() {
             <td style="text-align:center;font-weight:800;color:var(--accent);font-size:15px">${v.numero_video || 1}</td>
             <td style="font-weight:600;color:var(--text-hi)">${v.nombre}</td>
             <td style="font-size:12px;color:var(--text-lo)">${formatFecha(v.fecha_recibido)}</td>
-            <td style="font-size:12px;font-weight:600;color:var(--text-hi)">${formatFecha(v.fecha_entrega)}</td>
-            <td style="min-width:100px"><div style="font-size:10px;color:var(--text-lo);margin-bottom:4px">${palabras.toLocaleString()} pal.</div><div class="progress-bg"><div class="progress-fill" style="width:${pctPal}%"></div></div></td>
+            <td style="font-size:12px;font-weight:700;color:${colorEntrega}">${formatFecha(v.fecha_entrega)}</td>
+            <td style="min-width:100px"><div style="font-size:10px;color:var(--text-lo);margin-bottom:4px" title="Meta promedio: ${promedioPal} palabras">${palabras.toLocaleString()} pal.</div><div class="progress-bg"><div class="progress-fill" style="width:${pctPal}%"></div></div></td>
             <td style="text-align:center">
                 <select class="notion-status-select ${statusClass}" onchange="window.actualizarCampoTabla(${v.id_video},'estado',this.value); this.className='notion-status-select '+(this.value==='listo'?'bg-notion-green':this.value==='en_curso'?'bg-notion-yellow':'bg-notion-red')">
                     <option value="sin_empezar" ${v.estado==='sin_empezar'?'selected':''}>Sin empezar</option>
@@ -495,7 +578,10 @@ function renderizarTablaVideos() {
                 </select>
             </td>
             <td style="font-size:12px;color:var(--text-lo)">${v.tiempo_trabajo || '—'}</td>
-            <td style="font-size:13px;font-weight:700;color:var(--text-hi)">$${cobrado.toFixed(2)}</td>
+            <td>
+                <div style="font-size:13px;font-weight:700;color:var(--text-hi)">$${cobrado.toFixed(2)}</div>
+                ${rentabilidadHtml}
+            </td>
             <td style="font-size:12px;color:var(--text-lo)">${formatFecha(v.fecha_subido)}</td>
             <td><button class="btn-secondary" style="font-size:11px;padding:4px 10px;gap:4px" onclick="window.toggleRedes(${v.id_video})"><i class="ti ti-chart-bar" aria-hidden="true"></i> Ver</button></td>
             <td style="font-size:11px;color:var(--text-lo)">${formatFechaHora(v.ultima_edicion)}</td>
@@ -539,16 +625,28 @@ window.abrirModalNuevoCliente = function () { window.abrirModalEdicion(); };
 window.abrirModalEdicion = function (id = null) {
     const modal = document.getElementById('modal-cliente'); document.getElementById('modal-cliente-titulo').textContent = id ? 'Editar cliente' : 'Nuevo cliente';
     document.getElementById('cliente-id').value = ''; document.getElementById('cliente-nombre').value = ''; document.getElementById('cliente-proyecto').value = ''; document.getElementById('cliente-pais').value = ''; document.getElementById('cliente-foto').value = '';
-    if (id) { const datos = cargarDatos(); const cliente = datos.clientes.find(c => c.id === id); if (cliente) { document.getElementById('cliente-id').value = cliente.id; document.getElementById('cliente-nombre').value = cliente.nombre || ''; document.getElementById('cliente-proyecto').value = cliente.proyecto || ''; document.getElementById('cliente-pais').value = cliente.pais || ''; document.getElementById('cliente-foto').value = cliente.foto || ''; } }
+    document.getElementById('cliente-promedio-palabras').value = '3000'; // Default
+    if (id) { const datos = cargarDatos(); const cliente = datos.clientes.find(c => c.id === id); if (cliente) { document.getElementById('cliente-id').value = cliente.id; document.getElementById('cliente-nombre').value = cliente.nombre || ''; document.getElementById('cliente-proyecto').value = cliente.proyecto || ''; document.getElementById('cliente-pais').value = cliente.pais || ''; document.getElementById('cliente-foto').value = cliente.foto || ''; document.getElementById('cliente-promedio-palabras').value = cliente.promedio_palabras || 3000; } }
     window.actualizarAvatarPreview(); modal.style.display = 'flex';
 };
 window.cerrarModalCliente = function () { document.getElementById('modal-cliente').style.display = 'none'; };
 window.guardarCliente = function () {
     const id = document.getElementById('cliente-id').value; const nombre = document.getElementById('cliente-nombre').value.trim();
     if (!nombre) { alert('Por favor ingresa el nombre del cliente.'); return; }
+    const promedioPalabras = parseInt(document.getElementById('cliente-promedio-palabras').value) || 3000;
+
     const datos = cargarDatos(); if (!datos.clientes) datos.clientes = [];
-    if (id) { const idx = datos.clientes.findIndex(c => c.id == id); if (idx !== -1) { datos.clientes[idx].nombre = nombre; datos.clientes[idx].proyecto = document.getElementById('cliente-proyecto').value.trim(); datos.clientes[idx].pais = document.getElementById('cliente-pais').value.trim(); datos.clientes[idx].foto = document.getElementById('cliente-foto').value.trim(); } } 
-    else { datos.clientes.push({ id: Date.now(), nombre, proyecto: document.getElementById('cliente-proyecto').value.trim(), pais: document.getElementById('cliente-pais').value.trim(), foto: document.getElementById('cliente-foto').value.trim(), videos: [], pagos: [], fecha_creacion: new Date().toISOString() }); }
+    if (id) { 
+        const idx = datos.clientes.findIndex(c => c.id == id); 
+        if (idx !== -1) { 
+            datos.clientes[idx].nombre = nombre; 
+            datos.clientes[idx].proyecto = document.getElementById('cliente-proyecto').value.trim(); 
+            datos.clientes[idx].pais = document.getElementById('cliente-pais').value.trim(); 
+            datos.clientes[idx].foto = document.getElementById('cliente-foto').value.trim(); 
+            datos.clientes[idx].promedio_palabras = promedioPalabras;
+        } 
+    } 
+    else { datos.clientes.push({ id: Date.now(), nombre, proyecto: document.getElementById('cliente-proyecto').value.trim(), pais: document.getElementById('cliente-pais').value.trim(), foto: document.getElementById('cliente-foto').value.trim(), promedio_palabras: promedioPalabras, videos: [], pagos: [], fecha_creacion: new Date().toISOString() }); }
     guardarDatos(datos); window.cerrarModalCliente(); renderizarListaClientes();
 };
 window.borrarCliente = function (id) { if (!confirm('¿Eliminar este cliente? Se borrará todo su historial y pagos.')) return; const datos = cargarDatos(); datos.clientes = datos.clientes.filter(c => c.id !== id); guardarDatos(datos); renderizarListaClientes(); };

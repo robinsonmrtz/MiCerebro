@@ -197,6 +197,10 @@
     background: color-mix(in srgb, var(--status-danger) 12%, transparent);
     color: var(--status-danger);
 }
+.badge-estado.inactivo {
+    background: color-mix(in srgb, var(--text-lo) 15%, transparent);
+    color: var(--text-lo);
+}
 
 /* Acciones */
 .cliente-col-acciones {

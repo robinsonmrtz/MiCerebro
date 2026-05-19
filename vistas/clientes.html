@@ -110,11 +110,17 @@
                     <th onclick="window.cambiarOrdenVideos('entrega')" class="th-clickable">
                         Entrega <span id="sort-entrega" class="th-sort-indicator"></span>
                     </th>
-                    <th>Guion</th>
+                    <th onclick="window.cambiarOrdenVideos('guion')" class="th-clickable">
+                        Guion <span id="sort-guion" class="th-sort-indicator"></span>
+                    </th>
                     <th>Estado</th>
-                    <th>Tiempo</th>
+                    <th onclick="window.cambiarOrdenVideos('tiempo')" class="th-clickable">
+                        Tiempo <span id="sort-tiempo" class="th-sort-indicator"></span>
+                    </th>
                     <th>Cobrado</th>
-                    <th>Subido</th>
+                    <th onclick="window.cambiarOrdenVideos('subido')" class="th-clickable">
+                        Subido <span id="sort-subido" class="th-sort-indicator"></span>
+                    </th>
                     <th>Métricas</th>
                     <th>Últ. edición</th>
                     <th></th>
@@ -159,6 +165,10 @@
                 <input type="text" id="cliente-foto" class="input-minimalista"
                        placeholder="https://…"
                        oninput="window.actualizarAvatarPreview()">
+            </label>
+            <label>
+                Promedio de palabras por video
+                <input type="number" id="cliente-promedio-palabras" class="input-minimalista" placeholder="Ej. 3000">
             </label>
         </div>
 

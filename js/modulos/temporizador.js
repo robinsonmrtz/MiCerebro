@@ -281,20 +281,32 @@ function iniciarDescanso(esRecuperacion = false) {
     if(pantallaEstado) { pantallaEstado.innerText = "DESCANSANDO..."; pantallaEstado.className = "estado-descansando"; }
     clearInterval(intervaloReloj);
     
-    segundosDescansoActual = 0;
-    tiempoInicioDescanso = Date.now();
+    // ✅ Si NO es recuperación, empezamos de cero el reloj principal
+    if (!esRecuperacion) {
+        segundosDescansoActual = 0;
+        tiempoInicioDescanso = Date.now();
+    } else {
+        // ✅ Si venimos de un F5 o apagar el PC, calculamos los segundos reales basados en la hora original
+        segundosDescansoActual = Math.floor((Date.now() - tiempoInicioDescanso) / 1000);
+    }
 
     limiteDescanso = inputDescansoMin ? (parseInt(inputDescansoMin.value) || 20) * 60 : 1200;
-    let alarmaSonada = false;
+    
+    // ✅ Averiguamos en qué tramo de alarma estamos para que suene a los 20, 40, 60...
+    let ultimoTramoDescanso = limiteDescanso > 0 ? Math.floor(segundosDescansoActual / limiteDescanso) : 0;
 
     intervaloReloj = setInterval(() => {
         segundosDescansoActual = Math.floor((Date.now() - tiempoInicioDescanso) / 1000);
         if(pantallaTiempo) pantallaTiempo.innerText = formatearTiempo(segundosDescansoActual);
         
-        if (limiteDescanso > 0 && segundosDescansoActual >= limiteDescanso && !alarmaSonada) {
-            activarAlarma("¡Tu tiempo de descanso ha terminado!"); 
-            alarmaSonada = true;
-            if(pantallaEstado) pantallaEstado.innerText = "¡DESCANSO TERMINADO!";
+        if (limiteDescanso > 0) {
+            const tramoActual = Math.floor(segundosDescansoActual / limiteDescanso);
+            // ✅ Solo suena si cambiamos de tramo (ej. pasamos de 19 a 20min, de 39 a 40min)
+            if (tramoActual > ultimoTramoDescanso && segundosDescansoActual > 0) {
+                activarAlarma(`¡Aviso: Llevas ${tramoActual * (limiteDescanso / 60)} min descansando!`);
+                ultimoTramoDescanso = tramoActual;
+                if(pantallaEstado) pantallaEstado.innerText = `¡DESCANSO EXCEDIDO (${tramoActual * (limiteDescanso / 60)}m)!`;
+            }
         }
         guardarEstadoContinuo();
     }, 1000);
@@ -353,7 +365,7 @@ function recuperarEstadoTemporal() {
         }
         if(document.getElementById('input-meta')) document.getElementById('input-meta').value = temp.meta || 8;
         segundosTrabajados = temp.segundosTrabajados || 0;
-        segundosDescansoAcumulado = temp.segundosDescansoAcumulado || 0; // ✅ Recuperar histórico
+        segundosDescansoAcumulado = temp.segundosDescansoAcumulado || 0; 
         inicioMatematico = temp.inicioTrabajo || 0;
         segundosDescansoActual = 0;
         tiempoInicioDescanso = 0;
@@ -365,10 +377,11 @@ function recuperarEstadoTemporal() {
             iniciarTrabajo(true);
         } else if (temp.estado === 'descansando') {
             estadoActual = 'inactivo';
-            // ✅ Truco ninja: si el usuario refrescó la página mientras descansaba, 
-            // volcamos su descanso anterior en el acumulado para que no se pierda ni un segundo en la tarjeta.
-            segundosDescansoAcumulado += (temp.segundosDescansoActual || 0);
-            iniciarDescanso(false);
+            // ✅ MAGIA: Ya no usamos el truco de volcar a la tarjeta, 
+            // sino que recuperamos la hora matemática exacta de cuando empezó a descansar.
+            // Así el reloj persiste aunque cierres el navegador o apagues el PC.
+            tiempoInicioDescanso = temp.inicioDescanso || (Date.now() - ((temp.segundosDescansoActual || 0) * 1000));
+            iniciarDescanso(true);
         } else if (temp.estado === 'pausado') {
             estadoActual = 'pausado';
             if(pantallaTiempo) pantallaTiempo.innerText = formatearTiempo(segundosTrabajados);
