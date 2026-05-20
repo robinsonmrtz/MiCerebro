@@ -87,7 +87,9 @@ const mapaModulos = {
         'vistas/habitos.html',
         'css/habitos.css',
         'js/modulos/habitos.js',
-        'js/core/storage.js'
+        'js/core/storage.js',
+        'js/core/app.js',
+        'vistas/backup.html'
     ],
     'base': [
         'index.html',

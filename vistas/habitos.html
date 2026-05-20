@@ -1,8 +1,17 @@
+<!-- ====================================================
+     RUTA DEL ARCHIVO: vistas/habitos.html  v4.0
+     Rediseño: grupos pill, modal acción con anillo SVG,
+     CRUD grupos, paleta editable.
+     ==================================================== -->
+
+<!-- Cabecera -->
 <div class="habitos-header">
     <div class="seccion-titulo">
-        <h2>✅ Sistema de Hábitos</h2>
+        <h2>✅ Hábitos</h2>
         <p>Disciplina diaria y organización.</p>
     </div>
+
+    <!-- Calendario -->
     <div class="calendario-contenedor">
         <button class="nav-cal" onclick="window.moverCalendario(-1)">❮</button>
         <div class="calendario-slider" id="calendario-habitos"></div>
@@ -10,111 +19,243 @@
     </div>
 </div>
 
-<div style="display: flex; gap: 12px; margin-bottom: 25px;">
+<!-- Toolbar -->
+<div class="habitos-toolbar">
     <button onclick="window.abrirModalHabitoNueva()" class="btn-primario">➕ Nuevo Hábito</button>
     <button onclick="window.abrirGestionGrupos()" class="btn-secundario">📁 Grupos</button>
 </div>
 
+<!-- Lista de hábitos agrupados -->
 <div class="habitos-contenedor" id="lista-habitos"></div>
 
+
+<!-- ══════════════════════════════════════════════════
+     MODAL: Crear / Editar Hábito
+     ══════════════════════════════════════════════════ -->
 <div id="modal-habito-principal" class="modal-overlay">
     <div class="modal-caja modal-ancho">
-        <h3 id="modal-titulo">Configurar Hábito</h3>
-        <div class="form-grid">
-            <input type="hidden" id="habito-id-edit">
-            <label>Nombre del Hábito
-                <input type="text" id="habito-nombre" class="input-minimalista" placeholder="Ej. Meditar">
-            </label>
-            <div class="fila-form">
-                <label>Icono <input type="text" id="habito-icono" class="input-minimalista" value="✨"></label>
-                <label>Color <input type="color" id="habito-color" class="color-picker-moderno" value="#1A73E8"></label>
+
+        <div class="modal-header-edit">
+            <h3 id="modal-titulo">Configurar Hábito</h3>
+            <button id="btn-guardar-habito-accion" class="btn-modal-ok" title="Guardar">✓</button>
+        </div>
+
+        <input type="hidden" id="habito-id-edit">
+
+        <!-- Preview banner -->
+        <div class="habito-preview-banner" id="habito-preview" style="background:#1A73E8;">
+            <div class="preview-icono" id="preview-icono-banner">✨</div>
+            <div>
+                <div class="preview-nombre" id="preview-nombre-banner">Nombre del hábito</div>
+                <div class="preview-sub" id="preview-sub-banner">Cada día · meta: 1</div>
             </div>
-            <label>Categoría / Grupo 
-                <select id="habito-grupo-select" class="input-minimalista"></select>
-            </label>
-            <label>Tipo de Hábito
-                <select id="habito-tipo" class="input-minimalista" onchange="window.alternarCamposTipo()">
-                    <option value="contador">Contador (Meta diaria)</option>
-                    <option value="cronometro">Cronómetro (Racha de tiempo)</option>
+        </div>
+
+        <!-- General -->
+        <div class="form-seccion-label">General</div>
+        <div class="form-card-grupo">
+            <div class="form-fila">
+                <div class="form-fila-label">
+                    <div class="form-fila-icono" style="background:#55efc422;">📝</div>
+                    Nombre
+                </div>
+                <input type="text" id="habito-nombre" placeholder="Ej. Meditar" oninput="window.actualizarPreviewHabito()">
+            </div>
+            <div class="form-fila">
+                <div class="form-fila-label">
+                    <div class="form-fila-icono" style="background:#74b9ff22;">📁</div>
+                    Grupo
+                </div>
+                <select id="habito-grupo-select" style="background:transparent; border:none; font-size:13px; color:var(--text-lo); outline:none;"></select>
+            </div>
+            <div class="form-fila">
+                <div class="form-fila-label">
+                    <div class="form-fila-icono" style="background:#fd79a822;">🔄</div>
+                    Tipo
+                </div>
+                <select id="habito-tipo" style="background:transparent; border:none; font-size:13px; color:var(--text-lo); outline:none;" onchange="window.alternarCamposTipo()">
+                    <option value="contador">Contador</option>
+                    <option value="cronometro">Cronómetro</option>
                 </select>
-            </label>
-            <div id="seccion-metas" class="form-grupo-interno-hab">
-                <div class="fila-form">
-                    <label>Meta diaria <input type="number" id="habito-meta" class="input-minimalista" value="1"></label>
-                    <label>Incremento <input type="number" id="habito-paso" class="input-minimalista" value="1"></label>
+            </div>
+            <div id="seccion-metas">
+                <div class="form-fila">
+                    <div class="form-fila-label">
+                        <div class="form-fila-icono" style="background:#00cec922;">🎯</div>
+                        Meta diaria
+                    </div>
+                    <input type="number" id="habito-meta" value="1" min="1" oninput="window.actualizarPreviewHabito()">
+                </div>
+                <div class="form-fila">
+                    <div class="form-fila-label">
+                        <div class="form-fila-icono" style="background:#6c5ce722;">➕</div>
+                        Incremento
+                    </div>
+                    <input type="number" id="habito-paso" value="1" min="1">
                 </div>
             </div>
         </div>
-        <div class="modal-botones-row">
-            <button onclick="window.cerrarModalHabito()" class="btn-secundario">Cancelar</button>
-            <button id="btn-guardar-habito-accion" class="btn-primario">Guardar Cambios</button>
+
+        <!-- Aspecto -->
+<div class="form-seccion-label">Aspecto</div>
+        <div class="form-card-grupo">
+            <div class="form-fila">
+                <div class="form-fila-label">
+                    <div class="form-fila-icono" style="background:#ff6b6b22;">🎨</div>
+                    Color
+                </div>
+                <div class="form-fila-val">
+                    <input type="color" id="habito-color" value="#1A73E8" oninput="window.actualizarPreviewHabito()">
+                </div>
+            </div>
+            
+            <div class="form-fila">
+                <div class="form-fila-label">
+                    <div class="form-fila-icono" style="background:#ff9f4322;">✏️</div>
+                    Icono
+                </div>
+                <div class="form-fila-val" style="gap: 0;">
+                    <input type="text" id="habito-icono" value="✨" class="input-icono emoji-trigger-input"
+                           style="cursor: pointer; text-align: center; flex-shrink: 0;"
+                           onclick="event.stopPropagation(); window.abrirSelectorEmojiGlobal(this, 'habito-icono')"
+                           title="Haz clic para elegir un icono">
+                </div>
+            </div>
+
+            <div class="form-fila" style="flex-direction:column; align-items:flex-start; gap:6px;">
+                <div class="form-fila-label">
+                    <div class="form-fila-icono" style="background:#a29bfe22;">🖌️</div>
+                    Paleta
+                </div>
+                <div class="paleta-wrap" id="paleta-habito-modal"></div>
+            </div>
+        </div>
+
+        <div class="modal-botones-row" style="margin-top:12px;">
+            <button onclick="window.cerrarModalHabito()" class="btn-secundario" style="flex:1">Cancelar</button>
         </div>
     </div>
 </div>
 
+
+<!-- ══════════════════════════════════════════════════
+     MODAL: Gestión de Grupos (CRUD completo)
+     ══════════════════════════════════════════════════ -->
 <div id="modal-grupos-gestion" class="modal-overlay">
     <div class="modal-caja modal-ancho">
-        <h3>📂 Categorías</h3>
-        <div class="card-crear-grupo">
-            <label style="font-size:12px; font-weight:bold; color:#555; display:block; margin-bottom:8px;">NUEVO GRUPO</label>
-            <div style="display: flex; gap: 10px;">
-                <input type="text" id="nuevo-grupo-nombre" class="input-minimalista" placeholder="Nombre (Ej: Mañana 🌅)" style="flex:1">
-                <input type="color" id="nuevo-grupo-color" class="color-picker-moderno" value="#1A73E8">
-            </div>
-            <div id="paleta-sugerida" style="display: flex; gap: 8px; margin-top: 15px; flex-wrap: wrap;"></div>
-            <button onclick="window.agregarGrupo()" class="btn-primario" style="width: 100%; margin-top: 15px;">Crear Categoría</button>
-        </div>
-        
-        <label style="font-size:12px; font-weight:bold; color:#555; display:block; margin-bottom:10px;">TUS GRUPOS</label>
-        <div id="lista-gestion-grupos" style="max-height: 200px; overflow-y: auto; margin-bottom:20px;"></div>
-        
-        <div class="modal-botones-row">
-            <button onclick="window.cerrarGestionGrupos()" class="btn-secundario" style="width:100%">Cerrar</button>
-        </div>
-    </div>
-</div>
 
+        <div class="modal-header-edit">
+            <h3>📂 Grupos</h3>
+            <button onclick="window.cerrarGestionGrupos()" class="btn-cerrar-limpio">✕</button>
+        </div>
+
+        <!-- Lista CRUD de grupos existentes -->
+        <div class="grupos-lista-crud" id="lista-gestion-grupos"></div>
+
+        <!-- Crear nuevo grupo -->
+<div class="card-crear-grupo">
+            <div style="font-size:11px; font-weight:700; color:var(--text-lo); text-transform:uppercase; letter-spacing:0.4px; margin-bottom:10px;">Nuevo Grupo</div>
+            
+            <div style="display:flex; gap:8px; align-items:center; position:relative;">
+                <input type="text" id="nuevo-grupo-icono" class="input-icono-grupo emoji-trigger-input" value="📁"
+                       style="cursor: pointer; flex-shrink: 0; text-align: center;"
+                       onclick="event.stopPropagation(); window.abrirSelectorEmojiGlobal(this, 'nuevo-grupo-icono')"
+                       title="Haz clic para elegir un icono">
+                
+                <input type="text" id="nuevo-grupo-nombre" class="input-minimalista" placeholder="Nombre del grupo" style="flex:1;">
+                <input type="color" id="nuevo-grupo-color" class="color-picker-moderno" value="#1A73E8" style="width:40px; height:40px; flex-shrink:0;">
+            </div>
+
+            <div style="margin-top:12px;">
+                <div style="font-size:10px; color:var(--text-lo); margin-bottom:6px; font-weight:600;">PALETA RÁPIDA</div>
+                <div class="paleta-wrap" id="paleta-sugerida"></div>
+                <input type="color" id="input-nuevo-color-paleta" onchange="window.agregarColorPaleta(this.value)">
+            </div>
+
+            <button onclick="window.agregarGrupo()" class="btn-primario" style="width:100%; margin-top:14px;">✚ Crear Grupo</button>
+        </div>
+
+
+<!-- ══════════════════════════════════════════════════
+     MODAL: Acción rápida del hábito (contador)
+     ══════════════════════════════════════════════════ -->
 <div id="modal-accion-habito-ui" class="modal-overlay">
     <div class="modal-caja modal-transparente">
+
+        <!-- Esquina: opciones + cerrar -->
         <div class="opciones-esquina">
-            <div class="habito-opciones">
-                <button class="btn-puntos" onclick="window.toggleOpcionesAccion()">⋮</button>
+            <div class="habito-opciones" style="position:relative;">
+                <button class="btn-puntos" onclick="window.toggleOpcionesAccion()">⋯</button>
                 <div id="dropdown-accion" class="dropdown-opciones">
                     <button onclick="window.editarDesdeAccion()">✏️ Editar</button>
-                    <button onclick="window.borrarDesdeAccion()" style="color:red">🗑️ Eliminar</button>
+                    <button onclick="window.borrarDesdeAccion()" style="color:var(--status-danger)">🗑️ Eliminar</button>
                 </div>
             </div>
             <button class="btn-cerrar-limpio" onclick="window.cerrarModalAccion()">✕</button>
         </div>
-        <h3 id="accion-titulo"></h3>
-        <p id="accion-subtitulo" style="color:#888; margin-bottom: 20px;"></p>
-        
+
+        <!-- Título -->
+        <h3 id="accion-titulo" style="text-align:center; margin:0 0 2px; padding-right:60px; font-size:20px; font-weight:800;"></h3>
+        <p id="accion-subtitulo" style="text-align:center; color:var(--text-lo); margin:0 0 16px; font-size:13px;"></p>
+
+        <!-- UI Contador -->
         <div id="ui-contador-hab">
-            <div class="accion-controles" style="display:flex; align-items:center; justify-content:center; gap:20px; margin-bottom:30px;">
-                <button class="btn-redondo" onclick="window.modificarProgreso(-1)">-</button>
-                <div class="circulo-progreso-grande" id="accion-circulo">
-                    <div id="accion-icono-display"></div>
+            <!-- Anillo SVG grande -->
+            <div class="accion-anillo-wrap" id="accion-anillo-wrap">
+                <svg width="160" height="160" viewBox="0 0 160 160">
+                    <circle class="accion-anillo-bg" cx="80" cy="80" r="68"/>
+                    <circle class="accion-anillo-fill" id="accion-anillo-fill" cx="80" cy="80" r="68"
+                            stroke-dasharray="427.26" stroke-dashoffset="427.26"/>
+                </svg>
+                <div class="accion-numero-centro">
+                    <span class="accion-num-grande" id="accion-num-display">0</span>
+                    <span class="accion-num-meta" id="accion-meta-display">/ 1</span>
                 </div>
-                <button class="btn-redondo" onclick="window.modificarProgreso(1)">+</button>
             </div>
-            <button class="btn-primario" style="width:100%;" onclick="window.modificarProgreso(0, true)">Marcar como Completado</button>
+
+            <!-- Botones - y + -->
+            <div class="accion-controles-row">
+                <button class="btn-redondo-accion" onclick="window.modificarProgreso(-1)">−</button>
+                <div style="width:80px;"></div>
+                <button class="btn-redondo-accion" onclick="window.modificarProgreso(1)">+</button>
+            </div>
+
+            <!-- Botones secundarios -->
+            <div class="accion-btns-secundarios">
+                <button class="btn-accion-sec" onclick="window.resetearProgreso()">✕ Resetear</button>
+                <button class="btn-accion-sec" onclick="window.modificarProgreso(0, true)">↷ Completar</button>
+            </div>
+
+            <!-- Botón pill principal -->
+            <button class="btn-accion-pill" id="btn-accion-pill-principal" onclick="window.modificarProgreso(1)">
+                +1
+            </button>
         </div>
 
-        <div id="ui-cronometro-hab" style="display:none; text-align:center;">
-            <div style="font-size:60px;">⏱️</div>
-            <div id="cronometro-modal-display" style="font-size:32px; color:#E74C3C; margin:20px 0; font-weight:bold; font-family:monospace;">0d 00h 00m 00s</div>
-            <button onclick="window.reiniciarCronometroConfirmado()" class="btn-reiniciar-racha">Reiniciar Racha</button>
+        <!-- UI Cronómetro -->
+        <div id="ui-cronometro-hab" style="display:none;">
+            <div class="cronometro-modal-wrap">
+                <div style="font-size:52px; margin-bottom:8px;">⏱️</div>
+                <div id="cronometro-modal-display" class="cronometro-modal-display">0d 00h 00m 00s</div>
+                <button onclick="window.reiniciarCronometroConfirmado()" class="btn-reiniciar-racha">
+                    🔄 Reiniciar Racha
+                </button>
+            </div>
         </div>
     </div>
 </div>
 
+
+<!-- ══════════════════════════════════════════════════
+     MODAL: Confirmar borrar hábito
+     ══════════════════════════════════════════════════ -->
 <div id="modal-confirmar-habito-borrar" class="modal-overlay">
-    <div class="modal-caja">
-        <h3>¿Eliminar Hábito?</h3>
-        <p>Se perderá todo el historial.</p>
-        <div class="modal-botones-row" style="margin-top:20px;">
-            <button onclick="document.getElementById('modal-confirmar-habito-borrar').style.display='none'" class="btn-secundario">Cancelar</button>
-            <button id="btn-borrar-final" class="btn-primario" style="background:#e74c3c">Sí, eliminar</button>
+    <div class="modal-caja" style="max-width:320px;">
+        <h3 style="margin-bottom:8px;">¿Eliminar Hábito?</h3>
+        <p style="color:var(--text-lo); font-size:13px; margin-bottom:20px;">Se perderá todo el historial de este hábito.</p>
+        <div class="modal-botones-row">
+            <button onclick="document.getElementById('modal-confirmar-habito-borrar').style.display='none'" class="btn-secundario" style="flex:1">Cancelar</button>
+            <button id="btn-borrar-final" class="btn-primario" style="flex:1; background:var(--status-danger); border-color:var(--status-danger);">Eliminar</button>
         </div>
     </div>
 </div>

@@ -1,13 +1,36 @@
 /* ============================================================
-   MICEREBRO — habitos.css
-   Solo estilos propios del módulo Hábitos.
-   Todo lo hardcodeado (white, #f1f3f4, etc.) fue reemplazado
-   por tokens del sistema en styles.css.
-   Botones base (.btn-primario, .btn-secundario) viven en styles.css.
+   MICEREBRO — habitos.css  v4.0
+   Rediseño inspirado en las capturas: grupos pill, tarjetas
+   con fill de progreso, calendario donut, modal con anillo SVG.
+   Tokens de color vienen de styles.css — no hardcodeamos.
    ============================================================ */
 
+/* ── Cabecera del módulo ────────────────────────────────── */
+.habitos-header {
+    margin-bottom: 8px;
+}
 
-/* ── Calendario ─────────────────────────────────────── */
+.seccion-titulo h2 {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--text-hi);
+    margin: 0 0 2px;
+}
+
+.seccion-titulo p {
+    font-size: 13px;
+    color: var(--text-lo);
+    margin: 0 0 18px;
+}
+
+/* ── Barra de acciones superior ─────────────────────────── */
+.habitos-toolbar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+/* ── Calendario ─────────────────────────────────────────── */
 .calendario-contenedor {
     display: flex;
     align-items: center;
@@ -24,51 +47,62 @@
     scrollbar-width: none;
 }
 
+/* Círculo con conic-gradient — el inner-circulo crea el efecto donut */
 .dia-circulo {
-    min-width: 60px;
-    height: 60px;
+    width: 64px;
+    height: 64px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    background: var(--bg-input);
-    border: 2px solid transparent;
-    transition: transform 0.2s, border-color 0.2s;
+    flex-shrink: 0;
+    transition: transform 0.2s;
+    /* background se pone desde JS con conic-gradient */
 }
 
-.dia-circulo:hover {
-    border-color: color-mix(in srgb, var(--accent) 40%, transparent);
-}
+.dia-circulo:hover { transform: scale(1.06); }
+.dia-circulo.activo { transform: scale(1.08); }
 
-.dia-circulo.activo {
-    border-color: var(--accent);
-    transform: scale(1.06);
-}
-
+/* Círculo interior: fondo igual al de la página para crear efecto donut */
 .inner-circulo {
     width: 50px;
     height: 50px;
-    background: var(--bg-card);
+    background: var(--bg-root, var(--bg-base, #f1f3f4));
     border-radius: 50%;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: 1px;
+}
+
+/* Día activo: inner-circulo mantiene el mismo fondo de la página */
+.dia-circulo.activo .inner-circulo {
+    background: var(--bg-root, var(--bg-base, #f1f3f4));
 }
 
 .dia-nombre {
     font-size: 9px;
-    color: var(--text-lo);
     font-weight: 700;
     text-transform: uppercase;
+    color: var(--text-lo);
+    line-height: 1;
+}
+
+.dia-circulo.activo .dia-nombre {
+    color: var(--text-lo);
 }
 
 .dia-numero {
-    font-size: 17px;
+    font-size: 16px;
     font-weight: 800;
     color: var(--text-hi);
     line-height: 1;
+}
+
+.dia-circulo.activo .dia-numero {
+    color: var(--text-hi);
 }
 
 /* Flechas del calendario */
@@ -94,79 +128,131 @@
 }
 
 
-/* ── Grupos (acordeón) ──────────────────────────────── */
+/* ── Grupos — pill row ──────────────────────────────────── */
 .habito-grupo-container {
-    background: var(--bg-card);
-    border: 1px solid var(--border-card);
     border-radius: 16px;
-    margin-bottom: 16px;
-    padding: 18px 20px;
-    border-top-width: 3px;
-    border-top-style: solid;
-    border-top-color: var(--accent); /* El JS puede sobreescribir este color */
-    transition: background 0.25s, border-color 0.25s;
+    margin-bottom: 10px;
+    overflow: hidden;
+    transition: box-shadow 0.2s;
 }
 
+/* Header pill del grupo */
 .habito-grupo-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    padding: 14px 16px;
     cursor: pointer;
     user-select: none;
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: 16px;
+    transition: background 0.2s, border-radius 0.25s;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Fill de progreso del grupo (fondo que crece de izq a der) */
+.habito-grupo-header::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    width: var(--grupo-progreso, 0%);
+    background: color-mix(in srgb, var(--grupo-color, var(--accent)) 18%, transparent);
+    transition: width 0.5s ease;
+    pointer-events: none;
+    border-radius: inherit;
+}
+
+/* Cuando el grupo está abierto, quita el border-radius inferior */
+.habito-grupo-header.abierto {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    border-bottom-color: transparent;
+}
+
+/* Cuando hay color de grupo dominante (Economía, Dopamina…) */
+.habito-grupo-header.tiene-color-bg {
+    color: #fff;
+}
+
+.habito-grupo-header.tiene-color-bg .habito-grupo-titulo,
+.habito-grupo-header.tiene-color-bg .grupo-icono {
+    color: #fff;
+}
+
+.grupo-izq {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    position: relative;
+    z-index: 1;
+}
+
+.grupo-icono {
+    font-size: 18px;
+    line-height: 1;
 }
 
 .habito-grupo-titulo {
-    font-size: 13px;
+    font-size: 15px;
     font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
     color: var(--text-hi);
     margin: 0;
 }
 
-.habito-grupo-indicadores {
+/* Círculo donut derecho del grupo */
+.grupo-der {
+    position: relative;
+    z-index: 1;
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+}
+
+.grupo-der svg {
+    transform: rotate(-90deg);
+}
+
+.grupo-donut-bg {
+    fill: none;
+    stroke: rgba(255,255,255,0.25);
+    stroke-width: 3;
+}
+
+.grupo-donut-fill {
+    fill: none;
+    stroke-width: 3;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.5s ease;
+}
+
+.grupo-flecha-svg {
+    position: absolute;
+    inset: 0;
     display: flex;
     align-items: center;
-    gap: 12px;
-}
-
-/* Mini círculo de progreso del grupo */
-.grupo-progreso-mini {
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    position: relative;
-    background: var(--bg-input);
-}
-
-.grupo-progreso-mini::after {
-    content: '';
-    position: absolute;
-    width: 22px;
-    height: 22px;
-    background: var(--bg-card);
-    border-radius: 50%;
-    top: 4px;
-    left: 4px;
-}
-
-.flecha-grupo {
-    font-size: 13px;
+    justify-content: center;
+    font-size: 11px;
     color: var(--text-lo);
-    font-weight: bold;
     transition: transform 0.25s ease;
 }
 
-.flecha-grupo.contraido {
+.grupo-flecha-svg.abierto {
     transform: rotate(180deg);
 }
 
-/* Contenido de hábitos dentro del grupo */
+/* Contenido de hábitos */
 .habitos-grupo-contenido {
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-top: none;
+    border-bottom-left-radius: 16px;
+    border-bottom-right-radius: 16px;
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    margin-top: 16px;
+    gap: 0;
+    overflow: hidden;
     transition: all 0.25s ease;
 }
 
@@ -175,130 +261,359 @@
 }
 
 
-/* ── Tarjeta de hábito individual ───────────────────── */
+/* ── Tarjeta de hábito individual ───────────────────────── */
 .habito-card {
-    background: var(--bg-input);
-    border: 1px solid var(--border-card);
-    border-radius: 12px;
-    padding: 13px 15px;
+    padding: 12px 14px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    transition: background 0.2s, border-color 0.2s;
-}
-
-.habito-card.interactiva {
     cursor: pointer;
+    border-bottom: 1px solid var(--border-card);
+    position: relative;
+    overflow: hidden;
+    transition: background 0.15s;
 }
 
-.habito-card.interactiva:hover {
+.habito-card:last-child {
+    border-bottom: none;
+}
+
+/* Fill de progreso de la tarjeta */
+.habito-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    width: var(--habito-progreso, 0%);
+    background: color-mix(in srgb, var(--habito-color, var(--accent)) 12%, transparent);
+    transition: width 0.5s ease;
+    pointer-events: none;
+}
+
+.habito-card.completado::before {
+    width: 100%;
+    background: color-mix(in srgb, var(--habito-color, var(--status-ok)) 20%, transparent);
+}
+
+.habito-card:hover {
     background: var(--bg-hover);
-    border-color: color-mix(in srgb, var(--accent) 30%, transparent);
-}
-
-.habito-card.completado {
-    background: color-mix(in srgb, var(--status-ok) 7%, transparent);
-    border-color: color-mix(in srgb, var(--status-ok) 25%, transparent);
 }
 
 .habito-info {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 11px;
     flex: 1;
+    position: relative;
+    z-index: 1;
 }
 
 .habito-icono-bg {
-    width: 42px;
-    height: 42px;
+    width: 38px;
+    height: 38px;
     border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 22px;
-    background: var(--bg-active);
+    font-size: 20px;
     flex-shrink: 0;
 }
 
 .habito-nombre {
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
     color: var(--text-hi);
+    margin: 0 0 2px;
 }
 
-.habito-meta {
+.habito-meta-txt {
     font-size: 11px;
     color: var(--text-lo);
-    margin-top: 1px;
+    margin: 0;
 }
 
-
-/* ── Botones circulares de acción en tarjeta ────────── */
-.btn-iniciar-redondo,
-.btn-sumar-habito {
-    width: 38px;
-    height: 38px;
+/* Botón + circular derecho */
+.habito-btn-der {
+    position: relative;
+    z-index: 1;
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
-    border: 1px solid var(--border-card);
-    background: var(--bg-card);
-    color: var(--accent);
+    border: 2px solid;
+    background: transparent;
     font-size: 18px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background 0.15s, border-color 0.15s, color 0.15s;
     flex-shrink: 0;
+    transition: background 0.15s, transform 0.1s;
+    font-weight: 700;
 }
 
-.btn-iniciar-redondo:hover,
-.btn-sumar-habito:hover {
+.habito-btn-der:active {
+    transform: scale(0.9);
+}
+
+/* Cronómetro inline */
+.habito-cronometro {
+    font-size: 11px;
+    font-family: monospace;
+    color: var(--status-danger);
+    font-weight: 700;
+}
+
+.btn-play-cron {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 2px solid var(--border-card);
+    background: var(--bg-input);
+    color: var(--accent);
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s;
+}
+
+.btn-play-cron:hover {
     background: var(--bg-active);
+}
+
+
+/* ── Modal crear/editar hábito ──────────────────────────── */
+.modal-ancho {
+    max-width: 480px !important;
+    width: 92%;
+}
+
+.modal-header-edit {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 18px;
+}
+
+.modal-header-edit h3 {
+    font-size: 17px;
+    font-weight: 800;
+    color: var(--text-hi);
+    margin: 0;
+}
+
+.btn-modal-ok {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: none;
+    background: var(--accent);
+    color: #fff;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.15s;
+}
+
+.btn-modal-ok:hover { opacity: 0.85; }
+
+/* Preview del hábito dentro del modal */
+.habito-preview-banner {
+    border-radius: 13px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
+.habito-preview-banner .preview-icono {
+    font-size: 22px;
+    background: rgba(255,255,255,0.2);
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.habito-preview-banner .preview-nombre {
+    font-size: 15px;
+    font-weight: 700;
+    color: #fff;
+}
+
+.habito-preview-banner .preview-sub {
+    font-size: 11px;
+    color: rgba(255,255,255,0.75);
+}
+
+/* Secciones del form */
+.form-seccion-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-lo);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 16px 0 8px;
+}
+
+.form-card-grupo {
+    background: var(--bg-input);
+    border: 1px solid var(--border-card);
+    border-radius: 13px;
+    overflow: hidden;
+    margin-bottom: 6px;
+}
+
+.form-fila {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 13px 15px;
+    border-bottom: 1px solid var(--border-card);
+    gap: 10px;
+}
+
+.form-fila:last-child {
+    border-bottom: none;
+}
+
+.form-fila-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    color: var(--text-base);
+}
+
+.form-fila-icono {
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+}
+
+.form-fila-val {
+    font-size: 13px;
+    color: var(--text-lo);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+
+
+.input-icono {
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-size: 22px;
+    border: 1px solid var(--border-card);
+    border-radius: 12px;
+    background: var(--bg-card);
+    color: var(--text-hi);
+    outline: none;
+    transition: border-color 0.2s, background 0.2s;
+    padding: 0;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.input-icono:focus {
+    border-color: var(--accent);
+    background: var(--bg-input);
+}
+
+.input-icono-grupo {
+    width: 40px;
+    height: 40px;
+    text-align: center;
+    font-size: 20px;
+    border: 1px solid var(--border-card);
+    border-radius: 9px;
+    background: var(--bg-card);
+    color: var(--text-hi);
+    outline: none;
+    transition: border-color 0.2s;
+    padding: 0;
+    flex-shrink: 0;
+}
+.input-icono-grupo:focus {
     border-color: var(--accent);
 }
 
 
-/* ── Botón flotante (+) ─────────────────────────────── */
-.fab-button {
-    position: fixed;
-    bottom: 36px;
-    right: 36px;
-    width: 56px;
-    height: 56px;
-    border-radius: 50%;
-    background: var(--accent);
-    color: var(--clr-white);
-    font-size: 26px;
+.btn-emoji-picker:hover {
+    background: var(--bg-hover);
+}
+
+
+
+
+
+.emoji-picker-btn:hover {
+    border-color: var(--accent);
+    background: var(--bg-hover);
+}
+
+.form-fila input[type="text"],
+.form-fila input[type="number"],
+.form-fila select {
+    background: transparent;
     border: none;
-    box-shadow: 0 6px 20px var(--accent-glow);
+    text-align: right;
+    font-size: 13px;
+    color: var(--text-base);
+    outline: none;
+    width: 140px;
+}
+
+.form-fila input[type="color"] {
+    width: 26px;
+    height: 26px;
+    border: none;
+    border-radius: 50%;
     cursor: pointer;
-    z-index: 2000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: transform 0.2s, opacity 0.2s;
+    padding: 0;
+    background: transparent;
 }
 
-.fab-button:hover {
-    transform: scale(1.08) rotate(90deg);
-    opacity: 0.9;
+/* Input minimalista legado (se mantiene por compatibilidad) */
+.input-minimalista {
+    width: 100%;
+    padding: 10px 13px;
+    border: 1px solid var(--border-card);
+    border-radius: 9px;
+    font-size: 13px;
+    background: var(--bg-input);
+    color: var(--text-base);
+    transition: border-color 0.2s;
+    outline: none;
 }
 
-
-/* ── Modal de creación/edición de hábito ────────────── */
-.modal-ancho {
-    max-width: 500px !important;
-    width: 90%;
+.input-minimalista:focus {
+    border-color: var(--accent);
 }
 
+.fila-form { display: flex; gap: 10px; }
+.fila-form label { flex: 1; }
 .form-grid {
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 12px;
     text-align: left;
-    margin-top: 14px;
+    margin-top: 10px;
 }
-
 .form-grid label {
     font-size: 11px;
     color: var(--text-lo);
@@ -309,54 +624,33 @@
     flex-direction: column;
     gap: 5px;
 }
-
-/* Los inputs heredan .input-base de styles.css */
-.input-minimalista {
-    width: 100%;
-    padding: 10px 13px;
-    border: 1px solid var(--border-card);
-    border-radius: 9px;
-    font-size: 13px;
-    background: var(--bg-input);
-    color: var(--text-base);
-    transition: border-color 0.2s;
-    margin-top: 4px;
-    outline: none;
+.color-picker-moderno {
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    padding: 0;
 }
-
-.input-minimalista:focus {
-    border-color: var(--accent);
-}
-
-.fila-form {
-    display: flex;
-    gap: 10px;
-}
-
-.fila-form label { flex: 1; }
+.form-grupo-interno-hab { margin-top: 4px; }
 
 
-/* ── Modal de acción (blur style) ───────────────────── */
-.modal-blur {
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    background: rgba(0, 0, 0, 0.4);
-}
-
+/* ── Modal de acción (número grande + anillo SVG) ───────── */
 .modal-transparente {
     background: var(--bg-card);
     border: 1px solid var(--border-card);
-    border-radius: 22px;
+    border-radius: 24px;
     position: relative;
-    padding: 36px 28px;
+    padding: 28px 24px 24px;
     box-shadow: var(--shadow-modal);
+    max-width: 340px;
+    width: 92%;
 }
 
-/* Esquina de opciones */
 .opciones-esquina {
     position: absolute;
-    top: 18px;
-    right: 18px;
+    top: 16px;
+    right: 16px;
     display: flex;
     gap: 8px;
     align-items: center;
@@ -365,13 +659,12 @@
 .btn-cerrar-limpio {
     background: none;
     border: none;
-    font-size: 22px;
+    font-size: 20px;
     color: var(--text-lo);
     cursor: pointer;
     line-height: 1;
     transition: color 0.15s;
 }
-
 .btn-cerrar-limpio:hover { color: var(--text-hi); }
 
 .btn-puntos {
@@ -382,10 +675,8 @@
     color: var(--text-lo);
     transition: color 0.15s;
 }
-
 .btn-puntos:hover { color: var(--text-base); }
 
-/* Dropdown de opciones */
 .dropdown-opciones {
     position: absolute;
     right: 0;
@@ -399,7 +690,6 @@
     width: 130px;
     overflow: hidden;
 }
-
 .dropdown-opciones button {
     width: 100%;
     padding: 11px 14px;
@@ -410,143 +700,438 @@
     font-size: 12.5px;
     color: var(--text-base);
     border-bottom: 1px solid var(--border-card);
-    transition: background 0.15s, color 0.15s;
+    transition: background 0.15s;
 }
-
 .dropdown-opciones button:last-child { border-bottom: none; }
+.dropdown-opciones button:hover { background: var(--bg-hover); color: var(--accent); }
 
-.dropdown-opciones button:hover {
-    background: var(--bg-hover);
-    color: var(--accent);
+/* Anillo SVG grande del modal de acción */
+.accion-anillo-wrap {
+    position: relative;
+    width: 160px;
+    height: 160px;
+    margin: 8px auto 20px;
 }
 
-/* Círculo de progreso grande */
-.circulo-progreso-grande {
-    width: 110px;
-    height: 110px;
-    border-radius: 50%;
-    margin: 0 auto 22px;
+.accion-anillo-wrap svg {
+    transform: rotate(-90deg);
+}
+
+.accion-anillo-bg {
+    fill: none;
+    stroke: var(--bg-input);
+    stroke-width: 10;
+}
+
+.accion-anillo-fill {
+    fill: none;
+    stroke-width: 10;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.4s ease, stroke 0.3s;
+}
+
+.accion-numero-centro {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+}
+
+.accion-num-grande {
+    font-size: 48px;
+    font-weight: 900;
+    color: var(--text-hi);
+    line-height: 1;
+}
+
+.accion-num-meta {
+    font-size: 13px;
+    color: var(--text-lo);
+}
+
+/* Controles laterales del modal */
+.accion-controles-row {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--bg-active);
+    gap: 18px;
+    margin-bottom: 16px;
 }
 
-#accion-icono-display {
-    width: 90px;
-    height: 90px;
-    background: var(--bg-card);
+.btn-redondo-accion {
+    width: 52px;
+    height: 52px;
     border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-/* Botones redondos sumar/restar dentro del modal */
-.btn-redondo {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    border: 1px solid var(--border-card);
-    font-size: 22px;
+    border: 1.5px solid var(--border-card);
+    background: var(--bg-input);
+    font-size: 24px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background 0.15s, border-color 0.15s;
-}
-
-.btn-sumar {
-    background: var(--bg-active);
-    color: var(--accent);
-}
-
-.btn-sumar:hover {
-    background: color-mix(in srgb, var(--accent) 20%, transparent);
-    border-color: var(--accent);
-}
-
-.btn-restar {
-    background: var(--bg-input);
-    color: var(--text-lo);
-}
-
-.btn-restar:hover {
-    background: var(--bg-hover);
     color: var(--text-base);
+    transition: background 0.15s, transform 0.1s;
+    font-weight: 700;
 }
 
-/* Cronómetro dentro del modal */
+.btn-redondo-accion:hover { background: var(--bg-hover); }
+.btn-redondo-accion:active { transform: scale(0.92); }
+
+/* Botón pill ancho abajo */
+.btn-accion-pill {
+    width: 100%;
+    padding: 15px;
+    border-radius: 50px;
+    border: none;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s;
+    color: #fff;
+    margin-top: 4px;
+}
+
+.btn-accion-pill:hover { opacity: 0.88; }
+.btn-accion-pill:active { transform: scale(0.98); }
+
+/* Botones secundarios del modal */
+.accion-btns-secundarios {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    margin-bottom: 10px;
+}
+
+.btn-accion-sec {
+    background: none;
+    border: none;
+    font-size: 13px;
+    color: var(--text-lo);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: color 0.15s;
+}
+.btn-accion-sec:hover { color: var(--text-base); }
+
+/* Cronómetro modal */
+.cronometro-modal-wrap {
+    text-align: center;
+    padding: 10px 0;
+}
+
 .cronometro-modal-display {
     font-family: 'Share Tech Mono', monospace;
-    font-size: 38px;
+    font-size: 36px;
     color: var(--status-danger);
     margin: 18px 0;
     font-weight: bold;
 }
 
-/* Botón de reiniciar racha */
 .btn-reiniciar-racha {
     width: 100%;
     padding: 13px;
-    border-radius: 10px;
+    border-radius: 50px;
     border: none;
     background: color-mix(in srgb, var(--status-warn) 15%, transparent);
     color: var(--status-warn);
     font-weight: 700;
     font-size: 14px;
     cursor: pointer;
-    margin-top: 10px;
     transition: background 0.15s;
 }
-
 .btn-reiniciar-racha:hover {
     background: var(--status-warn);
-    color: var(--clr-white);
+    color: #fff;
 }
 
-/* Botón de texto borrar */
-.btn-borrar-txt {
+
+/* ── Modal Grupos CRUD ──────────────────────────────────── */
+.grupos-lista-crud {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 260px;
+    overflow-y: auto;
+    margin-bottom: 16px;
+}
+
+.item-grupo-crud {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-card);
+    border-radius: 12px;
+    padding: 10px 12px;
+    border-left: 4px solid;
+}
+
+.item-grupo-crud .grupo-crud-icono-input {
+    font-size: 18px;
+    background: none;
     border: none;
-    background: transparent;
+    width: 32px;
+    text-align: center;
+    cursor: text;
+    color: var(--text-hi);
+}
+
+.item-grupo-crud .grupo-crud-nombre-input {
+    flex: 1;
+    background: none;
+    border: none;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-hi);
+    outline: none;
+}
+
+.item-grupo-crud .grupo-crud-nombre-input:focus {
+    border-bottom: 1px solid var(--accent);
+}
+
+.grupo-crud-acciones {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.btn-grupo-color {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+}
+
+.btn-grupo-borrar {
+    background: none;
+    border: none;
     color: var(--status-danger);
     font-size: 16px;
     cursor: pointer;
-    font-weight: bold;
+    opacity: 0.7;
     transition: opacity 0.15s;
 }
+.btn-grupo-borrar:hover { opacity: 1; }
 
-.btn-borrar-txt:hover { opacity: 0.7; }
-
-
-/* ── Card para crear grupo ──────────────────────────── */
+/* Card nueva grupo */
 .card-crear-grupo {
     background: var(--bg-input);
     border: 1px solid var(--border-card);
-    padding: 16px;
-    border-radius: 14px;
-    margin-bottom: 20px;
+    padding: 14px;
+    border-radius: 13px;
+    margin-bottom: 16px;
 }
 
-/* Item en la lista de grupos */
 .item-grupo-lista {
     display: flex;
     justify-content: space-between;
     align-items: center;
     background: var(--bg-card);
     border: 1px solid var(--border-card);
-    padding: 12px 14px;
+    padding: 11px 13px;
     border-radius: 10px;
-    margin-bottom: 8px;
+    margin-bottom: 7px;
 }
 
-/* Input de color pequeño */
 .color-mini-input {
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
     border: none;
     background: transparent;
     cursor: pointer;
-    border-radius: 6px;
-    overflow: hidden;
+    border-radius: 50%;
+}
+
+.btn-borrar-txt {
+    border: none;
+    background: transparent;
+    color: var(--status-danger);
+    font-size: 15px;
+    cursor: pointer;
+    opacity: 0.75;
+    transition: opacity 0.15s;
+}
+.btn-borrar-txt:hover { opacity: 1; }
+
+
+/* ── Paleta de colores editable ─────────────────────────── */
+.paleta-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    margin-top: 12px;
+}
+
+.paleta-color-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 2.5px solid transparent;
+    cursor: pointer;
+    transition: transform 0.15s, border-color 0.15s;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+    position: relative;
+}
+
+.paleta-color-btn:hover { transform: scale(1.15); }
+
+.paleta-color-btn.seleccionado {
+    border-color: var(--text-hi);
+    transform: scale(1.1);
+}
+
+.paleta-color-btn .btn-quitar-color {
+    display: none;
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    width: 14px;
+    height: 14px;
+    background: var(--status-danger);
+    border-radius: 50%;
+    border: none;
+    color: #fff;
+    font-size: 9px;
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+
+.paleta-color-btn:hover .btn-quitar-color {
+    display: flex;
+}
+
+.btn-agregar-color-paleta {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 2px dashed var(--border-card);
+    background: transparent;
+    color: var(--text-lo);
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: border-color 0.15s, color 0.15s;
+}
+
+.btn-agregar-color-paleta:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+/* Input de color oculto para agregar */
+#input-nuevo-color-paleta {
+    display: none;
+}
+
+
+/* ── Estado vacío ───────────────────────────────────────── */
+.estado-vacio {
+    text-align: center;
+    padding: 50px 20px;
+    color: var(--text-lo);
+}
+
+.estado-vacio h3 {
+    font-size: 20px;
+    margin-bottom: 8px;
+    color: var(--text-hi);
+}
+
+/* ── Responsive móvil ───────────────────────────────────── */
+@media (max-width: 480px) {
+    .modal-transparente,
+    .modal-ancho {
+        width: 96% !important;
+        padding: 22px 16px 18px;
+    }
+
+    .accion-anillo-wrap {
+        width: 140px;
+        height: 140px;
+    }
+
+    .accion-num-grande { font-size: 40px; }
+
+    .btn-accion-pill { padding: 14px; font-size: 15px; }
+
+    .dia-item { min-width: 36px; }
+    .dia-donut-wrap { width: 36px; height: 36px; }
+}
+
+/* ── Panel Global Flotante de Emojis ───────────────────── */
+.btn-emoji-trigger {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    border: 1px solid var(--border-card);
+    background: var(--bg-card);
+    font-size: 20px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s, border-color 0.2s;
+}
+.btn-emoji-trigger:hover {
+    background: var(--bg-hover);
+    border-color: var(--accent);
+}
+.input-icono-grupo + .btn-emoji-trigger {
+    width: 40px;
+    height: 40px;
+    border-radius: 9px;
+}
+
+#panel-emoji-global {
+    position: fixed; /* Esto evita cortes de modales padres */
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+    border-radius: 14px;
+    display: none;
+    width: 300px;
+    max-height: 280px;
+    padding: 12px;
+    z-index: 999999; /* Por encima de todo */
+    flex-wrap: wrap;
+    gap: 6px;
+    overflow-y: auto;
+    backdrop-filter: blur(10px);
+}
+
+#panel-emoji-global[style*="display: flex"] {
+    display: flex !important;
+}
+#panel-emoji-global::-webkit-scrollbar { width: 6px; }
+#panel-emoji-global::-webkit-scrollbar-thumb { background: var(--border-card); border-radius: 4px; }
+
+.emoji-global-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    font-size: 22px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.1s, background 0.2s;
+}
+.emoji-global-btn:hover {
+    background: var(--bg-hover);
+    transform: scale(1.15);
 }
