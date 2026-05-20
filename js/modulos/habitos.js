@@ -103,13 +103,75 @@ function obtenerDatosHabitosSeguros() {
         guardarConfigHabitos(CONFIG_HABITOS_DEFAULT);
         d.config_habitos = CONFIG_HABITOS_DEFAULT;
     }
+    
+    let requiereGuardar = false;
+
+    // 1. LIMPIEZA DE LOS GRUPOS
     if (d.config_habitos.grupos) {
-        d.config_habitos.grupos = d.config_habitos.grupos.map(g => ({
-            icono: g.icono || '📁',
-            nombre: g.nombre,
-            color: g.color
-        }));
+        d.config_habitos.grupos = d.config_habitos.grupos.map(g => {
+            let n = g.nombre;
+            let i = g.icono;
+
+            if (n.includes('Mañana') && (!i || i === '📁')) { i = '☕'; requiereGuardar = true; }
+            if (n.includes('Tarde') && (!i || i === '📁')) { i = '⚡'; requiereGuardar = true; }
+            if (n.includes('Noche') && (!i || i === '📁')) { i = '🌙'; requiereGuardar = true; }
+
+            let nombreLimpio = n.replace(/☕|⚡|🌙/g, '').replace(/[\uFE0F\u200B]/g, '').trim();
+            if (nombreLimpio !== n) { 
+                n = nombreLimpio; 
+                requiereGuardar = true; 
+            }
+
+            return { icono: i || '📁', nombre: n, color: g.color };
+        });
     }
+
+    // 2. LIMPIEZA DE LOS HÁBITOS INDIVIDUALES
+    if (d.habitos) {
+        d.habitos = d.habitos.map(h => {
+            // Limpiar la etiqueta del grupo dentro del hábito para que no se desconecte
+            if (h.grupo) {
+                let gLimpio = h.grupo.replace(/☕|⚡|🌙/g, '').replace(/[\uFE0F\u200B]/g, '').trim();
+                if (h.grupo !== gLimpio) { h.grupo = gLimpio; requiereGuardar = true; }
+            }
+
+            // Limpiar el nombre del hábito y rescatar el emoji
+            if (h.nombre) {
+                let nombreModificado = h.nombre;
+                let emojiRescatado = null;
+
+                // Buscamos si tiene alguno de los clásicos o cualquier emoji de tu sistema
+                const emojisBuscados = ['☕', '⚡', '🌙', ...(typeof EMOJIS_SISTEMA !== 'undefined' ? EMOJIS_SISTEMA : [])];
+                
+                emojisBuscados.forEach(emoji => {
+                    if (nombreModificado.includes(emoji)) {
+                        if (!emojiRescatado) emojiRescatado = emoji; // Rescatamos el primero que encontremos
+                        nombreModificado = nombreModificado.replace(emoji, ''); // Lo borramos del texto
+                    }
+                });
+
+                nombreModificado = nombreModificado.replace(/[\uFE0F\u200B]/g, '').trim();
+
+                // Si el nombre cambió (es decir, le quitamos basura)
+                if (h.nombre !== nombreModificado) {
+                    // Si el hábito tiene la estrellita por defecto o no tiene icono, le ponemos el rescatado
+                    if (!h.icono || h.icono === '✨') {
+                        h.icono = emojiRescatado || '✨';
+                    }
+                    h.nombre = nombreModificado;
+                    requiereGuardar = true;
+                }
+            }
+            return h;
+        });
+    }
+
+    // Guardar los cambios automáticamente si hicimos limpiezas
+    if (requiereGuardar) {
+        guardarConfigHabitos(d.config_habitos);
+        guardarHabitosDefinicion(d.habitos);
+    }
+
     if (!d.config_habitos.paleta) {
         d.config_habitos.paleta = PALETA_COLORES_DEFAULT;
     }
@@ -501,6 +563,8 @@ window.abrirModalHabitoUI = function(id = null) {
         document.getElementById('habito-tipo').value     = h.tipo;
         document.getElementById('habito-meta').value     = h.meta;
         document.getElementById('habito-paso').value     = h.paso || 1;
+        // ✅ Cargar la fecha guardada, o usar hoy como fallback
+        document.getElementById('habito-fecha-inicio').value = h.fechaCreacion || new Date().toISOString().split('T')[0];
     } else {
         document.getElementById('modal-titulo').innerText = 'Nuevo Hábito';
         document.getElementById('habito-id-edit').value  = '';
@@ -509,6 +573,8 @@ window.abrirModalHabitoUI = function(id = null) {
         document.getElementById('habito-color').value    = '#1A73E8';
         document.getElementById('habito-meta').value     = '1';
         document.getElementById('habito-paso').value     = '1';
+        // ✅ Poner automáticamente la fecha de hoy para hábitos nuevos
+        document.getElementById('habito-fecha-inicio').value = new Date().toISOString().split('T')[0];
     }
 
     window.alternarCamposTipo();
@@ -559,20 +625,22 @@ window.guardarHabito = function() {
         tipo:   document.getElementById('habito-tipo').value,
         meta:   parseFloat(document.getElementById('habito-meta').value) || 1,
         paso:   parseFloat(document.getElementById('habito-paso').value) || 1,
-        fechaCreacion: id ? null : new Date().toISOString().split('T')[0]
+        // ✅ Leer y guardar la fecha elegida por el usuario
+        fechaCreacion: document.getElementById('habito-fecha-inicio').value || new Date().toISOString().split('T')[0]
     };
     if (!obj.nombre) return alert('Escribe un nombre.');
 
     let d = obtenerDatosHabitosSeguros();
     if (id) {
         const old = d.habitos.find(x => x.id == id);
-        obj.fechaCreacion = old.fechaCreacion;
-        obj.fechaInicio   = old.fechaInicio;
+        // Respetamos el inicio del cronómetro si existe
+        obj.fechaInicio   = old.fechaInicio; 
         d.habitos = d.habitos.map(x => x.id == id ? obj : x);
     } else {
         if (obj.tipo === 'cronometro') obj.fechaInicio = null;
         d.habitos.push(obj);
     }
+    
     guardarHabitosDefinicion(d.habitos);
     window.cerrarModalHabito();
     renderizarListaHabitos();
@@ -735,4 +803,10 @@ window.borrarDesdeAccion = function() {
     idHabitoParaBorrar = habitoAccionActual.id;
     window.cerrarModalAccion();
     document.getElementById('modal-confirmar-habito-borrar').style.display = 'flex';
+};
+
+window.irAEstadisticasHabitos = function() {
+if (typeof cargarVista === 'function') {
+cargarVista('estadisticas-habitos');
+}
 };

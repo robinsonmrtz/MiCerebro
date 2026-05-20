@@ -83,6 +83,22 @@ const mapaModulos = {
         'js/core/app.js',
         'vistas/backup.html'
     ],
+    'clientes': [
+        'vistas/clientes.html',
+        'css/clientes.css',
+        'js/modulos/clientes.js',
+        'js/core/storage.js',
+        'js/core/app.js',
+        'vistas/backup.html'
+    ],
+    'finanzas-personales': [
+        'vistas/finanzas-personales.html',
+        'css/finanzas-personales.css',
+        'js/modulos/finanzas-personales.js',,
+        'js/core/storage.js',
+        'js/core/app.js',
+        'vistas/backup.html'
+    ],
     'habitos': [
         'vistas/habitos.html',
         'css/habitos.css',
@@ -97,14 +113,7 @@ const mapaModulos = {
         'js/core/app.js',
         'js/core/storage.js'
     ],
-    'clientes': [
-        'vistas/clientes.html',
-        'css/clientes.css',
-        'js/modulos/clientes.js',
-        'js/core/storage.js',
-        'js/core/app.js',
-        'vistas/backup.html'
-    ],
+
     'todo': [
         'index.html',
         'css/styles.css',
@@ -118,7 +127,16 @@ const mapaModulos = {
         'js/modulos/temporizador.js',
         'js/modulos/metricas.js',
         'js/modulos/habitos.js'
+    ],
+    'index': [
+        'index.html',
+        'css/styles.css',
+        'vistas/backup.html',
+        'js/core/storage.js',
+        'js/core/app.js',
+        'vistas/backup.html'
     ]
+
 };
  
 let archivosAEscanear = [];

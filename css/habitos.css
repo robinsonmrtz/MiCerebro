@@ -511,22 +511,18 @@
 
 
 .input-icono {
-    width: 44px;
-    height: 44px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    font-size: 22px;
-    border: 1px solid var(--border-card);
+    width: 44px !important;
+    height: 44px !important;
+    text-align: center !important;
+    font-size: 22px !important;
+    border: 1px solid var(--border-card) !important;
     border-radius: 12px;
-    background: var(--bg-card);
-    color: var(--text-hi);
+    background: var(--bg-card) !important;
+    color: var(--text-hi) !important;
     outline: none;
     transition: border-color 0.2s, background 0.2s;
-    padding: 0;
+    padding: 0 !important;
     cursor: pointer;
-    line-height: 1;
 }
 
 .input-icono:focus {

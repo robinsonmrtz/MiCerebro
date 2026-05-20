@@ -1,0 +1,147 @@
+<!-- ====================================================
+     RUTA DEL ARCHIVO: vistas/estadisticas-habitos.html  v2.0
+     Rediseño: grid desktop compacto, móvil scroll vertical
+     ==================================================== -->
+
+<!-- Cabecera compacta -->
+<div class="stats-header">
+    <button class="btn-volver-habitos" onclick="window.volverAHabitos()">❮ Hábitos</button>
+    <h2 class="stats-titulo">Estadísticas</h2>
+    <!-- Filtro inline en header -->
+    <div class="stats-filtro-inline" onclick="window.toggleFiltroHabitos()">
+        <span id="stats-filtro-valor">Todos</span>
+        <span class="stats-filtro-flecha">⌄</span>
+    </div>
+</div>
+
+<!-- ══ LAYOUT DESKTOP: grid 2 columnas ══ -->
+<div class="stats-grid-desktop">
+
+    <!-- COL IZQUIERDA -->
+    <div class="stats-col">
+
+        <!-- Récords — 4 pills compactos -->
+        <div class="stats-bloque">
+            <div class="stats-bloque-header">
+                <span class="stats-bloque-titulo">Récords</span>
+                <div class="stats-nav-mini">
+                    <button onclick="window.navegarPeriodoRecords(-1)">❮</button>
+                    <span id="label-periodo-records">30 días</span>
+                    <button onclick="window.navegarPeriodoRecords(1)">❯</button>
+                </div>
+            </div>
+            <div class="stats-records-row">
+                <div class="stats-kpi">
+                    <span class="kpi-icono">🔥</span>
+                    <span class="kpi-num" id="rec-racha-actual">0</span>
+                    <span class="kpi-label">Racha</span>
+                </div>
+                <div class="stats-kpi">
+                    <span class="kpi-icono">🏅</span>
+                    <span class="kpi-num" id="rec-mejor-racha">0</span>
+                    <span class="kpi-label">Mejor</span>
+                </div>
+                <div class="stats-kpi">
+                    <span class="kpi-icono">✅</span>
+                    <span class="kpi-num" id="rec-completados">0</span>
+                    <span class="kpi-label">Hechos</span>
+                </div>
+                <div class="stats-kpi">
+                    <span class="kpi-icono">🏁</span>
+                    <span class="kpi-num" id="rec-tasa-exito">0%</span>
+                    <span class="kpi-label">Éxito</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Barras de progreso general -->
+        <div class="stats-bloque">
+            <div class="stats-bloque-header">
+                <span class="stats-bloque-titulo">Progreso</span>
+                <div class="stats-nav-mini">
+                    <button onclick="window.navegarPeriodoBarras(-1)">❮</button>
+                    <span id="label-periodo-barras">7 días</span>
+                    <button onclick="window.navegarPeriodoBarras(1)">❯</button>
+                </div>
+            </div>
+            <div class="stats-canvas-wrap">
+                <canvas id="chart-barras-progreso"></canvas>
+            </div>
+        </div>
+
+        <!-- Líneas por hábito -->
+        <div class="stats-bloque">
+            <div class="stats-bloque-header">
+                <span class="stats-bloque-titulo">Por hábito</span>
+                <div class="stats-nav-mini">
+                    <button onclick="window.navegarPeriodoLineas(-1)">❮</button>
+                    <span id="label-periodo-lineas">7 días</span>
+                    <button onclick="window.navegarPeriodoLineas(1)">❯</button>
+                </div>
+            </div>
+            <div class="stats-canvas-wrap">
+                <canvas id="chart-lineas-habitos"></canvas>
+            </div>
+            <div class="stats-leyenda" id="stats-leyenda-lineas"></div>
+        </div>
+
+    </div>
+
+    <!-- COL DERECHA -->
+    <div class="stats-col">
+
+        <!-- Calendario mensual compacto -->
+        <div class="stats-bloque">
+            <div class="stats-bloque-header">
+                <span class="stats-bloque-titulo" id="stats-cal-titulo">mayo 2026</span>
+                <div class="stats-nav-mini">
+                    <button onclick="window.navegarMesCalendario(-1)">❮</button>
+                    <button onclick="window.navegarMesCalendario(1)">❯</button>
+                </div>
+            </div>
+            <div class="cal-semana-header">
+                <span>L</span><span>M</span><span>X</span><span>J</span><span>V</span><span>S</span><span>D</span>
+            </div>
+            <div class="cal-grid" id="stats-cal-grid"></div>
+        </div>
+
+        <!-- Tabla semanal compacta -->
+        <div class="stats-bloque">
+            <div class="stats-bloque-header">
+                <span class="stats-bloque-titulo" id="label-semana-tabla">esta semana</span>
+                <div class="stats-nav-mini">
+                    <button onclick="window.navegarSemanaTabla(-1)">❮</button>
+                    <button onclick="window.navegarSemanaTabla(1)">❯</button>
+                </div>
+            </div>
+            <div class="tabla-semanal-header" id="tabla-semanal-header"></div>
+            <div class="tabla-semanal-body" id="tabla-semanal-body"></div>
+        </div>
+
+        <!-- Heatmap anual -->
+        <div class="stats-bloque stats-bloque-heatmap">
+            <div class="stats-bloque-header">
+                <span class="stats-bloque-titulo" id="label-anio-heatmap">2026</span>
+                <div class="stats-nav-mini">
+                    <button onclick="window.navegarAnioHeatmap(-1)">❮</button>
+                    <button onclick="window.navegarAnioHeatmap(1)">❯</button>
+                </div>
+            </div>
+            <div class="heatmap-meses-label" id="heatmap-meses-label"></div>
+            <div class="heatmap-grid" id="heatmap-grid"></div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Modal: Filtro de hábitos -->
+<div id="modal-filtro-habitos-stats" class="modal-overlay" style="display:none;">
+    <div class="modal-caja modal-ancho">
+        <div class="modal-header-edit">
+            <h3>Filtrar Hábitos</h3>
+            <button onclick="window.cerrarFiltroHabitos()" class="btn-cerrar-limpio">✕</button>
+        </div>
+        <div id="lista-filtro-habitos-stats" style="display:flex;flex-direction:column;gap:8px;max-height:60vh;overflow-y:auto;"></div>
+        <button onclick="window.aplicarFiltroHabitos()" class="btn-primario" style="width:100%;margin-top:14px;">Aplicar</button>
+    </div>
+</div>

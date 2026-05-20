@@ -37,9 +37,17 @@ async function cargarVista(nombreVista) {
                 setTimeout(() => {
                     if (typeof inicializarClientes === 'function') inicializarClientes();
                 }, 50);
-            } else if  (nombreVista === 'habitos') {
+            } else if (nombreVista === 'habitos') {
                 setTimeout(() => {
-                    if (typeof inicializarHabitos === 'function') inicializarHabitos();
+                if (typeof inicializarHabitos === 'function') inicializarHabitos();
+                }, 50);
+                } else if (nombreVista === 'estadisticas-habitos') {
+                setTimeout(() => {
+                if (typeof inicializarEstadisticasHabitos === 'function') inicializarEstadisticasHabitos();
+                }, 50);
+                } else if (nombreVista === 'finanzas-personales') { // 👇 NUEVO
+                setTimeout(() => {
+                    if (typeof inicializarFinanzasPersonales === 'function') inicializarFinanzasPersonales();
                 }, 50);
             }
         } else {

@@ -9,8 +9,15 @@ function cargarDatos() {
     const datos = localStorage.getItem('datos_cerebro');
     if (datos) {
         let parseado = JSON.parse(datos);
-        // Protegemos tus datos viejos: si no existe la carpeta clientes, la crea vacía
         if (!parseado.clientes) parseado.clientes = []; 
+        // 👇 NUEVA ESTRUCTURA PARA FINANZAS PERSONALES
+        if (!parseado.finanzas_personales) {
+            parseado.finanzas_personales = {
+                cuentas: [],
+                categorias: [],
+                transacciones: []
+            };
+        }
         return parseado;
     }
     return { 
@@ -19,8 +26,13 @@ function cargarDatos() {
         habitos: [], 
         registro_habitos: {},
         config_habitos: null,
-        finanzas: [],
-        clientes: [] // <--- NUEVO MÓDULO PREPARADO
+        clientes: [],
+        // Base de datos virgen para el nuevo módulo
+        finanzas_personales: {
+            cuentas: [],
+            categorias: [],
+            transacciones: []
+        }
     };
 }
 
@@ -86,5 +98,63 @@ function guardarProgresoHabito(fecha, habitoId, nuevoProgreso) {
     if (!datos.registro_habitos) datos.registro_habitos = {};
     if (!datos.registro_habitos[fecha]) datos.registro_habitos[fecha] = {};
     datos.registro_habitos[fecha][habitoId] = nuevoProgreso;
+    guardarDatos(datos);
+}
+
+// ==========================================
+// MÓDULO: FINANZAS PERSONALES - STORAGE
+// ==========================================
+
+// Obtener solo el nodo de finanzas
+function fz_obtenerDatos() {
+    let datos = cargarDatos();
+    return datos.finanzas_personales;
+}
+
+// --- CRUD CUENTAS ---
+function fz_guardarCuenta(cuenta) {
+    let datos = cargarDatos();
+    let index = datos.finanzas_personales.cuentas.findIndex(c => c.id === cuenta.id);
+    if (index > -1) datos.finanzas_personales.cuentas[index] = cuenta; // Editar
+    else datos.finanzas_personales.cuentas.push(cuenta); // Crear nueva
+    guardarDatos(datos);
+}
+
+function fz_archivarCuenta(id) {
+    let datos = cargarDatos();
+    let cuenta = datos.finanzas_personales.cuentas.find(c => c.id === id);
+    if (cuenta) cuenta.archivada = true; // SOFT-DELETE (No se borra, se archiva)
+    guardarDatos(datos);
+}
+
+// --- CRUD CATEGORÍAS ---
+function fz_guardarCategoria(categoria) {
+    let datos = cargarDatos();
+    let index = datos.finanzas_personales.categorias.findIndex(c => c.id === categoria.id);
+    if (index > -1) datos.finanzas_personales.categorias[index] = categoria;
+    else datos.finanzas_personales.categorias.push(categoria);
+    guardarDatos(datos);
+}
+
+function fz_archivarCategoria(id) {
+    let datos = cargarDatos();
+    let categoria = datos.finanzas_personales.categorias.find(c => c.id === id);
+    if (categoria) categoria.archivada = true;
+    guardarDatos(datos);
+}
+
+// --- CRUD TRANSACCIONES ---
+function fz_guardarTransaccion(transaccion) {
+    let datos = cargarDatos();
+    let index = datos.finanzas_personales.transacciones.findIndex(t => t.id === transaccion.id);
+    if (index > -1) datos.finanzas_personales.transacciones[index] = transaccion;
+    else datos.finanzas_personales.transacciones.push(transaccion);
+    guardarDatos(datos);
+}
+
+function fz_archivarTransaccion(id) {
+    let datos = cargarDatos();
+    let trans = datos.finanzas_personales.transacciones.find(t => t.id === id);
+    if (trans) trans.archivada = true;
     guardarDatos(datos);
 }

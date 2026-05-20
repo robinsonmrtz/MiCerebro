@@ -1,0 +1,251 @@
+<div class="seccion-titulo">
+    <h2>💵 Finanzas Personales</h2>
+    <p>Controla tus ingresos, gastos, cuentas y patrimonio neto.</p>
+</div>
+
+<nav class="finanzas-nav" id="finanzas-tabs">
+    <div class="finanzas-tab activa" data-tab="resumen"><i class="ti ti-layout-dashboard"></i> <span>Resumen</span></div>
+    <div class="finanzas-tab" data-tab="cuentas"><i class="ti ti-building-bank"></i> <span>Cuentas</span></div>
+    <div class="finanzas-tab" data-tab="transacciones"><i class="ti ti-arrows-right-left"></i> <span>Transacciones</span></div>
+    <div class="finanzas-tab" data-tab="tarjetas"><i class="ti ti-credit-card"></i> <span>Tarjetas</span></div>
+    <div class="finanzas-tab" data-tab="presupuestos"><i class="ti ti-chart-pie"></i> <span>Presupuestos</span></div>
+    <div class="finanzas-tab" data-tab="informes"><i class="ti ti-report-analytics"></i> <span>Informes</span></div>
+    
+    <div class="finanzas-tab-dropdown-container">
+        <div class="finanzas-tab" id="btn-mas-opciones"><i class="ti ti-dots"></i> <span>Más</span></div>
+        
+        <div class="finanzas-dropdown-menu" id="menu-mas-opciones">
+            <div class="finanzas-dropdown-item" data-tab="objetivos"><i class="ti ti-target"></i> Objetivos</div>
+            <div class="finanzas-dropdown-item" data-tab="categorias"><i class="ti ti-tags"></i> Categorías</div>
+            <div class="finanzas-dropdown-item" data-tab="comercios"><i class="ti ti-building-store"></i> Comercios</div>
+            <div class="finanzas-dropdown-item" data-tab="calendario"><i class="ti ti-calendar"></i> Calendario</div>
+            <div class="finanzas-dropdown-item" data-tab="actuacion"><i class="ti ti-star"></i> Mi Actuación</div>
+        </div>
+    </div>
+</nav>
+
+<div class="finanzas-mes-control">
+    <button class="btn-ghost" onclick="finanzasMoverMes(-1)"><i class="ti ti-chevron-left"></i></button>
+    <h3 id="finanzas-mes-actual">Mayo 2026</h3>
+    <button class="btn-ghost" onclick="finanzasMoverMes(1)"><i class="ti ti-chevron-right"></i></button>
+</div>
+
+<div id="finanzas-contenido-dinamico">
+    
+    <div id="pantalla-resumen">
+        <div class="kpi-grid">
+            <div class="widget">
+                <h4>Saldo General</h4>
+                <p id="fz-saldo-general" style="color: var(--accent);">$0.00</p>
+            </div>
+            <div class="widget">
+                <h4>Ingresos</h4>
+                <p id="fz-ingresos-mes" style="color: var(--status-ok);">+$0.00</p>
+            </div>
+            <div class="widget">
+                <h4>Gastos</h4>
+                <p id="fz-gastos-mes" style="color: var(--status-danger);">-$0.00</p>
+            </div>
+        </div>
+
+        <div class="finanzas-grid">
+            <div class="card-surface" style="padding: 20px;">
+                <h3 style="color: var(--text-hi); font-size: 15px; margin-bottom: 16px;">Gastos por Categoría</h3>
+                <div style="height: 250px; display: flex; align-items: center; justify-content: center; color: var(--text-lo);">
+                    <div class="card-surface" style="padding: 20px;">
+                <h3 style="color: var(--text-hi); font-size: 15px; margin-bottom: 16px;">Gastos por Categoría</h3>
+                <div style="height: 250px; display: flex; align-items: center; justify-content: center; position: relative;">
+                    <p id="fz-grafico-vacio" style="color: var(--text-lo); font-size: 13px; display: none;">No hay gastos registrados en este mes.</p>
+                    <canvas id="fz-grafico-gastos"></canvas>
+                </div>
+                </div>
+                </div>
+            </div>
+
+            <div class="card-surface" style="padding: 20px; display: flex; flex-direction: column; gap: 12px;">
+                <h3 style="color: var(--text-hi); font-size: 15px; margin-bottom: 8px;">Acciones Rápidas</h3>
+                <button class="btn-primario" style="background: var(--status-danger); border-color: transparent;" onclick="abrirModalTransaccion('gasto')">
+                    <i class="ti ti-minus"></i> Registrar Gasto
+                </button>
+                <button class="btn-primario" style="background: var(--status-ok); border-color: transparent;" onclick="abrirModalTransaccion('ingreso')">
+                    <i class="ti ti-plus"></i> Registrar Ingreso
+                </button>
+                <button class="btn-secundario" onclick="abrirModalTransaccion('transferencia')">
+                    <i class="ti ti-arrows-exchange"></i> Transferencia
+                </button>
+            </div>
+        </div>
+    </div>
+    <div id="pantalla-cuentas" style="display: none;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3 style="color: var(--text-hi); font-size: 16px;">Mis Cuentas Activas</h3>
+            <button class="btn-primario" onclick="fz_abrirModalCuenta()"><i class="ti ti-plus"></i> Nueva Cuenta</button>
+        </div>
+        <div class="kpi-grid" id="fz-lista-cuentas" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px;">
+            </div>
+    </div>
+
+    <div id="pantalla-categorias" style="display: none;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3 style="color: var(--text-hi); font-size: 16px;">Categorías de Transacción</h3>
+            <button class="btn-primario" onclick="fz_abrirModalCategoria()"><i class="ti ti-plus"></i> Nueva Categoría</button>
+        </div>
+        <div class="finanzas-grid">
+            <div class="card-surface" style="padding: 20px;">
+                <h4 style="color: var(--status-ok); margin-bottom: 12px; border-bottom: 1px solid var(--border-card); padding-bottom: 8px;">Categorías de Ingreso</h4>
+                <div id="fz-lista-categorias-ingreso" style="display: flex; flex-direction: column; gap: 8px;"></div>
+            </div>
+            <div class="card-surface" style="padding: 20px;">
+                <h4 style="color: var(--status-danger); margin-bottom: 12px; border-bottom: 1px solid var(--border-card); padding-bottom: 8px;">Categorías de Gasto</h4>
+                <div id="fz-lista-categorias-gasto" style="display: flex; flex-direction: column; gap: 8px;"></div>
+            </div>
+        </div>
+    </div>
+<div id="pantalla-transacciones" style="display: none;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3 style="color: var(--text-hi); font-size: 16px;">Movimientos del Mes</h3>
+            <div style="display: flex; gap: 8px;">
+                <button class="btn-primario" style="background: var(--bg-card); color: var(--text-hi); border: 1px solid var(--border-card); padding: 6px 12px;" onclick="fz_abrirModalTransferencia()">
+                    <i class="ti ti-arrows-right-left"></i> Transferir
+                </button>
+                <button class="btn-primario" style="background: var(--status-danger); border-color: transparent; padding: 6px 12px;" onclick="fz_abrirModalTransaccion('gasto')">
+                    <i class="ti ti-minus"></i> Gasto
+                </button>
+                <button class="btn-primario" style="background: var(--status-ok); border-color: transparent; padding: 6px 12px;" onclick="fz_abrirModalTransaccion('ingreso')">
+                    <i class="ti ti-plus"></i> Ingreso
+                </button>
+            </div>
+        </div>
+</div> 
+<div id="pantalla-tarjetas" style="display: none;">
+        <div class="card-surface" style="padding: 40px; text-align: center; color: var(--text-lo);">🚧 Módulo Tarjetas de Crédito en construcción 🚧</div>
+    </div>
+    <div id="pantalla-presupuestos" style="display: none;">
+        <div class="card-surface" style="padding: 40px; text-align: center; color: var(--text-lo);">🚧 Módulo Presupuestos en construcción 🚧</div>
+    </div>
+    <div id="pantalla-informes" style="display: none;">
+        <div class="card-surface" style="padding: 40px; text-align: center; color: var(--text-lo);">🚧 Módulo Informes en construcción 🚧</div>
+    </div>
+    <div id="pantalla-objetivos" style="display: none;">
+        <div class="card-surface" style="padding: 40px; text-align: center; color: var(--text-lo);">🚧 Módulo Objetivos en construcción 🚧</div>
+    </div>
+    <div id="pantalla-comercios" style="display: none;">
+        <div class="card-surface" style="padding: 40px; text-align: center; color: var(--text-lo);">🚧 Módulo Comercios en construcción 🚧</div>
+    </div>
+    <div id="pantalla-calendario" style="display: none;">
+        <div class="card-surface" style="padding: 40px; text-align: center; color: var(--text-lo);">🚧 Módulo Calendario en construcción 🚧</div>
+    </div>
+    <div id="pantalla-actuacion" style="display: none;">
+        <div class="card-surface" style="padding: 40px; text-align: center; color: var(--text-lo);">🚧 Módulo Mi Actuación en construcción 🚧</div>
+    </div>
+<div class="modal-overlay" id="fz-modal-cuenta">
+    <div class="modal-caja">
+        <h3 id="fz-modal-cuenta-titulo">Nueva Cuenta</h3>
+        <input type="hidden" id="fz-cuenta-id">
+        <div style="display: flex; flex-direction: column; gap: 12px; text-align: left; margin-bottom: 20px;">
+            <div>
+                <label style="color: var(--text-lo); font-size: 12px;">Nombre de la cuenta (Ej. Banco, Efectivo)</label>
+                <input type="text" id="fz-cuenta-nombre" class="input-base" placeholder="Ej: Cuenta de Ahorros" autocomplete="off">
+            </div>
+            <div>
+                <label style="color: var(--text-lo); font-size: 12px;">Saldo Inicial ($)</label>
+                <input type="number" id="fz-cuenta-saldo" class="input-base" placeholder="0.00">
+            </div>
+        </div>
+        <div class="modal-botones-row">
+            <button class="btn-cancelar-modal" onclick="document.getElementById('fz-modal-cuenta').classList.remove('visible')">Cancelar</button>
+            <button class="btn-primario" onclick="fz_guardarFormularioCuenta()">Guardar Cuenta</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="fz-modal-categoria">
+    <div class="modal-caja">
+        <h3 id="fz-modal-categoria-titulo">Nueva Categoría</h3>
+        <input type="hidden" id="fz-categoria-id">
+        <div style="display: flex; flex-direction: column; gap: 12px; text-align: left; margin-bottom: 20px;">
+            <div>
+                <label style="color: var(--text-lo); font-size: 12px;">Nombre de la Categoría</label>
+                <input type="text" id="fz-categoria-nombre" class="input-base" placeholder="Ej: Supermercado" autocomplete="off">
+            </div>
+            <div>
+                <label style="color: var(--text-lo); font-size: 12px;">Tipo</label>
+                <select id="fz-categoria-tipo" class="input-base">
+                    <option value="gasto">Gasto (Rojo)</option>
+                    <option value="ingreso">Ingreso (Verde)</option>
+                </select>
+            </div>
+            <div>
+                <label style="color: var(--text-lo); font-size: 12px;">Color (Opcional Hexadecimal)</label>
+                <input type="color" id="fz-categoria-color" value="#2773d6" style="width: 100%; height: 38px; border: none; border-radius: 8px; cursor: pointer; background: transparent;">
+            </div>
+        </div>
+        <div class="modal-botones-row">
+            <button class="btn-cancelar-modal" onclick="document.getElementById('fz-modal-categoria').classList.remove('visible')">Cancelar</button>
+            <button class="btn-primario" onclick="fz_guardarFormularioCategoria()">Guardar Categoría</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="fz-modal-transaccion">
+    <div class="modal-caja">
+        <h3 id="fz-modal-trans-titulo">Nueva Transacción</h3>
+        <input type="hidden" id="fz-trans-id">
+        <input type="hidden" id="fz-trans-tipo"> <div style="display: flex; flex-direction: column; gap: 12px; text-align: left; margin-bottom: 20px;">
+            <div>
+                <label style="color: var(--text-lo); font-size: 12px;">Monto ($)</label>
+                <input type="number" id="fz-trans-monto" class="input-base" placeholder="0.00">
+            </div>
+            <div>
+                <label style="color: var(--text-lo); font-size: 12px;">Descripción / Concepto</label>
+                <input type="text" id="fz-trans-desc" class="input-base" placeholder="Ej: Supermercado, Salario..." autocomplete="off">
+            </div>
+            <div>
+                <label style="color: var(--text-lo); font-size: 12px;">Fecha</label>
+                <input type="date" id="fz-trans-fecha" class="input-base">
+            </div>
+            <div>
+                <label style="color: var(--text-lo); font-size: 12px;">Cuenta</label>
+                <select id="fz-trans-cuenta" class="input-base"></select>
+            </div>
+            <div>
+                <label style="color: var(--text-lo); font-size: 12px;">Categoría</label>
+                <select id="fz-trans-categoria" class="input-base"></select>
+            </div>
+        </div>
+        <div class="modal-botones-row">
+            <button class="btn-cancelar-modal" onclick="document.getElementById('fz-modal-transaccion').classList.remove('visible')">Cancelar</button>
+            <button class="btn-primario" id="fz-btn-guardar-trans" onclick="fz_guardarFormularioTransaccion()">Guardar</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="fz-modal-transferencia">
+    <div class="modal-caja">
+        <h3 style="color: #2773d6;">Transferir Dinero</h3>
+        <div style="display: flex; flex-direction: column; gap: 12px; text-align: left; margin-bottom: 20px; margin-top: 15px;">
+            <div>
+                <label style="color: var(--text-lo); font-size: 12px;">Monto a transferir ($)</label>
+                <input type="number" id="fz-transf-monto" class="input-base" placeholder="0.00">
+            </div>
+            <div>
+                <label style="color: var(--text-lo); font-size: 12px;">Sale de: (Cuenta Origen)</label>
+                <select id="fz-transf-origen" class="input-base"></select>
+            </div>
+            <div>
+                <label style="color: var(--text-lo); font-size: 12px;">Entra a: (Cuenta Destino)</label>
+                <select id="fz-transf-destino" class="input-base"></select>
+            </div>
+            <div>
+                <label style="color: var(--text-lo); font-size: 12px;">Fecha</label>
+                <input type="date" id="fz-transf-fecha" class="input-base">
+            </div>
+        </div>
+        <div class="modal-botones-row">
+            <button class="btn-cancelar-modal" onclick="document.getElementById('fz-modal-transferencia').classList.remove('visible')">Cancelar</button>
+            <button class="btn-primario" style="background: #2773d6;" onclick="fz_guardarFormularioTransferencia()">Confirmar</button>
+        </div>
+    </div>
+</div>
+    
+</div>

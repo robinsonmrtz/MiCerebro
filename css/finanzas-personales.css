@@ -1,0 +1,169 @@
+/* =========================================
+   MÓDULO: FINANZAS PERSONALES
+   ========================================= */
+
+/* 💻 ESCRITORIO: Arriba, estilo Pestañas */
+.finanzas-nav {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--border-card);
+    padding-bottom: 10px;
+}
+
+.finanzas-tab {
+    padding: 8px 16px;
+    border-radius: 8px;
+    color: var(--text-lo);
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.finanzas-tab i { font-size: 18px; }
+.finanzas-tab:hover { background: var(--bg-hover); color: var(--text-base); }
+.finanzas-tab.activa { background: var(--accent); color: var(--clr-white); }
+
+/* Control de Mes Global */
+.finanzas-mes-control {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 24px;
+    background: var(--bg-card);
+    padding: 12px;
+    border-radius: 12px;
+    border: 1px solid var(--border-card);
+}
+.finanzas-mes-control h3 { 
+    font-size: 16px; 
+    font-weight: 700; 
+    color: var(--text-hi); 
+    min-width: 140px; 
+    text-align: center; 
+}
+
+/* Layout Principal del Dashboard */
+.finanzas-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 20px;
+}
+
+/* =========================================
+   📱 MÓVIL: BARRA INFERIOR (Estilo App Nativa)
+   ========================================= */
+@media (max-width: 900px) { 
+    .finanzas-grid { grid-template-columns: 1fr; } 
+}
+
+@media (max-width: 768px) {
+    /* Espacio extra al final para que la barra flotante no tape el contenido */
+    #finanzas-contenido-dinamico {
+        padding-bottom: 80px; 
+    }
+
+    .finanzas-nav {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        background: var(--bg-root);
+        border-top: 1px solid var(--border);
+        border-bottom: none;
+        margin: 0;
+        padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+        justify-content: space-around;
+        z-index: 50;
+        box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4);
+    }
+
+    .finanzas-tab {
+        flex-direction: column;
+        padding: 4px;
+        gap: 4px;
+        background: transparent !important;
+        color: var(--text-lo);
+    }
+
+    .finanzas-tab i {
+        font-size: 22px;
+        transition: transform 0.2s, color 0.2s;
+    }
+
+    .finanzas-tab span {
+        font-size: 10px;
+        font-weight: 500;
+    }
+
+    /* Estado activo minimalista */
+    .finanzas-tab.activa { color: var(--accent) !important; }
+    .finanzas-tab.activa i { transform: translateY(-2px); }
+}
+
+/* =========================================
+   ESTILOS DEL SUBMENÚ "MÁS OPCIONES"
+   ========================================= */
+.finanzas-tab-dropdown-container { position: relative; display: flex; }
+
+.finanzas-dropdown-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    z-index: 100;
+    min-width: 180px;
+    padding: 8px 0;
+    margin-top: 8px;
+}
+
+.finanzas-dropdown-menu.visible { display: flex; flex-direction: column; }
+
+.finanzas-dropdown-item {
+    padding: 12px 16px;
+    color: var(--text-hi);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: background 0.2s;
+}
+
+.finanzas-dropdown-item:hover { background: var(--bg-hover); color: var(--accent); }
+.finanzas-dropdown-item i { font-size: 18px; }
+
+/* 📱 REFUERZO RESPONSIVE (Celulares) */
+@media (max-width: 768px) {
+    .finanzas-nav {
+        /* Permite deslizar con el dedo si no caben las 7 pestañas */
+        overflow-x: auto;
+        justify-content: flex-start;
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+    .finanzas-nav::-webkit-scrollbar { display: none; }
+    
+    .finanzas-tab { min-width: 65px; } /* Evita que se aplasten */
+
+    /* El submenú en celular flota como modal desde abajo */
+    .finanzas-dropdown-menu {
+        position: fixed;
+        bottom: 80px;
+        right: 10px;
+        left: auto;
+        top: auto;
+        min-width: 200px;
+        border-radius: 16px;
+    }
+}

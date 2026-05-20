@@ -23,6 +23,7 @@
 <div class="habitos-toolbar">
     <button onclick="window.abrirModalHabitoNueva()" class="btn-primario">➕ Nuevo Hábito</button>
     <button onclick="window.abrirGestionGrupos()" class="btn-secundario">📁 Grupos</button>
+    <button onclick="window.irAEstadisticasHabitos()" class="btn-secundario">📊 Stats</button>
 </div>
 
 <!-- Lista de hábitos agrupados -->
@@ -94,10 +95,19 @@
                     <input type="number" id="habito-paso" value="1" min="1">
                 </div>
             </div>
+
+            <div class="form-fila">
+                <div class="form-fila-label">
+                    <div class="form-fila-icono" style="background:#e1705522;">📅</div>
+                    Fecha de inicio
+                </div>
+                <input type="date" id="habito-fecha-inicio" style="background:transparent; border:none; text-align:right; font-size:13px; color:var(--text-base); outline:none; cursor:pointer;">
+            </div>
+
         </div>
 
         <!-- Aspecto -->
-<div class="form-seccion-label">Aspecto</div>
+        <div class="form-seccion-label">Aspecto</div>
         <div class="form-card-grupo">
             <div class="form-fila">
                 <div class="form-fila-label">
@@ -116,9 +126,10 @@
                 </div>
                 <div class="form-fila-val" style="gap: 0;">
                     <input type="text" id="habito-icono" value="✨" class="input-icono emoji-trigger-input"
-                           style="cursor: pointer; text-align: center; flex-shrink: 0;"
-                           onclick="event.stopPropagation(); window.abrirSelectorEmojiGlobal(this, 'habito-icono')"
-                           title="Haz clic para elegir un icono">
+                        readonly
+                        style="cursor: pointer; text-align: center; flex-shrink: 0;"
+                        onclick="event.stopPropagation(); window.abrirSelectorEmojiGlobal(this, 'habito-icono')"
+                        title="Haz clic para elegir un icono">
                 </div>
             </div>
 
@@ -153,7 +164,7 @@
         <div class="grupos-lista-crud" id="lista-gestion-grupos"></div>
 
         <!-- Crear nuevo grupo -->
-<div class="card-crear-grupo">
+        <div class="card-crear-grupo">
             <div style="font-size:11px; font-weight:700; color:var(--text-lo); text-transform:uppercase; letter-spacing:0.4px; margin-bottom:10px;">Nuevo Grupo</div>
             
             <div style="display:flex; gap:8px; align-items:center; position:relative;">
@@ -174,6 +185,8 @@
 
             <button onclick="window.agregarGrupo()" class="btn-primario" style="width:100%; margin-top:14px;">✚ Crear Grupo</button>
         </div>
+    </div>
+</div>
 
 
 <!-- ══════════════════════════════════════════════════
