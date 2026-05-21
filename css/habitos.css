@@ -383,11 +383,6 @@
 
 
 /* ── Modal crear/editar hábito ──────────────────────────── */
-.modal-ancho {
-    max-width: 480px !important;
-    width: 92%;
-}
-
 .modal-header-edit {
     display: flex;
     align-items: center;
