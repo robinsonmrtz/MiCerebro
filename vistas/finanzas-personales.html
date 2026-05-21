@@ -362,23 +362,109 @@
                 <i class="ti ti-x"></i>
             </button>
         </div>
-        <div class="fz-modal-content-exacto">
+<div class="fz-modal-content-exacto">
+            
             <div class="fz-monto-container-exacto">
-                <span class="fz-monto-simbolo" style="color: #2773d6;">$</span>
-                <input type="number" id="fz-transf-monto" class="fz-monto-input-exacto" placeholder="0.00" step="0.01">
+                <span class="fz-monto-simbolo" id="fz-trans-simbolo-tipo">$</span>
+                <input type="number" id="fz-trans-monto" class="fz-monto-input-exacto" placeholder="0.00" step="0.01" autocomplete="off" onblur="if(this.value) this.value = parseFloat(this.value).toFixed(2)">
             </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div class="fz-toggle-box-exacto">
+                    <div class="fz-toggle-textos">
+                        <span class="fz-toggle-titulo" id="fz-lbl-toggle-titulo">Estado del pago</span>
+                        <span class="fz-toggle-sub" id="fz-lbl-toggle-pagado">Marcado como pagado</span>
+                    </div>
+                    <label class="fz-switch-exacto">
+                        <input type="checkbox" id="fz-trans-pagado" checked>
+                        <span class="fz-slider-exacto"></span>
+                    </label>
+                </div>
+
+                <div class="fz-toggle-box-exacto" id="fz-container-gasto-fijo">
+                    <div class="fz-toggle-textos">
+                        <span class="fz-toggle-titulo" id="fz-lbl-toggle-fijo-titulo">Gasto fijo mensual</span>
+                        <span class="fz-toggle-sub">Se repite el mismo día</span>
+                    </div>
+                    <label class="fz-switch-exacto">
+                        <input type="checkbox" id="fz-trans-gasto-fijo">
+                        <span class="fz-slider-exacto"></span>
+                    </label>
+                </div>
+            </div>
+
             <div class="fz-group-exacto">
-                <label class="fz-label-exacto">Sale de: (Cuenta Origen)</label>
-                <select id="fz-transf-origen" class="fz-select-exacto"></select>
+                <label class="fz-label-exacto">¿Cuándo ocurrió la transacción?</label>
+                <div class="fz-date-shortcut-row">
+                    <button type="button" class="fz-btn-date-shortcut activa" id="fz-btn-fecha-hoy" onclick="fz_establecerFechaRapida('hoy')">Hoy</button>
+                    <button type="button" class="fz-btn-date-shortcut" id="fz-btn-fecha-ayer" onclick="fz_establecerFechaRapida('ayer')">Ayer</button>
+                    <div style="position: relative; flex-grow: 1;">
+                        <input type="date" id="fz-trans-fecha" class="fz-input-exacto fz-input-date-custom" onchange="fz_alCambiarFechaManual()">
+                        <i class="ti ti-calendar fz-icon-inside-date"></i>
+                    </div>
+                </div>
             </div>
+
             <div class="fz-group-exacto">
-                <label class="fz-label-exacto">Entra a: (Cuenta Destino)</label>
-                <select id="fz-transf-destino" class="fz-select-exacto"></select>
+                <label class="fz-label-exacto">Descripción / Concepto básico</label>
+                <div style="position: relative;">
+                    <input type="text" id="fz-trans-desc" class="fz-input-exacto" placeholder="Ej: Compra de insumos, Pago mensual..." autocomplete="off" oninput="fz_filtrarDropdownDescripciones()" onfocus="fz_filtrarDropdownDescripciones()">
+                    <div class="fz-floating-autocomplete-menu" id="fz-drop-descripciones"></div>
+                </div>
             </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                <div class="fz-group-exacto">
+                    <label class="fz-label-exacto">Cuenta financiera de origen/destino</label>
+                    <select id="fz-trans-cuenta" class="fz-select-exacto"></select>
+                </div>
+                
+                <div class="fz-group-exacto" id="fz-container-unidad">
+                    <label class="fz-label-exacto">Unidad de medida (Opcional)</label>
+                    <div style="position: relative;">
+                        <input type="text" id="fz-trans-unidad" class="fz-input-exacto" placeholder="Seleccionar unidad..." readonly onclick="fz_toggleDropdownInline('fz-drop-unidad')">
+                        <div class="fz-floating-autocomplete-menu" id="fz-drop-unidad">
+                            <div class="fz-autocomplete-option" onclick="fz_seleccionarUnidad('Litro')">Litro (L)</div>
+                            <div class="fz-autocomplete-option" onclick="fz_seleccionarUnidad('Mililitro')">Mililitro (ml)</div>
+                            <div class="fz-autocomplete-option" onclick="fz_seleccionarUnidad('Galon')">Galón (gal)</div>
+                            <div class="fz-autocomplete-option" onclick="fz_seleccionarUnidad('Botella')">Botella</div>
+                            <div class="fz-autocomplete-option" onclick="fz_seleccionarUnidad('Kilogramo')">Kilogramo (kg)</div>
+                            <div class="fz-autocomplete-option" onclick="fz_seleccionarUnidad('Gramo')">Gramo (g)</div>
+                            <div class="fz-autocomplete-option" onclick="fz_seleccionarUnidad('Miligramo')">Miligramo (mg)</div>
+                            <div class="fz-autocomplete-option" onclick="fz_seleccionarUnidad('Microgramo')">Microgramo (µg)</div>
+                            <div class="fz-autocomplete-option" onclick="fz_seleccionarUnidad('Libra')">Libra (lb)</div>
+                            <div class="fz-autocomplete-option" onclick="fz_seleccionarUnidad('Onza')">Onza (oz)</div>
+                            <div class="fz-autocomplete-option" onclick="fz_seleccionarUnidad('Cm3')">Centímetros Cúbicos (cm³)</div>
+                            <div class="fz-autocomplete-option-clear" onclick="fz_seleccionarUnidad('')">❌ Ninguna unidad</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                <div class="fz-group-exacto">
+                    <label class="fz-label-exacto">Categoría de transacción</label>
+                    <div style="position: relative;">
+                        <input type="text" id="fz-trans-cat-input" class="fz-input-exacto" placeholder="Escribe o selecciona..." autocomplete="off" oninput="fz_filtrarDropdownCategorias()" onfocus="fz_filtrarDropdownCategorias()">
+                        <input type="hidden" id="fz-trans-categoria">
+                        <div class="fz-floating-autocomplete-menu" id="fz-drop-categorias"></div>
+                    </div>
+                </div>
+
+                <div class="fz-group-exacto">
+                    <label class="fz-label-exacto">Comercio / Establecimiento</label>
+                    <div style="position: relative;">
+                        <input type="text" id="fz-trans-comercio-input" class="fz-input-exacto" placeholder="Escribe o selecciona..." autocomplete="off" oninput="fz_filtrarDropdownComercios()" onfocus="fz_filtrarDropdownComercios()">
+                        <div class="fz-floating-autocomplete-menu" id="fz-drop-comercios"></div>
+                    </div>
+                </div>
+            </div>
+
             <div class="fz-group-exacto">
-                <label class="fz-label-exacto">Fecha de ejecución</label>
-                <input type="date" id="fz-transf-fecha" class="fz-input-exacto">
+                <label class="fz-label-exacto">Observaciones adicionales</label>
+                <textarea id="fz-trans-observacion" class="fz-input-exacto" style="height: 65px; resize: none; font-family: inherit;" placeholder="Notas explicativas sobre este movimiento..."></textarea>
             </div>
+
         </div>
         <div class="fz-modal-footer-exacto">
             <button class="fz-btn-secundario-izq" onclick="document.getElementById('fz-modal-transferencia').classList.remove('visible')">Cancelar</button>

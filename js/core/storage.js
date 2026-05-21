@@ -16,10 +16,12 @@ function cargarDatos() {
                 cuentas: [],
                 categorias: [],
                 transacciones: [],
-                comercios: []
+                comercios: [],
+                recurrentes: []
             };
-        } else if (!parseado.finanzas_personales.comercios) {
-            parseado.finanzas_personales.comercios = [];
+        } else {
+            if (!parseado.finanzas_personales.comercios) parseado.finanzas_personales.comercios = [];
+            if (!parseado.finanzas_personales.recurrentes) parseado.finanzas_personales.recurrentes = [];
         }
         return parseado;
     }
@@ -34,7 +36,8 @@ function cargarDatos() {
         finanzas_personales: {
             cuentas: [],
             categorias: [],
-            transacciones: []
+            transacciones: [],
+            recurrentes: []
         }
     };
 }
@@ -143,6 +146,24 @@ function fz_archivarCategoria(id) {
     let datos = cargarDatos();
     let categoria = datos.finanzas_personales.categorias.find(c => c.id === id);
     if (categoria) categoria.archivada = true;
+    guardarDatos(datos);
+}
+
+// --- CRUD RECURRENCIAS ---
+function fz_guardarRecurrente(recurrente) {
+    let datos = cargarDatos();
+    if (!datos.finanzas_personales.recurrentes) datos.finanzas_personales.recurrentes = [];
+    let index = datos.finanzas_personales.recurrentes.findIndex(r => r.id === recurrente.id);
+    if (index > -1) datos.finanzas_personales.recurrentes[index] = recurrente;
+    else datos.finanzas_personales.recurrentes.push(recurrente);
+    guardarDatos(datos);
+}
+
+function fz_archivarRecurrente(id) {
+    let datos = cargarDatos();
+    if (!datos.finanzas_personales.recurrentes) datos.finanzas_personales.recurrentes = [];
+    let r = datos.finanzas_personales.recurrentes.find(x => x.id === id);
+    if (r) r.activo = false;
     guardarDatos(datos);
 }
 

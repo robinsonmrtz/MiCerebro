@@ -16,6 +16,8 @@ window.inicializarFinanzasPersonales = function() {
     console.log("Módulo de Finanzas Personales iniciado.");
     actualizarEtiquetaMes();
     configurarSubMenu();
+    // Asegurar que existan instancias de recurrentes para los próximos meses
+    if (typeof fz_generarInstanciasRecurrentesHasta === 'function') fz_generarInstanciasRecurrentesHasta(12);
     renderizarPantallaActual();
 };
 
@@ -24,6 +26,8 @@ window.finanzasMoverMes = function(direccion) {
     // direccion: -1 (atrás) o 1 (adelante)
     fz_fechaActual.setMonth(fz_fechaActual.getMonth() + direccion);
     actualizarEtiquetaMes();
+    // Generamos las instancias necesarias para el mes al que navegamos
+    if (typeof fz_generarInstanciasRecurrentesParaMes === 'function') fz_generarInstanciasRecurrentesParaMes(fz_fechaActual);
     renderizarPantallaActual(); // Recargar datos de la pantalla actual con el nuevo mes
 };
 
@@ -191,15 +195,34 @@ window.fz_abrirModalTransaccion = function(tipo, id = null) {
     const txtTitulo = document.getElementById('fz-modal-trans-titulo');
     const txtSimbolo = document.getElementById('fz-trans-simbolo-tipo');
     const containerGastoFijo = document.getElementById('fz-container-gasto-fijo');
+    const containerUnidad = document.getElementById('fz-container-unidad');
     
+    // Ajustes visuales según tipo (gasto / ingreso)
     if (tipo === 'ingreso') {
         txtTitulo.innerHTML = `Registrar <span style="color: var(--status-ok);">Ingreso</span>`;
         txtSimbolo.style.color = 'var(--status-ok)';
-        containerGastoFijo.style.visibility = 'hidden'; 
+        // Mostrar la opción de "fijo" también para ingresos y adaptar el texto
+        if (containerGastoFijo) {
+            containerGastoFijo.style.visibility = 'visible';
+            const tituloFijo = containerGastoFijo.querySelector('.fz-toggle-titulo');
+            if (tituloFijo) tituloFijo.innerText = 'Ingreso fijo mensual';
+        }
+        // Ocultar unidad: no es un ítem comprado
+        if (containerUnidad) containerUnidad.style.display = 'none';
+        // Cambiar texto del toggle principal
+        const toggleTitulo = document.getElementById('fz-lbl-toggle-titulo');
+        if (toggleTitulo) toggleTitulo.innerText = 'Recibido';
     } else {
         txtTitulo.innerHTML = `Registrar <span style="color: var(--status-danger);">Gasto</span>`;
         txtSimbolo.style.color = 'var(--status-danger)';
-        containerGastoFijo.style.visibility = 'visible'; 
+        if (containerGastoFijo) {
+            containerGastoFijo.style.visibility = 'visible';
+            const tituloFijo = containerGastoFijo.querySelector('.fz-toggle-titulo');
+            if (tituloFijo) tituloFijo.innerText = 'Gasto fijo mensual';
+        }
+        if (containerUnidad) containerUnidad.style.display = 'block';
+        const toggleTitulo = document.getElementById('fz-lbl-toggle-titulo');
+        if (toggleTitulo) toggleTitulo.innerText = 'Estado del pago';
     }
 
     // Llenar Cuentas
@@ -219,7 +242,12 @@ window.fz_abrirModalTransaccion = function(tipo, id = null) {
     document.getElementById('fz-trans-gasto-fijo').checked = false;
     
     document.getElementById('fz-trans-pagado').onchange = function() {
-        document.getElementById('fz-lbl-toggle-pagado').innerText = this.checked ? 'Marcado como pagado' : 'Pendiente por pagar / Cobrar';
+        const esIngreso = document.getElementById('fz-trans-tipo').value === 'ingreso';
+        if (esIngreso) {
+            document.getElementById('fz-lbl-toggle-pagado').innerText = this.checked ? 'Sí' : 'No';
+        } else {
+            document.getElementById('fz-lbl-toggle-pagado').innerText = this.checked ? 'Marcado como pagado' : 'Pendiente por pagar / Cobrar';
+        }
     };
     document.getElementById('fz-trans-pagado').onchange();
 
@@ -358,15 +386,41 @@ window.fz_filtrarDropdownComercios = function() {
     }
 };
 
+// --- AUTOCOMPLETADO DE DESCRIPCIONES (Histórico) ---
+function fz_filtrarDropdownDescripciones() {
+    const input = document.getElementById('fz-trans-desc');
+    const query = input.value.trim().toLowerCase();
+    const dropdown = document.getElementById('fz-drop-descripciones');
+    const datos = fz_obtenerDatos();
+
+    dropdown.innerHTML = '';
+    if (!query) { dropdown.classList.remove('visible'); return; }
+    dropdown.classList.add('visible');
+
+    const all = (datos.transacciones || []).map(t => t.descripcion).filter(Boolean);
+    const uniques = [...new Set(all)];
+    uniques.filter(d => d.toLowerCase().includes(query)).slice(0, 8).forEach(desc => {
+        const item = document.createElement('div');
+        item.className = 'fz-autocomplete-option';
+        item.innerHTML = `<i class="ti ti-file-text" style="color:var(--text-lo)"></i> <span>${desc}</span>`;
+        item.onclick = () => { input.value = desc; dropdown.classList.remove('visible'); };
+        dropdown.appendChild(item);
+    });
+}
+
 function fz_cerrarTodosLosDropdownsAutoComplete() {
     document.getElementById('fz-drop-unidad').classList.remove('visible');
     document.getElementById('fz-drop-categorias').classList.remove('visible');
     document.getElementById('fz-drop-comercios').classList.remove('visible');
+    document.getElementById('fz-drop-descripciones') && document.getElementById('fz-drop-descripciones').classList.remove('visible');
 }
 
 document.addEventListener('click', function(e) {
     if (!e.target.closest('#fz-trans-unidad') && !e.target.closest('#fz-drop-unidad')) {
         document.getElementById('fz-drop-unidad').classList.remove('visible');
+    }
+    if (!e.target.closest('#fz-trans-desc') && !e.target.closest('#fz-drop-descripciones')) {
+        const el = document.getElementById('fz-drop-descripciones'); if (el) el.classList.remove('visible');
     }
     if (!e.target.closest('#fz-trans-cat-input') && !e.target.closest('#fz-drop-categorias')) {
         document.getElementById('fz-drop-categorias').classList.remove('visible');
@@ -375,6 +429,111 @@ document.addEventListener('click', function(e) {
         document.getElementById('fz-drop-comercios').classList.remove('visible');
     }
 });
+
+// === RECURRANCES: Generador de instancias mensuales ===
+function fz_generarInstanciasRecurrentesHasta(monthsAhead = 12) {
+    try {
+        let datos = cargarDatos();
+        if (!datos.finanzas_personales) return;
+        if (!datos.finanzas_personales.recurrentes) datos.finanzas_personales.recurrentes = [];
+        if (!datos.finanzas_personales.transacciones) datos.finanzas_personales.transacciones = [];
+
+        const recurrentes = datos.finanzas_personales.recurrentes.filter(r => r && r.activo !== false);
+        const today = new Date();
+        const endDate = new Date(today);
+        endDate.setMonth(endDate.getMonth() + monthsAhead);
+
+        recurrentes.forEach(rec => {
+            const start = rec.start_date ? new Date(rec.start_date + 'T00:00:00') : today;
+            const dia = rec.dia || (start.getDate ? start.getDate() : 1);
+
+            // iteramos desde el mes de inicio hasta endDate
+            let iter = new Date(start.getFullYear(), start.getMonth(), 1);
+            while (iter <= endDate) {
+                const year = iter.getFullYear();
+                const month = iter.getMonth();
+                const lastDay = new Date(year, month + 1, 0).getDate();
+                const dayToSet = Math.min(dia, lastDay);
+                const fechaStr = `${year}-${String(month + 1).padStart(2,'0')}-${String(dayToSet).padStart(2,'0')}`;
+
+                const exists = datos.finanzas_personales.transacciones.some(t => t.recurrente_id === rec.id && t.fecha === fechaStr);
+                if (!exists) {
+                    datos.finanzas_personales.transacciones.push({
+                        id: Date.now() + Math.floor(Math.random() * 100000),
+                        tipo: rec.tipo,
+                        monto: rec.monto,
+                        descripcion: rec.descripcion,
+                        fecha: fechaStr,
+                        cuenta_id: rec.cuenta_id,
+                        categoria_id: rec.categoria_id,
+                        comercio: rec.comercio,
+                        unidad: rec.unidad,
+                        pagado: !!rec.pagado_por_defecto,
+                        gasto_fijo: true,
+                        observacion: rec.observacion,
+                        archivada: false,
+                        recurrente_id: rec.id
+                    });
+                }
+
+                iter.setMonth(iter.getMonth() + 1);
+            }
+        });
+
+        guardarDatos(datos);
+    } catch (err) {
+        console.error('Error generando instancias recurrentes:', err);
+    }
+}
+
+function fz_generarInstanciasRecurrentesParaMes(targetDate) {
+    try {
+        let datos = cargarDatos();
+        if (!datos.finanzas_personales) return;
+        if (!datos.finanzas_personales.recurrentes) datos.finanzas_personales.recurrentes = [];
+        if (!datos.finanzas_personales.transacciones) datos.finanzas_personales.transacciones = [];
+
+        const recurrentes = datos.finanzas_personales.recurrentes.filter(r => r && r.activo !== false);
+        const t = targetDate instanceof Date ? new Date(targetDate) : new Date(fz_fechaActual);
+        const year = t.getFullYear();
+        const month = t.getMonth();
+
+        recurrentes.forEach(rec => {
+            const start = rec.start_date ? new Date(rec.start_date + 'T00:00:00') : null;
+            // no generar si la plantilla empieza después del mes objetivo
+            if (start && new Date(start.getFullYear(), start.getMonth(), 1) > new Date(year, month, 1)) return;
+
+            const lastDay = new Date(year, month + 1, 0).getDate();
+            const dia = rec.dia || (start ? start.getDate() : 1);
+            const dayToSet = Math.min(dia, lastDay);
+            const fechaStr = `${year}-${String(month + 1).padStart(2,'0')}-${String(dayToSet).padStart(2,'0')}`;
+
+            const exists = datos.finanzas_personales.transacciones.some(t0 => t0.recurrente_id === rec.id && t0.fecha === fechaStr);
+            if (!exists) {
+                datos.finanzas_personales.transacciones.push({
+                    id: Date.now() + Math.floor(Math.random() * 100000),
+                    tipo: rec.tipo,
+                    monto: rec.monto,
+                    descripcion: rec.descripcion,
+                    fecha: fechaStr,
+                    cuenta_id: rec.cuenta_id,
+                    categoria_id: rec.categoria_id,
+                    comercio: rec.comercio,
+                    unidad: rec.unidad,
+                    pagado: !!rec.pagado_por_defecto,
+                    gasto_fijo: true,
+                    observacion: rec.observacion,
+                    archivada: false,
+                    recurrente_id: rec.id
+                });
+            }
+        });
+
+        guardarDatos(datos);
+    } catch (err) {
+        console.error('Error generando instancia recurrente para mes:', err);
+    }
+}
 
 // --- GUARDAR FORMULARIO DE TRANSACCIONES ---
 window.fz_guardarFormularioTransaccion = function() {
@@ -388,7 +547,7 @@ window.fz_guardarFormularioTransaccion = function() {
     const comercio = document.getElementById('fz-trans-comercio-input').value.trim();
     const unidad = document.getElementById('fz-trans-unidad').value;
     const pagado = document.getElementById('fz-trans-pagado').checked;
-    const gasto_fijo = (tipo === 'gasto') ? document.getElementById('fz-trans-gasto-fijo').checked : false;
+    const gasto_fijo = document.getElementById('fz-trans-gasto-fijo').checked;
     const observacion = document.getElementById('fz-trans-observacion').value.trim();
 
     if (!monto || monto <= 0) return alert("Por favor, introduce un monto válido superior a cero.");
@@ -396,7 +555,36 @@ window.fz_guardarFormularioTransaccion = function() {
     if (!fecha) return alert("Debes seleccionar una fecha.");
     if (!categoria_id) return alert("Debes vincular una categoría al movimiento.");
 
-    fz_guardarTransaccion({
+    // Si es fijo y estamos creando (no editando), primero creamos la plantilla recurrente
+    let recurrenteId = null;
+    if (gasto_fijo && !idInput) {
+        try {
+            const start = new Date(fecha + 'T00:00:00');
+            const dia = start.getDate();
+            const recId = Date.now() + Math.floor(Math.random() * 100000);
+            const recurrente = {
+                id: recId,
+                tipo: tipo,
+                monto: monto,
+                descripcion: desc,
+                cuenta_id: cuenta_id,
+                categoria_id: categoria_id,
+                comercio: comercio,
+                unidad: unidad,
+                observacion: observacion,
+                dia: dia,
+                start_date: fecha,
+                pagado_por_defecto: false,
+                activo: true
+            };
+            if (typeof fz_guardarRecurrente === 'function') fz_guardarRecurrente(recurrente);
+            recurrenteId = recId;
+        } catch (err) {
+            console.error('Error creando plantilla recurrente:', err);
+        }
+    }
+
+    const transObj = {
         id: idInput ? parseInt(idInput) : Date.now(),
         tipo: tipo,
         monto: monto,
@@ -410,7 +598,16 @@ window.fz_guardarFormularioTransaccion = function() {
         gasto_fijo: gasto_fijo,
         observacion: observacion,
         archivada: false
-    });
+    };
+
+    if (recurrenteId) transObj.recurrente_id = recurrenteId;
+
+    fz_guardarTransaccion(transObj);
+
+    // Si creamos una plantilla recurrente, generamos instancias hasta 12 meses por defecto
+    if (recurrenteId && typeof fz_generarInstanciasRecurrentesHasta === 'function') {
+        try { fz_generarInstanciasRecurrentesHasta(12); } catch(e) { console.error(e); }
+    }
 
     document.getElementById('fz-modal-transaccion').classList.remove('visible');
     
@@ -692,19 +889,26 @@ function fz_calcularSaldoCuenta(cuentaId) {
     const datos = fz_obtenerDatos();
     const cuenta = datos.cuentas.find(c => c.id === cuentaId);
     if (!cuenta) return 0;
-    
+
+    const hoy = new Date().toISOString().split('T')[0]; // "2026-05-20"
     let saldoActual = cuenta.saldo_inicial || 0;
-    const transActivas = datos.transacciones.filter(t => !t.archivada);
-    
-    transActivas.forEach(t => {
+
+    // Solo cuenta transacciones hasta HOY y que estén marcadas como pagadas
+    const transContables = datos.transacciones.filter(t =>
+        !t.archivada &&
+        t.fecha <= hoy &&
+        t.pagado !== false
+    );
+
+    transContables.forEach(t => {
         if (t.tipo === 'ingreso' && t.cuenta_id === cuentaId) saldoActual += t.monto;
         if (t.tipo === 'gasto' && t.cuenta_id === cuentaId) saldoActual -= t.monto;
         if (t.tipo === 'transferencia') {
-            if (t.cuenta_id === cuentaId) saldoActual -= t.monto; // Salió de esta cuenta (Origen)
-            if (t.cuenta_destino_id === cuentaId) saldoActual += t.monto; // Entró a esta cuenta (Destino)
+            if (t.cuenta_id === cuentaId) saldoActual -= t.monto;
+            if (t.cuenta_destino_id === cuentaId) saldoActual += t.monto;
         }
     });
-    
+
     return saldoActual;
 }
 
@@ -722,25 +926,26 @@ let fz_graficoInstancia = null; // Guardará el gráfico para destruirlo/crearlo
 function fz_pintarResumen() {
     const datos = fz_obtenerDatos();
     const transActivas = datos.transacciones.filter(t => !t.archivada);
-    
-    // Obtener mes actual del calendario global
+
     const year = fz_fechaActual.getFullYear();
     const month = String(fz_fechaActual.getMonth() + 1).padStart(2, '0');
     const mesFiltro = `${year}-${month}`;
 
+    // Todas las transacciones del mes seleccionado, sin importar si son futuras o pendientes
     const transDelMes = transActivas.filter(t => t.fecha.startsWith(mesFiltro));
 
     let ingresosMes = 0;
     let gastosMes = 0;
 
-    // Calcular KPIs
     transDelMes.forEach(t => {
         if (t.tipo === 'ingreso') ingresosMes += t.monto;
         if (t.tipo === 'gasto') gastosMes += t.monto;
     });
 
-    // Inyectar KPIs al HTML
+    // Saldo General: SIEMPRE el dinero real a hoy, nunca incluye el futuro
     document.getElementById('fz-saldo-general').textContent = formatearDinero(fz_calcularSaldoTotal());
+
+    // Ingresos y Gastos: muestran el total del mes navegado (proyectado si es futuro)
     document.getElementById('fz-ingresos-mes').textContent = `+${formatearDinero(ingresosMes)}`;
     document.getElementById('fz-gastos-mes').textContent = `-${formatearDinero(gastosMes)}`;
 
