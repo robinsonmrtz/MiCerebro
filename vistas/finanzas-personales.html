@@ -446,7 +446,7 @@
                     </div>
                     <div class="fz-group-exacto" id="fz-container-cantidad" style="flex: 1; max-width: 90px;">
                         <label class="fz-label-exacto">Cantidad</label>
-                        <input type="text" id="fz-trans-cantidad" class="fz-input-exacto" placeholder="Ej: 0.69" maxlength="8" autocomplete="off" oninput="this.value = this.value.replace(/[^0-9.]/g, '').replace(/\.(?=.*\.)/g, '')">
+                        <input type="text" id="fz-trans-cantidad" class="fz-input-exacto" placeholder="Ej: 1" maxlength="5" autocomplete="off" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
                     </div>
                 </div>
             </div>
@@ -549,6 +549,52 @@
         <div class="fz-modal-footer-exacto">
             <button class="fz-btn-secundario-izq" onclick="document.getElementById('fz-modal-comercio').classList.remove('visible')">Cancelar</button>
             <button class="fz-btn-primario-der" style="background: var(--accent);" onclick="fz_guardarFormularioComercio()">Guardar</button>
+        </div>
+    </div>
+</div>
+
+
+<div class="modal-overlay" id="fz-modal-reajuste">
+    <div class="modal-caja fz-modal-premium" style="max-width: 420px !important;">
+        <div class="fz-modal-header-exacto">
+            <h3 style="color: var(--accent); margin:0; display:flex; align-items:center; gap:8px;">
+                <i class="ti ti-adjustments-horizontal"></i> Reajuste de Saldo
+            </h3>
+            <button class="btn-ghost fz-btn-cerrar-exacto" onclick="document.getElementById('fz-modal-reajuste').classList.remove('visible')">
+                <i class="ti ti-x"></i>
+            </button>
+        </div>
+        
+        <input type="hidden" id="fz-reajuste-cuenta-id">
+        
+        <div class="fz-modal-content-exacto" style="padding: 20px; display: flex; flex-direction: column; gap: 16px;">
+            <div style="background: var(--bg-input); padding: 12px 14px; border-radius: 12px; border: 1px solid var(--border-card); font-size: 13px; display: flex; flex-direction: column; gap: 4px;">
+                <span style="color: var(--text-lo);">Cuenta seleccionada: <strong id="fz-reajuste-cuenta-nombre" style="color: var(--text-hi);">---</strong></span>
+                <span style="color: var(--text-lo);">Saldo contable actual: <strong id="fz-reajuste-saldo-actual" style="color: var(--accent);">0.00</strong></span>
+            </div>
+            
+            <div class="fz-monto-container-exacto" style="justify-content: center; margin-bottom: 4px;">
+                <span class="fz-monto-simbolo">$</span>
+                <input type="number" id="fz-reajuste-nuevo-saldo" class="fz-monto-input-exacto" placeholder="0.00" step="0.01" autocomplete="off" style="text-align: left; width: 100%;" onblur="if(this.value) this.value = parseFloat(this.value).toFixed(2)">
+            </div>
+
+            <div class="fz-group-exacto">
+                <label class="fz-label-exacto">Método de Ajuste</label>
+                <select id="fz-reajuste-metodo" class="fz-select-exacto">
+                    <option value="transaccion" selected>📝 Crear una transacción de ajuste (deja registro)</option>
+                    <option value="inicial">🏦 Ajustar saldo inicial base (silencioso / sin registro)</option>
+                </select>
+            </div>
+
+            <div class="fz-group-exacto">
+                <label class="fz-label-exacto">Descripción o motivo del ajuste</label>
+                <input type="text" id="fz-reajuste-desc" class="fz-input-exacto" placeholder="Ej. Cuadre de caja, corrección de extracto..." autocomplete="off">
+            </div>
+        </div>
+        
+        <div class="fz-modal-footer-exacto">
+            <button class="fz-btn-secundario-izq" onclick="document.getElementById('fz-modal-reajuste').classList.remove('visible')">Cancelar</button>
+            <button class="fz-btn-primario-der" onclick="fz_guardarReajusteSaldo()">Confirmar reajuste</button>
         </div>
     </div>
 </div>

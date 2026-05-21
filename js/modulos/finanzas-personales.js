@@ -706,7 +706,7 @@ window.fz_guardarFormularioTransaccion = function() {
     const comercio = document.getElementById('fz-trans-comercio-input').value.trim();
     const unidad = document.getElementById('fz-trans-unidad') ? document.getElementById('fz-trans-unidad').value : '';
     const inputCantidad = document.getElementById('fz-trans-cantidad');
-    const cantidad = (inputCantidad && inputCantidad.value.trim() !== '') ? parseFloat(inputCantidad.value.trim()) : null;
+    const cantidad = (inputCantidad && inputCantidad.value.trim() !== '') ? parseInt(inputCantidad.value.trim()) : null;
     const pagado = document.getElementById('fz-trans-pagado').checked;
     const gasto_fijo = document.getElementById('fz-trans-gasto-fijo').checked;
     const observacion = document.getElementById('fz-trans-observacion').value.trim();
@@ -1657,5 +1657,156 @@ window.fz_eliminarComercioUI = function(nombre) {
     if (confirm(`¿Eliminar el comercio "${nombre}"? Solo se borrará del catálogo, las transacciones que lo usan no se verán afectadas.`)) {
         fz_eliminarComercio(nombre);
         fz_pintarComercios();
+    }
+};
+
+window.fz_reajustarSaldoUI = function() {
+    const cuentaId = document.getElementById('fz-cuenta-id').value;
+    
+    // CASO NUEVO: Si no hay cuentaId, actúa como limpiador clásico de campos
+    if (!cuentaId) {
+        document.getElementById('fz-cuenta-saldo').value = '';
+        document.getElementById('fz-cuenta-nombre').value = '';
+        document.getElementById('fz-cuenta-tipo-select').value = 'debito';
+        document.getElementById('fz-cuenta-logo-url').value = '';
+        document.getElementById('fz-cuenta-incluir').checked = true;
+        if (typeof fz_activarColorUI === 'function') fz_activarColorUI('#3498db');
+        if (typeof fz_actualizarPreviewLogo === 'function') fz_actualizarPreviewLogo();
+        return;
+    }
+
+    // CASO EDICIÓN: Cerramos el modal de edición de cuenta
+    document.getElementById('fz-modal-cuenta').classList.remove('visible');
+    
+    const datosNode = fz_obtenerDatos();
+    const cuenta = datosNode.cuentas.find(c => c.id === parseInt(cuentaId));
+    if (!cuenta) return;
+
+    // Calculamos quirúrgicamente el saldo a la fecha de hoy
+    const saldoActual = fz_calcularSaldoCuenta(cuenta.id);
+
+    // Inyectamos la información en el nuevo modal de reajuste
+    document.getElementById('fz-reajuste-cuenta-id').value = cuenta.id;
+    document.getElementById('fz-reajuste-cuenta-nombre').textContent = cuenta.nombre;
+    document.getElementById('fz-reajuste-saldo-actual').textContent = formatearDinero(saldoActual);
+    document.getElementById('fz-reajuste-nuevo-saldo').value = parseFloat(saldoActual).toFixed(2);
+    document.getElementById('fz-reajuste-desc').value = 'Reajuste de saldo';
+    document.getElementById('fz-reajuste-metodo').value = 'transaccion';
+
+    // Desplegamos el modal premium de reajuste
+    document.getElementById('fz-modal-reajuste').classList.add('visible');
+};
+
+// Motor de Reajuste Avanzado de Saldos
+window.fz_guardarReajusteSaldo = function() {
+    const cuentaId = parseInt(document.getElementById('fz-reajuste-cuenta-id').value);
+    const nuevoSaldo = parseFloat(document.getElementById('fz-reajuste-nuevo-saldo').value);
+    const metodo = document.getElementById('fz-reajuste-metodo').value;
+    const desc = document.getElementById('fz-reajuste-desc').value.trim() || 'Reajuste de saldo';
+
+    if (isNaN(nuevoSaldo)) return alert("Por favor, ingresa un valor numérico válido.");
+
+    let datosCerebro = cargarDatos();
+    let finanzas = datosCerebro.finanzas_personales;
+    let cuenta = finanzas.cuentas.find(c => c.id === cuentaId);
+    if (!cuenta) return;
+
+    // Determinamos la diferencia real matemática
+    const saldoActual = fz_calcularSaldoCuenta(cuentaId);
+    const diferencia = nuevoSaldo - saldoActual;
+
+    // Si el usuario no modificó el valor, cerramos sin alterar nada
+    if (Math.abs(diferencia) < 0.01) {
+        document.getElementById('fz-modal-reajuste').classList.remove('visible');
+        return;
+    }
+
+    // OPCIÓN A: Crear una transacción matemática transparente
+    if (metodo === 'transaccion') {
+        const tipoTrans = diferencia > 0 ? 'ingreso' : 'gasto';
+        const montoFinalTrans = Math.abs(diferencia);
+
+        // Buscar o autogenerar la categoría oculta "Reajuste*"
+        let catReajuste = finanzas.categorias.find(c => c.nombre === 'Reajuste*' && c.tipo === tipoTrans && !c.archivada);
+        
+        if (!catReajuste) {
+            catReajuste = {
+                id: Date.now() + Math.floor(Math.random() * 1000),
+                nombre: 'Reajuste*',
+                tipo: tipoTrans,
+                color: tipoTrans === 'ingreso' ? '#2ecc71' : '#e74c3c',
+                emoji: '🔧',
+                parent_id: null,
+                archivada: false
+            };
+            finanzas.categorias.push(catReajuste);
+        }
+
+        // Estructurar el movimiento contable
+        const nuevaTransaccion = {
+            id: Date.now(),
+            tipo: tipoTrans,
+            monto: montoFinalTrans,
+            descripcion: desc,
+            fecha: new Date().toISOString().split('T')[0], // Se asienta con fecha de hoy
+            cuenta_id: cuentaId,
+            categoria_id: catReajuste.id,
+            comercio: '',
+            unidad: '',
+            cantidad: null,
+            pagado: true,
+            gasto_fijo: false,
+            observacion: 'Ajuste de saldo generado automáticamente por el sistema.',
+            archivada: false
+        };
+
+        finanzas.transacciones.push(nuevaTransaccion);
+
+    } 
+    // OPCIÓN B: Alterar el balance de inicio original de la cuenta (Efecto retroactivo)
+    else if (metodo === 'inicial') {
+        cuenta.saldo_inicial = (cuenta.saldo_inicial || 0) + diferencia;
+    }
+
+    // Persistencia centralizada e inviolable en datos_cerebro
+    guardarDatos(datosCerebro);
+
+    // Cierre ordenado de la UI y refresco instantáneo del Dashboard sin recargar página
+    document.getElementById('fz-modal-reajuste').classList.remove('visible');
+    
+    // Forzamos el repintado matemático total
+    fz_pintarCuentas();
+    if (fz_tabActual === 'transacciones') fz_pintarTransacciones();
+    if (typeof fz_pintarResumen === 'function') fz_pintarResumen();
+};
+
+// ====================================================
+// INYECCIÓN DE BLINDAJE PARA HACER INVISIBLE LA CATEGORÍA
+// ====================================================
+// Modificamos quirúrgicamente los pintadores para omitir 'Reajuste*' en las vistas del usuario
+const fz_originalPintarCategorias = fz_pintarCategorias;
+fz_pintarCategorias = function() {
+    // Interceptamos la ejecución para limpiar la visualización en la tabla de categorías
+    fz_originalPintarCategorias();
+    const tabla = document.getElementById('fz-lista-categorias-tabla');
+    if(tabla) {
+        // Removemos cualquier fila de categoría que intente renderizar la palabra Reajuste*
+        const filas = tabla.querySelectorAll('.fz-cat-row');
+        filas.forEach(f => {
+            if(f.textContent.includes('Reajuste*')) f.remove();
+        });
+    }
+};
+
+const fz_originalFiltrarDropdownCategorias = fz_filtrarDropdownCategorias;
+fz_filtrarDropdownCategorias = function() {
+    // Interceptamos el menú flotante desplegable cuando registras movimientos regulares
+    fz_originalFiltrarDropdownCategorias();
+    const dropdown = document.getElementById('fz-drop-categorias');
+    if(dropdown) {
+        const opciones = dropdown.querySelectorAll('.fz-autocomplete-option');
+        opciones.forEach(o => {
+            if(o.textContent.includes('Reajuste*')) o.remove();
+        });
     }
 };
