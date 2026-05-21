@@ -218,7 +218,7 @@ function fz_pintarTransacciones() {
                 </div>
                 <div class="fz-cat-col-acciones-cell fz-trans-col-acc" style="justify-content: center;">
                     <button class="fz-cat-action-btn" title="Editar" onclick="${editFn}"><i class="ti ti-pencil"></i></button>
-                    <button class="fz-cat-action-btn" title="Archivar" onclick="fz_archivarTransaccionUI(${t.id})"><i class="ti ti-archive"></i></button>
+                    <button class="fz-cat-action-btn" title="Eliminar" style="color: var(--status-danger);" onclick="fz_eliminarTransaccionUI(${t.id})"><i class="ti ti-trash"></i></button>
                 </div>
             </div>`;
         });
@@ -572,6 +572,10 @@ document.addEventListener('click', function(e) {
     if (!e.target.closest('#fz-trans-comercio-input') && !e.target.closest('#fz-drop-comercios')) {
         document.getElementById('fz-drop-comercios').classList.remove('visible');
     }
+    const menuMasCat = document.getElementById('fz-menu-mas-categorias');
+    if (menuMasCat && menuMasCat.classList.contains('visible') && !e.target.closest('#fz-menu-mas-categorias') && !e.target.closest('button[onclick*="fz_toggleMenuMasCategorias"]')) {
+        menuMasCat.classList.remove('visible');
+    }
     // --- Agregar esto dentro del eventListener del Clic global ---
     const menuTransTipo = document.getElementById('fz-trans-tipo-menu');
     const btnTransTipo  = document.getElementById('fz-trans-pill-btn');
@@ -778,11 +782,103 @@ window.fz_guardarFormularioTransaccion = function() {
     if (fz_tabActual === 'resumen') fz_pintarResumen();
 };
 
-window.fz_archivarTransaccionUI = function(id) {
-    if(confirm("¿Seguro que deseas archivar este movimiento? Desaparecerá de los reportes.")) {
-        fz_archivarTransaccion(id);
+window.fz_eliminarTransaccionUI = function(id) {
+    if(confirm("¿Seguro que deseas ELIMINAR este movimiento? El dinero se ajustará inmediatamente en el saldo de tu cuenta y no podrás recuperarlo.")) {
+        fz_eliminarTransaccion(id);
+        fz_pintarTransacciones();
+        // Recalcular y pintar el resumen si estamos en esa pestaña
+        if (fz_tabActual === 'resumen') fz_pintarResumen();
+    }
+};
+
+// ==========================================
+// CONTROLADORES DE CATEGORÍAS ARCHIVADAS / ELIMINADAS
+// ==========================================
+let fz_categoriaAEliminarId = null;
+
+window.fz_toggleMenuMasCategorias = function(e) {
+    e.stopPropagation();
+    document.getElementById('fz-menu-mas-categorias').classList.toggle('visible');
+};
+
+window.fz_abrirModalCategoriasArchivadas = function() {
+    document.getElementById('fz-menu-mas-categorias').classList.remove('visible');
+    fz_pintarCategoriasArchivadas();
+    document.getElementById('fz-modal-categorias-archivadas').classList.add('visible');
+};
+
+window.fz_pintarCategoriasArchivadas = function() {
+    const datos = fz_obtenerDatos();
+    const archivadas = datos.categorias.filter(c => c.archivada);
+    const contenedor = document.getElementById('fz-lista-cat-archivadas');
+    
+    if(archivadas.length === 0) {
+        contenedor.innerHTML = '<div style="padding:30px; text-align:center; color:var(--text-lo)">No hay categorías en el archivo.</div>';
+        return;
+    }
+    
+    contenedor.innerHTML = archivadas.map(c => `
+        <div class="fz-cat-row" style="grid-template-columns: 1fr auto; padding: 12px 16px;">
+            <div class="fz-cat-col-nombre-cell">
+                <span class="fz-cat-emoji-badge" style="font-size:18px;">${c.emoji || '↳'}</span>
+                <span style="color:var(--text-base); font-weight: 500;">${c.nombre} <span style="font-size: 11px; color: var(--text-lo);">(${c.tipo})</span></span>
+            </div>
+            <div class="fz-cat-col-acciones-cell">
+                <button class="fz-cat-action-btn" title="Restaurar" onclick="fz_restaurarCategoriaUI(${c.id})"><i class="ti ti-arrow-back-up"></i></button>
+                <button class="fz-cat-action-btn" style="color:var(--status-danger)" title="Eliminar definitivamente" onclick="fz_iniciarEliminacionCategoria(${c.id})"><i class="ti ti-trash"></i></button>
+            </div>
+        </div>
+    `).join('');
+};
+
+window.fz_restaurarCategoriaUI = function(id) {
+    fz_restaurarCategoria(id);
+    fz_pintarCategoriasArchivadas();
+    fz_pintarCategorias();
+};
+
+window.fz_iniciarEliminacionCategoria = function(id) {
+    fz_categoriaAEliminarId = id;
+    document.getElementById('fz-modal-categorias-archivadas').classList.remove('visible');
+    document.getElementById('fz-modal-confirmar-eliminar-cat').classList.add('visible');
+};
+
+window.fz_opcionEliminarTodo = function() {
+    if(confirm("🚨 ADVERTENCIA: Se borrarán TODOS los movimientos asociados a esta categoría. Esto alterará los saldos de tus cuentas. ¿Estás absolutamente seguro?")) {
+        fz_eliminarCategoriaDefinitiva(fz_categoriaAEliminarId, null);
+        document.getElementById('fz-modal-confirmar-eliminar-cat').classList.remove('visible');
+        fz_pintarCategorias();
         fz_pintarTransacciones();
     }
+};
+
+window.fz_opcionEliminarYMover = function() {
+    document.getElementById('fz-modal-confirmar-eliminar-cat').classList.remove('visible');
+    
+    const datos = fz_obtenerDatos();
+    const catAEliminar = datos.categorias.find(c => c.id === fz_categoriaAEliminarId);
+    const select = document.getElementById('fz-select-mover-cat');
+
+    // Buscamos otras categorías activas (no archivadas) que sean del mismo tipo y que NO sean la que vamos a borrar ni sus hijos
+    const opciones = datos.categorias.filter(c => !c.archivada && c.id !== fz_categoriaAEliminarId && c.parent_id !== fz_categoriaAEliminarId && c.tipo === catAEliminar.tipo);
+    
+    if(opciones.length === 0) {
+        alert("No tienes otras categorías de este tipo disponibles. Por favor, restaura o crea otra categoría antes de usar la opción de mover.");
+        return;
+    }
+    
+    select.innerHTML = opciones.map(c => `<option value="${c.id}">${c.emoji || '↳'} ${c.nombre}</option>`).join('');
+    document.getElementById('fz-modal-mover-cat').classList.add('visible');
+};
+
+window.fz_ejecutarMoverYEliminar = function() {
+    const targetId = parseInt(document.getElementById('fz-select-mover-cat').value);
+    if(!targetId) return alert("Selecciona una categoría destino.");
+    
+    fz_eliminarCategoriaDefinitiva(fz_categoriaAEliminarId, targetId);
+    document.getElementById('fz-modal-mover-cat').classList.remove('visible');
+    fz_pintarCategorias();
+    fz_pintarTransacciones();
 };
 
 // ==========================================

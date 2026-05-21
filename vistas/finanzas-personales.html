@@ -96,7 +96,16 @@
 
         <div class="fz-cat-actions-right">
             <button class="fz-cat-icon-btn" title="Buscar" onclick="fz_toggleBuscadorCat()"><i class="ti ti-search"></i></button>
-            <button class="fz-cat-icon-btn" title="Más opciones"><i class="ti ti-dots-vertical"></i></button>
+            <div style="position:relative; display:inline-block;">
+    <button class="fz-cat-icon-btn" title="Más opciones" onclick="fz_toggleMenuMasCategorias(event)">
+        <i class="ti ti-dots-vertical"></i>
+    </button>
+    <div class="fz-cuenta-menu" id="fz-menu-mas-categorias" style="right: 0; top: calc(100% + 4px); min-width: 200px;">
+        <div class="fz-cat-tipo-item" onclick="fz_abrirModalCategoriasArchivadas()">
+            <i class="ti ti-archive"></i> Categorías Archivadas
+        </div>
+    </div>
+</div>
             <button class="fz-cat-icon-btn fz-cat-add-pill" title="Nueva categoría" onclick="fz_abrirModalCategoria()"><i class="ti ti-plus"></i></button>
         </div>
     </div>
@@ -595,6 +604,72 @@
         <div class="fz-modal-footer-exacto">
             <button class="fz-btn-secundario-izq" onclick="document.getElementById('fz-modal-reajuste').classList.remove('visible')">Cancelar</button>
             <button class="fz-btn-primario-der" onclick="fz_guardarReajusteSaldo()">Confirmar reajuste</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="fz-modal-categorias-archivadas">
+    <div class="modal-caja fz-modal-premium" style="max-width: 420px !important;">
+        <div class="fz-modal-header-exacto">
+            <h3 style="color: var(--text-hi); margin:0;">Categorías Archivadas</h3>
+            <button class="btn-ghost fz-btn-cerrar-exacto" onclick="document.getElementById('fz-modal-categorias-archivadas').classList.remove('visible')">
+                <i class="ti ti-x"></i>
+            </button>
+        </div>
+        <div class="fz-modal-content-exacto" style="max-height: 350px; overflow-y: auto; padding-top: 10px;" id="fz-lista-cat-archivadas">
+            </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="fz-modal-confirmar-eliminar-cat">
+    <div class="modal-caja fz-modal-premium" style="max-width: 480px !important; text-align: center;">
+        <div class="fz-modal-content-exacto" style="align-items: center; padding-bottom: 0;">
+            <div style="width: 54px; height: 54px; background: rgba(231, 76, 60, 0.1); color: var(--status-danger); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 26px;">
+                <i class="ti ti-trash"></i>
+            </div>
+            <h3 style="margin: 0; font-size: 18px; color: var(--text-hi);">Eliminar Categoría</h3>
+            <p style="margin: 0; font-size: 13.5px; color: var(--text-lo);">Al eliminar esta categoría debes decidir qué hacer con los movimientos asociados a ella.</p>
+
+            <div style="display: flex; gap: 14px; width: 100%; margin-top: 10px; text-align: left;">
+                <div onclick="fz_opcionEliminarTodo()" style="flex: 1; border: 1px solid var(--border-card); border-radius: 12px; padding: 16px; cursor: pointer; transition: all 0.2s; background: var(--bg-card);" onmouseover="this.style.borderColor='var(--status-danger)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='var(--border-card)'; this.style.transform='translateY(0)'">
+                    <div style="color: var(--status-danger); font-size: 22px; margin-bottom: 8px;"><i class="ti ti-trash-x"></i></div>
+                    <h4 style="margin: 0 0 6px; font-size: 14px; color: var(--text-hi);">Eliminar y borrar todo</h4>
+                    <p style="margin: 0; font-size: 11.5px; color: var(--text-lo); line-height: 1.4;">La categoría y todos sus movimientos se borrarán permanentemente.</p>
+                </div>
+
+                <div onclick="fz_opcionEliminarYMover()" style="flex: 1; border: 1px solid var(--border-card); border-radius: 12px; padding: 16px; cursor: pointer; transition: all 0.2s; background: var(--bg-card);" onmouseover="this.style.borderColor='var(--accent)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='var(--border-card)'; this.style.transform='translateY(0)'">
+                    <div style="color: var(--accent); font-size: 22px; margin-bottom: 8px;"><i class="ti ti-arrows-right-left"></i></div>
+                    <h4 style="margin: 0 0 6px; font-size: 14px; color: var(--text-hi);">Eliminar y mover</h4>
+                    <p style="margin: 0; font-size: 11.5px; color: var(--text-lo); line-height: 1.4;">Los movimientos pasarán a otra categoría que selecciones ahora.</p>
+                </div>
+            </div>
+        </div>
+        <div class="fz-modal-footer-exacto" style="justify-content: center; background: transparent; border-top: none; margin-top: 10px;">
+            <button class="btn-ghost" style="padding: 10px 24px; font-weight: 600;" onclick="document.getElementById('fz-modal-confirmar-eliminar-cat').classList.remove('visible')">Cancelar</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="fz-modal-mover-cat">
+    <div class="modal-caja fz-modal-premium" style="max-width: 400px !important;">
+        <div class="fz-modal-header-exacto">
+            <h3 style="color: var(--accent); margin:0; display:flex; align-items:center; gap:8px;">
+                <i class="ti ti-arrows-right-left"></i> Mover Categoría
+            </h3>
+            <button class="btn-ghost fz-btn-cerrar-exacto" onclick="document.getElementById('fz-modal-mover-cat').classList.remove('visible')">
+                <i class="ti ti-x"></i>
+            </button>
+        </div>
+        <div class="fz-modal-content-exacto">
+            <p style="margin: 0; font-size: 13.5px; color: var(--text-lo);">Selecciona la categoría a la que deseas enviar los movimientos para no perderlos:</p>
+            <div class="fz-group-exacto">
+                <label class="fz-label-exacto">Categoría destino</label>
+                <select id="fz-select-mover-cat" class="fz-select-exacto"></select>
+            </div>
+        </div>
+        <div class="fz-modal-footer-exacto">
+            <button class="fz-btn-secundario-izq" onclick="document.getElementById('fz-modal-mover-cat').classList.remove('visible')">Cancelar</button>
+            <button class="fz-btn-primario-der" style="background: var(--accent);" onclick="fz_ejecutarMoverYEliminar()">Confirmar y Mover</button>
         </div>
     </div>
 </div>

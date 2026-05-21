@@ -192,3 +192,43 @@ function fz_eliminarComercio(nombre) {
     datos.finanzas_personales.comercios = datos.finanzas_personales.comercios.filter(c => c !== nombre);
     guardarDatos(datos);
 }
+
+// --- FUNCIONES DE ELIMINACIÓN Y RESTAURACIÓN ---
+function fz_eliminarTransaccion(id) {
+    let datos = cargarDatos();
+    // Filtramos eliminando la transacción completamente
+    datos.finanzas_personales.transacciones = datos.finanzas_personales.transacciones.filter(t => t.id !== id);
+    guardarDatos(datos);
+}
+
+function fz_restaurarCategoria(id) {
+    let datos = cargarDatos();
+    let categoria = datos.finanzas_personales.categorias.find(c => c.id === id);
+    if (categoria) categoria.archivada = false;
+    guardarDatos(datos);
+}
+
+function fz_eliminarCategoriaDefinitiva(id, targetCategoriaId = null) {
+    let datos = cargarDatos();
+
+    // 1. Encontrar también si esta categoría tiene hijos (subcategorías)
+    const hijosIds = datos.finanzas_personales.categorias.filter(c => c.parent_id === id).map(c => c.id);
+    const todosLosIdsABorrar = [id, ...hijosIds];
+
+    if (targetCategoriaId === null) {
+        // ELIMINAR TODO: Filtramos transacciones borrando las asociadas al padre y a los hijos
+        datos.finanzas_personales.transacciones = datos.finanzas_personales.transacciones.filter(t => !todosLosIdsABorrar.includes(t.categoria_id));
+    } else {
+        // MOVER: Cambiamos el ID de las transacciones viejas al nuevo Target
+        datos.finanzas_personales.transacciones.forEach(t => {
+            if (todosLosIdsABorrar.includes(t.categoria_id)) {
+                t.categoria_id = targetCategoriaId;
+            }
+        });
+    }
+
+    // 2. Finalmente, borrar la categoría y sus subcategorías
+    datos.finanzas_personales.categorias = datos.finanzas_personales.categorias.filter(c => !todosLosIdsABorrar.includes(c.id));
+    
+    guardarDatos(datos);
+}
