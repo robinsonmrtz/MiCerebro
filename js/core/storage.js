@@ -51,27 +51,30 @@ function guardarDatos(datos) {
 function guardarSesionTrabajo(fecha, meta, trabajado, descansado, horaInicio = null, horaFin = null) {
     let datos = cargarDatos();
     if (!datos.registro_trabajo) datos.registro_trabajo = [];
-    
+
+    // Nos aseguramos de que descansado nunca sea undefined o negativo
+    const descansadoFinal = (typeof descansado === 'number' && descansado >= 0) ? descansado : 0;
+
     let registroExistente = datos.registro_trabajo.find(r => r.fecha === fecha);
     if (registroExistente) {
-        registroExistente.meta = meta;
-        registroExistente.trabajado = trabajado;
-        registroExistente.descansado = 0;
+        registroExistente.meta       = meta;
+        registroExistente.trabajado  = trabajado;
+        registroExistente.descansado = descansadoFinal;   // ✅ usa el valor real
         // Solo actualiza horaInicio si no tenía una ya
         if (!registroExistente.horaInicio && horaInicio) registroExistente.horaInicio = horaInicio;
         registroExistente.horaFin = horaFin;
     } else {
         datos.registro_trabajo.push({
-            id: Date.now(),
-            fecha: fecha,
-            meta: meta,
-            trabajado: trabajado,
-            descansado: 0,
+            id:         Date.now(),
+            fecha:      fecha,
+            meta:       meta,
+            trabajado:  trabajado,
+            descansado: descansadoFinal,   // ✅ también aquí
             horaInicio: horaInicio,
-            horaFin: horaFin
+            horaFin:    horaFin
         });
     }
-    
+
     guardarDatos(datos);
 
     if (typeof window.actualizarGraficos === 'function') {

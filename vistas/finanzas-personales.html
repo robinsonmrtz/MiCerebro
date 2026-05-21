@@ -370,24 +370,31 @@
                     <select id="fz-trans-cuenta" class="fz-select-exacto"></select>
                 </div>
                 
-                <div class="fz-group-exacto">
-                    <label class="fz-label-exacto">Unidad de medida (Opcional)</label>
-                    <div style="position: relative;">
-                        <input type="text" id="fz-trans-unidad" class="fz-input-exacto" placeholder="Seleccionar unidad..." readonly onclick="fz_toggleDropdownInline('fz-drop-unidad')">
-                        <div class="fz-floating-autocomplete-menu" id="fz-drop-unidad">
-                            <div class="fz-autocomplete-option" onclick="fz_seleccionarUnidad('Litro')">Litro (L)</div>
-                            <div class="fz-autocomplete-option" onclick="fz_seleccionarUnidad('Mililitro')">Mililitro (ml)</div>
-                            <div class="fz-autocomplete-option" onclick="fz_seleccionarUnidad('Galon')">Galón (gal)</div>
-                            <div class="fz-autocomplete-option" onclick="fz_seleccionarUnidad('Botella')">Botella</div>
-                            <div class="fz-autocomplete-option" onclick="fz_seleccionarUnidad('Kilogramo')">Kilogramo (kg)</div>
-                            <div class="fz-autocomplete-option" onclick="fz_seleccionarUnidad('Gramo')">Gramo (g)</div>
-                            <div class="fz-autocomplete-option" onclick="fz_seleccionarUnidad('Miligramo')">Miligramo (mg)</div>
-                            <div class="fz-autocomplete-option" onclick="fz_seleccionarUnidad('Microgramo')">Microgramo (µg)</div>
-                            <div class="fz-autocomplete-option" onclick="fz_seleccionarUnidad('Libra')">Libra (lb)</div>
-                            <div class="fz-autocomplete-option" onclick="fz_seleccionarUnidad('Onza')">Onza (oz)</div>
-                            <div class="fz-autocomplete-option" onclick="fz_seleccionarUnidad('Cm3')">Centímetros Cúbicos (cm³)</div>
-                            <div class="fz-autocomplete-option-clear" onclick="fz_seleccionarUnidad('')">❌ Ninguna unidad</div>
+                    <div style="display: flex; gap: 12px; width: 100%;">
+                    <div class="fz-group-exacto" id="fz-container-unidad" style="flex: 1;">
+                        <label class="fz-label-exacto">Unidad de medida (Opcional)</label>
+                        <div style="position: relative;">
+                            <input type="text" id="fz-trans-unidad" class="fz-input-exacto" placeholder="Seleccionar unidad..." readonly onclick="fz_toggleDropdownInline('fz-drop-unidad')">
+                            <div class="fz-floating-autocomplete-menu" id="fz-drop-unidad">
+                                <div class="fz-autocomplete-option" onclick="fz_seleccionarUnidad('Unidad')">Unidad/es</div>
+                                <div class="fz-autocomplete-option" onclick="fz_seleccionarUnidad('Litro')">Litro (L)</div>
+                                <div class="fz-autocomplete-option" onclick="fz_seleccionarUnidad('Mililitro')">Mililitro (ml)</div>
+                                <div class="fz-autocomplete-option" onclick="fz_seleccionarUnidad('Galon')">Galón (gal)</div>
+                                <div class="fz-autocomplete-option" onclick="fz_seleccionarUnidad('Botella')">Botella</div>
+                                <div class="fz-autocomplete-option" onclick="fz_seleccionarUnidad('Kilogramo')">Kilogramo (kg)</div>
+                                <div class="fz-autocomplete-option" onclick="fz_seleccionarUnidad('Gramo')">Gramo (g)</div>
+                                <div class="fz-autocomplete-option" onclick="fz_seleccionarUnidad('Miligramo')">Miligramo (mg)</div>
+                                <div class="fz-autocomplete-option" onclick="fz_seleccionarUnidad('Microgramo')">Microgramo (µg)</div>
+                                <div class="fz-autocomplete-option" onclick="fz_seleccionarUnidad('Libra')">Libra (lb)</div>
+                                <div class="fz-autocomplete-option" onclick="fz_seleccionarUnidad('Onza')">Onza (oz)</div>
+                                <div class="fz-autocomplete-option" onclick="fz_seleccionarUnidad('Cm3')">Centímetros Cúbicos (cm³)</div>
+                                <div class="fz-autocomplete-option-clear" onclick="fz_seleccionarUnidad('')">❌ Ninguna unidad</div>
+                            </div>
                         </div>
+                    </div>
+                    <div class="fz-group-exacto" id="fz-container-cantidad" style="flex: 1; max-width: 90px;">
+                        <label class="fz-label-exacto">Cantidad</label>
+                        <input type="text" id="fz-trans-cantidad" class="fz-input-exacto" placeholder="Ej: 1" maxlength="5" autocomplete="off" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
                     </div>
                 </div>
             </div>
@@ -499,6 +506,7 @@
                     <div style="position: relative;">
                         <input type="text" id="fz-trans-unidad" class="fz-input-exacto" placeholder="Seleccionar unidad..." readonly onclick="fz_toggleDropdownInline('fz-drop-unidad')">
                         <div class="fz-floating-autocomplete-menu" id="fz-drop-unidad">
+                            <div class="fz-autocomplete-option" onclick="fz_seleccionarUnidad('Unidad')">Unidad/es</div>
                             <div class="fz-autocomplete-option" onclick="fz_seleccionarUnidad('Litro')">Litro (L)</div>
                             <div class="fz-autocomplete-option" onclick="fz_seleccionarUnidad('Mililitro')">Mililitro (ml)</div>
                             <div class="fz-autocomplete-option" onclick="fz_seleccionarUnidad('Galon')">Galón (gal)</div>

@@ -196,20 +196,19 @@ window.fz_abrirModalTransaccion = function(tipo, id = null) {
     const txtSimbolo = document.getElementById('fz-trans-simbolo-tipo');
     const containerGastoFijo = document.getElementById('fz-container-gasto-fijo');
     const containerUnidad = document.getElementById('fz-container-unidad');
+    const containerCantidad = document.getElementById('fz-container-cantidad');
     
     // Ajustes visuales según tipo (gasto / ingreso)
     if (tipo === 'ingreso') {
         txtTitulo.innerHTML = `Registrar <span style="color: var(--status-ok);">Ingreso</span>`;
         txtSimbolo.style.color = 'var(--status-ok)';
-        // Mostrar la opción de "fijo" también para ingresos y adaptar el texto
         if (containerGastoFijo) {
             containerGastoFijo.style.visibility = 'visible';
             const tituloFijo = containerGastoFijo.querySelector('.fz-toggle-titulo');
             if (tituloFijo) tituloFijo.innerText = 'Ingreso fijo mensual';
         }
-        // Ocultar unidad: no es un ítem comprado
-        if (containerUnidad) containerUnidad.style.display = 'none';
-        // Cambiar texto del toggle principal
+        if (containerUnidad) containerUnidad.style.display = 'none'; // Ocultamos solo unidad
+        if (containerCantidad) containerCantidad.style.display = 'flex'; // Aseguramos que cantidad siga visible
         const toggleTitulo = document.getElementById('fz-lbl-toggle-titulo');
         if (toggleTitulo) toggleTitulo.innerText = 'Recibido';
     } else {
@@ -220,7 +219,8 @@ window.fz_abrirModalTransaccion = function(tipo, id = null) {
             const tituloFijo = containerGastoFijo.querySelector('.fz-toggle-titulo');
             if (tituloFijo) tituloFijo.innerText = 'Gasto fijo mensual';
         }
-        if (containerUnidad) containerUnidad.style.display = 'block';
+        if (containerUnidad) containerUnidad.style.display = 'flex';
+        if (containerCantidad) containerCantidad.style.display = 'flex';
         const toggleTitulo = document.getElementById('fz-lbl-toggle-titulo');
         if (toggleTitulo) toggleTitulo.innerText = 'Estado del pago';
     }
@@ -234,6 +234,7 @@ window.fz_abrirModalTransaccion = function(tipo, id = null) {
     document.getElementById('fz-trans-monto').value = '';
     document.getElementById('fz-trans-desc').value = '';
     document.getElementById('fz-trans-unidad').value = '';
+    if(document.getElementById('fz-trans-cantidad')) document.getElementById('fz-trans-cantidad').value = '';
     document.getElementById('fz-trans-observacion').value = '';
     document.getElementById('fz-trans-cat-input').value = '';
     document.getElementById('fz-trans-categoria').value = '';
@@ -497,6 +498,7 @@ function fz_generarInstanciasRecurrentesHasta(monthsAhead = 12) {
                         categoria_id: rec.categoria_id,
                         comercio: rec.comercio,
                         unidad: rec.unidad,
+                        cantidad: rec.cantidad,
                         pagado: !!rec.pagado_por_defecto,
                         gasto_fijo: true,
                         observacion: rec.observacion,
@@ -549,6 +551,7 @@ function fz_generarInstanciasRecurrentesParaMes(targetDate) {
                     categoria_id: rec.categoria_id,
                     comercio: rec.comercio,
                     unidad: rec.unidad,
+                    cantidad: rec.cantidad,
                     pagado: !!rec.pagado_por_defecto,
                     gasto_fijo: true,
                     observacion: rec.observacion,
@@ -574,7 +577,9 @@ window.fz_guardarFormularioTransaccion = function() {
     const cuenta_id = parseInt(document.getElementById('fz-trans-cuenta').value);
     const categoria_id = parseInt(document.getElementById('fz-trans-categoria').value);
     const comercio = document.getElementById('fz-trans-comercio-input').value.trim();
-    const unidad = document.getElementById('fz-trans-unidad').value;
+    const unidad = document.getElementById('fz-trans-unidad') ? document.getElementById('fz-trans-unidad').value : '';
+    const inputCantidad = document.getElementById('fz-trans-cantidad');
+    const cantidad = (inputCantidad && inputCantidad.value.trim() !== '') ? parseInt(inputCantidad.value.trim()) : null;
     const pagado = document.getElementById('fz-trans-pagado').checked;
     const gasto_fijo = document.getElementById('fz-trans-gasto-fijo').checked;
     const observacion = document.getElementById('fz-trans-observacion').value.trim();
@@ -600,6 +605,7 @@ window.fz_guardarFormularioTransaccion = function() {
                 categoria_id: categoria_id,
                 comercio: comercio,
                 unidad: unidad,
+                cantidad: cantidad,
                 observacion: observacion,
                 dia: dia,
                 start_date: fecha,
@@ -623,6 +629,7 @@ window.fz_guardarFormularioTransaccion = function() {
         categoria_id: categoria_id,
         comercio: comercio,
         unidad: unidad,
+        cantidad: cantidad,
         pagado: pagado,
         gasto_fijo: gasto_fijo,
         observacion: observacion,

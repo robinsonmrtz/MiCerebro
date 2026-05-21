@@ -45,6 +45,12 @@ self.addEventListener('activate', evento => {
 // Fetch: sirve desde cache, si no hay va a la red
 self.addEventListener('fetch', evento => {
     evento.respondWith(
-        caches.match(evento.request).then(respuesta => respuesta || fetch(evento.request))
+        caches.match(evento.request)
+            .then(respuesta => respuesta || fetch(evento.request))
+            .catch(() => {
+                // Si no hay conexión y no está en cache, devolver página de inicio como fallback
+                return caches.match('/vistas/inicio.html') || 
+                       new Response('Offline - No hay conexión disponible', { status: 503 });
+            })
     );
 });
