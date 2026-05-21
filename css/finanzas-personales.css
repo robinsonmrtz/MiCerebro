@@ -482,3 +482,324 @@ input:checked + .fz-slider-exacto:before { transform: translateX(18px); }
 .fz-autocomplete-option-express:hover { background: rgba(var(--accent-rgb), 0.12); }
 .fz-autocomplete-option-clear { padding: 8px 14px; font-size: 12px; color: var(--status-danger); cursor: pointer; border-top: 1px solid var(--border-card); }
 .fz-autocomplete-option-clear:hover { background: var(--bg-hover); }
+
+/* =========================================
+   MÓDULO: CATEGORÍAS REDISEÑADAS
+   ========================================= */
+
+.fz-cat-topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    gap: 12px;
+}
+
+/* Botón pill tipo "Categorías Gastos" */
+.fz-cat-tipo-dropdown-wrap { position: relative; }
+
+.fz-cat-tipo-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--status-danger);
+    color: #fff;
+    border: none;
+    border-radius: 30px;
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: filter 0.2s;
+}
+.fz-cat-tipo-pill:hover { filter: brightness(1.1); }
+.fz-cat-tipo-pill i { font-size: 16px; transition: transform 0.2s; }
+.fz-cat-tipo-pill.ingreso-activo { background: var(--status-ok); }
+
+.fz-cat-tipo-menu {
+    display: none;
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: 14px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+    z-index: 200;
+    min-width: 220px;
+    padding: 6px 0;
+    overflow: hidden;
+}
+.fz-cat-tipo-menu.visible { display: block; }
+
+.fz-cat-tipo-item {
+    padding: 13px 18px;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text-hi);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: background 0.15s;
+}
+.fz-cat-tipo-item:hover { background: var(--bg-hover); color: var(--accent); }
+.fz-cat-tipo-item i { font-size: 18px; }
+
+/* Botones de la derecha */
+.fz-cat-actions-right { display: flex; gap: 8px; align-items: center; }
+
+.fz-cat-icon-btn {
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    border: 1px solid var(--border-card);
+    background: var(--bg-card);
+    color: var(--text-lo);
+    font-size: 17px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+}
+.fz-cat-icon-btn:hover { background: var(--bg-hover); color: var(--text-base); }
+
+.fz-cat-add-pill {
+    background: var(--status-danger) !important;
+    color: #fff !important;
+    border-color: transparent !important;
+    font-size: 20px !important;
+}
+.fz-cat-add-pill:hover { filter: brightness(1.15); }
+
+/* Barra de búsqueda */
+.fz-cat-search-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-card);
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-bottom: 14px;
+    color: var(--text-lo);
+}
+.fz-cat-search-bar input {
+    background: transparent;
+    border: none;
+    outline: none;
+    flex: 1;
+    font-size: 13px;
+    color: var(--text-base);
+}
+
+/* Tabla de categorías */
+.fz-cat-table {
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+.fz-cat-table-head {
+    display: grid;
+    grid-template-columns: 1fr 80px 80px 160px;
+    padding: 12px 20px;
+    background: var(--bg-input);
+    border-bottom: 1px solid var(--border-card);
+}
+.fz-cat-table-head span {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-lo);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.fz-cat-row {
+    display: grid;
+    grid-template-columns: 1fr 80px 80px 160px;
+    padding: 14px 20px;
+    align-items: center;
+    border-bottom: 1px solid var(--border-card);
+    transition: background 0.15s;
+}
+.fz-cat-row:last-child { border-bottom: none; }
+.fz-cat-row:hover { background: var(--bg-hover); }
+
+/* Fila de subcategoría */
+.fz-cat-row.es-sub .fz-cat-col-nombre-cell {
+    padding-left: 28px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.fz-cat-row.es-sub .fz-cat-sub-arrow {
+    color: var(--text-lo);
+    font-size: 13px;
+    flex-shrink: 0;
+}
+
+.fz-cat-col-nombre-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13.5px;
+    color: var(--text-base);
+    font-weight: 500;
+}
+
+.fz-cat-col-icono-cell { display: flex; align-items: center; }
+.fz-cat-emoji-badge {
+    font-size: 22px;
+    line-height: 1;
+}
+
+.fz-cat-col-color-cell { display: flex; align-items: center; }
+.fz-cat-color-dot {
+    width: 16px; height: 16px;
+    border-radius: 50%;
+}
+
+.fz-cat-col-acciones-cell {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.fz-cat-action-btn {
+    width: 30px; height: 30px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: var(--text-lo);
+    font-size: 16px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+.fz-cat-action-btn:hover { background: var(--bg-hover); color: var(--text-base); }
+.fz-cat-action-btn.add-sub { 
+    background: var(--status-danger); 
+    color: #fff; 
+    border-radius: 50%;
+    width: 26px; height: 26px;
+    font-size: 14px;
+}
+.fz-cat-action-btn.add-sub.ingreso { background: var(--status-ok); }
+.fz-cat-action-btn.add-sub:hover { filter: brightness(1.15); background: var(--status-danger); }
+
+/* =========================================
+   MODAL DE CATEGORÍA REDISEÑADO
+   ========================================= */
+.fz-emoji-selector-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+.fz-emoji-display-btn {
+    width: 56px; height: 56px;
+    border-radius: 14px;
+    border: 2px solid var(--border-card);
+    background: var(--bg-input);
+    font-size: 30px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: border-color 0.2s, transform 0.15s;
+    flex-shrink: 0;
+}
+.fz-emoji-display-btn:hover { border-color: var(--accent); transform: scale(1.05); }
+
+/* Paleta de colores para categorías */
+.fz-cat-color-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+.fz-cat-color-circle {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    color: transparent;
+    transition: transform 0.15s, box-shadow 0.15s;
+    position: relative;
+}
+.fz-cat-color-circle i { font-size: 13px; font-weight: bold; }
+.fz-cat-color-circle.activa {
+    color: #fff;
+    transform: scale(1.15);
+    box-shadow: 0 0 0 2px var(--bg-card), 0 0 0 4px var(--accent);
+}
+.fz-cat-color-custom {
+    background: conic-gradient(red, yellow, lime, aqua, blue, magenta, red);
+    color: #fff !important;
+}
+
+/* =========================================
+   EMOJI PICKER MODAL
+   ========================================= */
+.fz-emoji-picker-caja {
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: 20px;
+    width: 340px;
+    max-height: 480px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+    animation: fzFadeIn 0.2s ease-out;
+}
+.fz-emoji-picker-header {
+    padding: 14px 16px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    border-bottom: 1px solid var(--border-card);
+}
+.fz-emoji-search {
+    flex: 1;
+    background: var(--bg-input);
+    border: 1px solid var(--border-card);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 13px;
+    color: var(--text-base);
+    outline: none;
+}
+.fz-emoji-search:focus { border-color: var(--accent); }
+
+.fz-emoji-section-label {
+    padding: 10px 16px 4px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-lo);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+.fz-emoji-grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 2px;
+    padding: 4px 10px 14px;
+    overflow-y: auto;
+    flex: 1;
+}
+.fz-emoji-btn {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    font-size: 22px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+    line-height: 1;
+}
+.fz-emoji-btn:hover { background: var(--bg-hover); transform: scale(1.2); }
+
+@media (max-width: 768px) {
+    .fz-cat-table-head,
+    .fz-cat-row { grid-template-columns: 1fr 50px 50px 120px; }
+    .fz-emoji-picker-caja { width: 95vw; }
+    .fz-cat-topbar { flex-wrap: wrap; }
+}

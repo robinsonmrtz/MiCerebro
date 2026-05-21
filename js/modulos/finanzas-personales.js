@@ -297,32 +297,52 @@ window.fz_seleccionarUnidad = function(unidad) {
 
 // --- AUTOCOMPLETADO Y CREACIÓN EXPRÉS ---
 window.fz_filtrarDropdownCategorias = function() {
-    const input = document.getElementById('fz-trans-cat-input');
-    const query = input.value.trim().toLowerCase();
+    const input    = document.getElementById('fz-trans-cat-input');
+    const query    = input.value.trim().toLowerCase();
     const dropdown = document.getElementById('fz-drop-categorias');
-    const tipo = document.getElementById('fz-trans-tipo').value;
-    
-    const datos = fz_obtenerDatos();
-    const catsFiltradas = datos.categorias.filter(c => !c.archivada && c.tipo === tipo);
-    
+    const tipo     = document.getElementById('fz-trans-tipo').value;
+
+    const datos  = fz_obtenerDatos();
+    const todas  = datos.categorias.filter(c => !c.archivada && c.tipo === tipo);
+    const padres = todas.filter(c => !c.parent_id);
+    const hijos  = todas.filter(c =>  c.parent_id);
+
     dropdown.innerHTML = '';
     dropdown.classList.add('visible');
 
-    catsFiltradas.forEach(c => {
-        if (c.nombre.toLowerCase().includes(query)) {
+    padres.forEach(padre => {
+        const hijosDelPadre = hijos.filter(h => h.parent_id === padre.id);
+        const padreMatch    = padre.nombre.toLowerCase().includes(query);
+        const hijoMatch     = hijosDelPadre.some(h => h.nombre.toLowerCase().includes(query));
+        if (query && !padreMatch && !hijoMatch) return;
+
+        if (padreMatch || !query) {
             const item = document.createElement('div');
             item.className = 'fz-autocomplete-option';
-            item.innerHTML = `<div style="width:10px; height:10px; border-radius:50%; background:${c.color || '#888'}"></div> <span>${c.nombre}</span>`;
+            item.innerHTML = `<span style="font-size:15px">${padre.emoji || '🏷️'}</span> <span style="font-weight:600">${padre.nombre}</span>`;
             item.onclick = () => {
-                input.value = c.nombre;
-                document.getElementById('fz-trans-categoria').value = c.id;
+                input.value = padre.nombre;
+                document.getElementById('fz-trans-categoria').value = padre.id;
                 dropdown.classList.remove('visible');
             };
             dropdown.appendChild(item);
         }
+
+        hijosDelPadre.forEach(hijo => {
+            if (query && !hijo.nombre.toLowerCase().includes(query) && !padreMatch) return;
+            const item = document.createElement('div');
+            item.className = 'fz-autocomplete-option';
+            item.innerHTML = `<span style="padding-left:18px;color:var(--text-lo);font-size:12px">↳</span> <span>${hijo.nombre}</span>`;
+            item.onclick = () => {
+                input.value = hijo.nombre;
+                document.getElementById('fz-trans-categoria').value = hijo.id;
+                dropdown.classList.remove('visible');
+            };
+            dropdown.appendChild(item);
+        });
     });
 
-    if (query.length > 0 && !catsFiltradas.some(c => c.nombre.toLowerCase() === query)) {
+    if (query.length > 0 && !todas.some(c => c.nombre.toLowerCase() === query)) {
         const itemExpress = document.createElement('div');
         itemExpress.className = 'fz-autocomplete-option-express';
         itemExpress.innerHTML = `<i class="ti ti-sparkles"></i> Crear "${input.value}" al vuelo...`;
@@ -337,12 +357,21 @@ function fz_crearExpressCategoria(nombre, tipo) {
         nombre: nombre.trim(),
         tipo: tipo,
         color: tipo === 'ingreso' ? '#2ecc71' : '#e74c3c',
+        emoji: tipo === 'ingreso' ? '💰' : '🏷️',
+        parent_id: null,
         archivada: false
     };
-    fz_guardarCategoria(nuevaCat);
-    document.getElementById('fz-trans-cat-input').value = nuevaCat.nombre;
-    document.getElementById('fz-trans-categoria').value = nuevaCat.id;
-    document.getElementById('fz-drop-categorias').classList.remove('visible');
+
+    // Guardar nueva categoría y actualizar el input del modal
+    try {
+        fz_guardarCategoria(nuevaCat);
+        const input = document.getElementById('fz-trans-cat-input'); if (input) input.value = nuevaCat.nombre;
+        const hidden = document.getElementById('fz-trans-categoria'); if (hidden) hidden.value = nuevaCat.id;
+        const drop = document.getElementById('fz-drop-categorias'); if (drop) drop.classList.remove('visible');
+    } catch (e) {
+        console.error('Error creando categoría express:', e);
+    }
+
 }
 
 window.fz_filtrarDropdownComercios = function() {
@@ -808,63 +837,203 @@ window.fz_actualizarPreviewLogo = function() {
 // ==========================================
 // LÓGICA DE CATEGORÍAS
 // ==========================================
+// ==========================================
+// LÓGICA DE CATEGORÍAS REDISEÑADA
+// ==========================================
+let fz_catTipoActual = 'gasto';
+
+const FZ_EMOJIS = {
+    'Finanzas':        ['💰','💵','💴','💶','💷','💳','🏧','💎','📈','📉','📊','🏦','🏪','🏬','🛒','🛍️','🤑','💸','🪙','💹'],
+    'Comida':          ['🍔','🍕','🍣','🍜','🍱','🥗','🍰','🍩','☕','🍺','🍷','🥤','🥦','🥩','🍞','🍳','🥐','🍦','🍭','🥡'],
+    'Transporte':      ['🚗','🚕','✈️','🚌','🚇','🛵','🚲','⛽','🚦','🛣️','🚁','🛳️','🏎️','🛺','🚐','🚓'],
+    'Hogar':           ['🏠','🏡','🛋️','🛏️','🔧','💡','💧','🔌','📦','🧹','🧺','🪴','🛁','🪑','🖼️','🪞'],
+    'Salud':           ['💊','🏥','🩺','🧘','🏋️','💪','🦷','👓','🩹','🧪','🩻','💉','🧬','🏃','🧴','🪥'],
+    'Entretenimiento': ['🎮','🎬','🎵','🎸','📺','📱','💻','🎯','⚽','🏀','🎭','🎲','🎻','🎹','🎨','📸'],
+    'Educación':       ['📚','📖','✏️','🎓','🏫','📝','🔬','🔭','🗺️','📐','📏','🖊️','📓'],
+    'Personas':        ['👨‍👩‍👧','👤','🤝','❤️','🎁','🎉','🎂','💌','👶','🐾','💍','🌹'],
+    'Naturaleza':      ['🌿','🌱','🌳','🌺','☀️','🌙','⭐','🌊','🌈','🌵','🍀','🌸','🦋','🐝'],
+    'Servicios':       ['📡','🔐','🛡️','⚙️','🔑','📋','🗂️','📁','🗃️','🔒','📮','🖨️'],
+    'Símbolos':        ['✅','❌','⚠️','💯','🔴','🟢','🔵','🟡','⭕','🏷️','📌','📍','🔖','⚡','🔥','💫']
+};
+
 function fz_pintarCategorias() {
-    const contenedorIngresos = document.getElementById('fz-lista-categorias-ingreso');
-    const contenedorGastos = document.getElementById('fz-lista-categorias-gasto');
-    
-    const categoriasActivas = fz_obtenerDatos().categorias.filter(c => !c.archivada);
-    
-    const pintarFila = (c) => `
-        <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-input); padding: 8px 12px; border-radius: 8px;">
-            <div style="display: flex; align-items: center; gap: 8px;">
-                <div style="width: 12px; height: 12px; border-radius: 50%; background: ${c.color};"></div>
-                <span style="color: var(--text-base); font-size: 13px; font-weight: 500;">${c.nombre}</span>
-            </div>
-            <div>
-                <button class="btn-ghost" style="padding: 4px;" onclick="fz_abrirModalCategoria(${c.id})"><i class="ti ti-edit"></i></button>
-                <button class="btn-borrar" style="padding: 4px;" onclick="fz_archivarCategoriaUI(${c.id})"><i class="ti ti-archive"></i></button>
-            </div>
-        </div>
-    `;
+    const contenedor = document.getElementById('fz-lista-categorias-tabla');
+    if (!contenedor) return;
+    const query = (document.getElementById('fz-cat-search-input')?.value || '').toLowerCase();
 
-    const ingresos = categoriasActivas.filter(c => c.tipo === 'ingreso');
-    const gastos = categoriasActivas.filter(c => c.tipo === 'gasto');
+    const datos = fz_obtenerDatos();
+    const todas = datos.categorias.filter(c => !c.archivada && c.tipo === fz_catTipoActual);
+    const padres = todas.filter(c => !c.parent_id);
+    const hijos  = todas.filter(c =>  c.parent_id);
 
-    contenedorIngresos.innerHTML = ingresos.length ? ingresos.map(pintarFila).join('') : '<p style="color: var(--text-lo); font-size:12px;">Sin categorías</p>';
-    contenedorGastos.innerHTML = gastos.length ? gastos.map(pintarFila).join('') : '<p style="color: var(--text-lo); font-size:12px;">Sin categorías</p>';
+    let filas = '';
+    const esIngreso = fz_catTipoActual === 'ingreso';
+
+    padres.forEach(padre => {
+        const hijosDelPadre = hijos.filter(h => h.parent_id === padre.id);
+        const padreMatch = padre.nombre.toLowerCase().includes(query);
+        const hijoMatch  = hijosDelPadre.some(h => h.nombre.toLowerCase().includes(query));
+        if (query && !padreMatch && !hijoMatch) return;
+
+        const emoji = padre.emoji || '🏷️';
+        filas += `
+        <div class="fz-cat-row">
+            <div class="fz-cat-col-nombre-cell">
+                <span style="font-weight:600;color:var(--text-hi)">${padre.nombre}</span>
+            </div>
+            <div class="fz-cat-col-icono-cell">
+                <span class="fz-cat-emoji-badge">${emoji}</span>
+            </div>
+            <div class="fz-cat-col-color-cell">
+                <div class="fz-cat-color-dot" style="background:${padre.color || '#888'}"></div>
+            </div>
+            <div class="fz-cat-col-acciones-cell">
+                <button class="fz-cat-action-btn" title="Editar" onclick="fz_abrirModalCategoria(${padre.id})"><i class="ti ti-pencil"></i></button>
+                <button class="fz-cat-action-btn" title="Archivar" onclick="fz_archivarCategoriaUI(${padre.id})"><i class="ti ti-archive"></i></button>
+                <button class="fz-cat-action-btn add-sub${esIngreso ? ' ingreso' : ''}" title="Agregar subcategoría" onclick="fz_abrirModalSubcategoria(${padre.id})">
+                    <i class="ti ti-plus"></i>
+                </button>
+            </div>
+        </div>`;
+
+        hijosDelPadre.forEach(hijo => {
+            if (query && !hijo.nombre.toLowerCase().includes(query) && !padreMatch) return;
+            filas += `
+            <div class="fz-cat-row es-sub">
+                <div class="fz-cat-col-nombre-cell">
+                    <span class="fz-cat-sub-arrow">↳</span>
+                    <span style="color:var(--text-base)">${hijo.nombre}</span>
+                </div>
+                <div class="fz-cat-col-icono-cell"></div>
+                <div class="fz-cat-col-color-cell">
+                    <div class="fz-cat-color-dot" style="background:${hijo.color || padre.color || '#888'}"></div>
+                </div>
+                <div class="fz-cat-col-acciones-cell">
+                    <button class="fz-cat-action-btn" title="Editar" onclick="fz_abrirModalCategoria(${hijo.id})"><i class="ti ti-pencil"></i></button>
+                    <button class="fz-cat-action-btn" title="Archivar" onclick="fz_archivarCategoriaUI(${hijo.id})"><i class="ti ti-archive"></i></button>
+                </div>
+            </div>`;
+        });
+    });
+
+    contenedor.innerHTML = filas || `<div style="padding:30px;text-align:center;color:var(--text-lo)">Sin categorías. Usa el botón + para crear una.</div>`;
 }
+
+window.fz_cambiarTipoCat = function(tipo) {
+    fz_catTipoActual = tipo;
+    const pill   = document.getElementById('fz-cat-pill-btn');
+    const label  = document.getElementById('fz-cat-pill-label');
+    const addBtn = document.querySelector('.fz-cat-add-pill');
+    if (tipo === 'ingreso') {
+        label.textContent = 'Categorías Ingresos';
+        pill.classList.add('ingreso-activo');
+        if (addBtn) addBtn.style.background = 'var(--status-ok)';
+    } else {
+        label.textContent = 'Categorías Gastos';
+        pill.classList.remove('ingreso-activo');
+        if (addBtn) addBtn.style.background = 'var(--status-danger)';
+    }
+    document.getElementById('fz-cat-tipo-menu').classList.remove('visible');
+    const arrow = document.getElementById('fz-cat-pill-arrow');
+    if (arrow) arrow.style.transform = '';
+    fz_pintarCategorias();
+};
+
+window.fz_toggleCatTipoMenu = function() {
+    const menu  = document.getElementById('fz-cat-tipo-menu');
+    const arrow = document.getElementById('fz-cat-pill-arrow');
+    menu.classList.toggle('visible');
+    if (arrow) arrow.style.transform = menu.classList.contains('visible') ? 'rotate(180deg)' : '';
+};
+
+window.fz_toggleBuscadorCat = function() {
+    const bar = document.getElementById('fz-cat-search-bar');
+    const oculto = bar.style.display === 'none' || bar.style.display === '';
+    bar.style.display = oculto ? 'flex' : 'none';
+    if (oculto) document.getElementById('fz-cat-search-input')?.focus();
+};
+
+document.addEventListener('click', function(e) {
+    const menu = document.getElementById('fz-cat-tipo-menu');
+    const btn  = document.getElementById('fz-cat-pill-btn');
+    if (menu && menu.classList.contains('visible') && btn && !btn.contains(e.target)) {
+        menu.classList.remove('visible');
+        const arrow = document.getElementById('fz-cat-pill-arrow');
+        if (arrow) arrow.style.transform = '';
+    }
+});
 
 window.fz_abrirModalCategoria = function(id = null) {
     document.getElementById('fz-modal-categoria-titulo').textContent = id ? 'Editar Categoría' : 'Nueva Categoría';
-    document.getElementById('fz-categoria-id').value = id || '';
-    
+    document.getElementById('fz-categoria-id').value       = id || '';
+    document.getElementById('fz-categoria-parent-id').value = '';
+    document.getElementById('fz-categoria-es-sub').value    = '';
+
+    const emojiGroup = document.getElementById('fz-cat-emoji-group');
+    const tipoGroup  = document.getElementById('fz-cat-tipo-group');
+
     if (id) {
         const cat = fz_obtenerDatos().categorias.find(c => c.id === id);
         document.getElementById('fz-categoria-nombre').value = cat.nombre;
-        document.getElementById('fz-categoria-tipo').value = cat.tipo;
-        document.getElementById('fz-categoria-color').value = cat.color || '#2773d6';
+        document.getElementById('fz-cat-emoji-preview').textContent = cat.emoji || '🏷️';
+        fz_activarColorCat(cat.color || '#e74c3c');
+
+        if (cat.parent_id) {
+            // Es subcategoría: sin emoji ni tipo
+            emojiGroup.style.display = 'none';
+            tipoGroup.style.display  = 'none';
+        } else {
+            emojiGroup.style.display = 'flex';
+            tipoGroup.style.display  = 'flex';
+            document.getElementById('fz-categoria-tipo').value = cat.tipo;
+        }
     } else {
         document.getElementById('fz-categoria-nombre').value = '';
-        document.getElementById('fz-categoria-tipo').value = 'gasto';
-        document.getElementById('fz-categoria-color').value = '#e74c3c'; // Rojo por defecto para gastos
+        document.getElementById('fz-cat-emoji-preview').textContent = '🏷️';
+        document.getElementById('fz-categoria-tipo').value = fz_catTipoActual;
+        emojiGroup.style.display = 'flex';
+        tipoGroup.style.display  = 'flex';
+        fz_activarColorCat(fz_catTipoActual === 'ingreso' ? '#2ecc71' : '#e74c3c');
     }
-    
+
+    document.getElementById('fz-modal-categoria').classList.add('visible');
+};
+
+window.fz_abrirModalSubcategoria = function(parentId) {
+    const padre = fz_obtenerDatos().categorias.find(c => c.id === parentId);
+    document.getElementById('fz-modal-categoria-titulo').textContent = `Subcategoría de "${padre?.nombre || ''}"`;
+    document.getElementById('fz-categoria-id').value        = '';
+    document.getElementById('fz-categoria-parent-id').value = parentId;
+    document.getElementById('fz-categoria-es-sub').value    = '1';
+    document.getElementById('fz-categoria-nombre').value    = '';
+    document.getElementById('fz-cat-emoji-group').style.display = 'none';
+    document.getElementById('fz-cat-tipo-group').style.display  = 'none';
+    fz_activarColorCat(padre?.color || '#e74c3c');
     document.getElementById('fz-modal-categoria').classList.add('visible');
 };
 
 window.fz_guardarFormularioCategoria = function() {
-    const idInput = document.getElementById('fz-categoria-id').value;
-    const nombre = document.getElementById('fz-categoria-nombre').value.trim();
-    const tipo = document.getElementById('fz-categoria-tipo').value;
-    const color = document.getElementById('fz-categoria-color').value;
-
+    const idInput  = document.getElementById('fz-categoria-id').value;
+    const parentId = document.getElementById('fz-categoria-parent-id').value;
+    const esSub    = document.getElementById('fz-categoria-es-sub').value === '1';
+    const nombre   = document.getElementById('fz-categoria-nombre').value.trim();
+    const color    = document.getElementById('fz-categoria-color').value;
     if (!nombre) return alert("El nombre es obligatorio");
 
+    let tipo, emoji;
+    if (esSub) {
+        const padre = fz_obtenerDatos().categorias.find(c => c.id === parseInt(parentId));
+        tipo  = padre ? padre.tipo : fz_catTipoActual;
+        emoji = null;
+    } else {
+        tipo  = document.getElementById('fz-categoria-tipo').value;
+        emoji = document.getElementById('fz-cat-emoji-preview').textContent || '🏷️';
+    }
+
     fz_guardarCategoria({
-        id: idInput ? parseInt(idInput) : Date.now(),
-        nombre: nombre,
-        tipo: tipo,
-        color: color,
+        id:        idInput ? parseInt(idInput) : Date.now(),
+        nombre, tipo, color, emoji,
+        parent_id: parentId ? parseInt(parentId) : null,
         archivada: false
     });
 
@@ -873,10 +1042,81 @@ window.fz_guardarFormularioCategoria = function() {
 };
 
 window.fz_archivarCategoriaUI = function(id) {
-    if(confirm("¿Seguro que deseas archivar esta categoría? Los registros antiguos seguirán atados a ella de forma segura.")) {
+    if (confirm("¿Archivar esta categoría? Sus subcategorías también se archivarán.")) {
+        const datos = fz_obtenerDatos();
+        datos.categorias.filter(c => c.parent_id === id).forEach(h => fz_archivarCategoria(h.id));
         fz_archivarCategoria(id);
         fz_pintarCategorias();
     }
+};
+
+// ==========================================
+// COLORES DEL MODAL DE CATEGORÍA
+// ==========================================
+window.fz_seleccionarColorCat = function(el, color) {
+    document.getElementById('fz-categoria-color').value = color;
+    document.querySelectorAll('.fz-cat-color-circle').forEach(c => c.classList.remove('activa'));
+    el.classList.add('activa');
+};
+
+window.fz_colorCatCustom = function(input) {
+    const color = input.value;
+    document.getElementById('fz-categoria-color').value = color;
+    document.querySelectorAll('.fz-cat-color-circle').forEach(c => c.classList.remove('activa'));
+    const trigger = input.parentElement;
+    trigger.classList.add('activa');
+    trigger.style.background = color;
+};
+
+function fz_activarColorCat(colorHex) {
+    document.getElementById('fz-categoria-color').value = colorHex;
+    let encontrado = false;
+    document.querySelectorAll('.fz-cat-color-circle:not(.fz-cat-color-custom)').forEach(c => {
+        c.classList.remove('activa');
+        if (c.style.background === colorHex) { c.classList.add('activa'); encontrado = true; }
+    });
+    const custom = document.querySelector('.fz-cat-color-custom');
+    if (custom) {
+        if (!encontrado) { custom.classList.add('activa'); custom.style.background = colorHex; }
+        else { custom.classList.remove('activa'); custom.style.background = 'conic-gradient(red,yellow,lime,aqua,blue,magenta,red)'; }
+    }
+}
+
+// ==========================================
+// EMOJI PICKER
+// ==========================================
+window.fz_toggleEmojiPicker = function() {
+    document.getElementById('fz-emoji-search').value = '';
+    fz_renderizarEmojis(FZ_EMOJIS);
+    document.getElementById('fz-modal-emoji').classList.add('visible');
+};
+
+function fz_renderizarEmojis(fuente) {
+    const grid = document.getElementById('fz-emoji-grid');
+    const titulo = document.getElementById('fz-emoji-section-title');
+    if (Array.isArray(fuente)) {
+        titulo.textContent = 'Resultados';
+        grid.innerHTML = fuente.map(e =>
+            `<button class="fz-emoji-btn" onclick="fz_seleccionarEmoji('${e}')">${e}</button>`
+        ).join('');
+    } else {
+        const grupos = Object.keys(fuente);
+        titulo.textContent = grupos[0] || '';
+        grid.innerHTML = grupos.map(g =>
+            fuente[g].map(e => `<button class="fz-emoji-btn" onclick="fz_seleccionarEmoji('${e}')">${e}</button>`).join('')
+        ).join('');
+    }
+}
+
+window.fz_filtrarEmojis = function() {
+    const q = document.getElementById('fz-emoji-search').value.toLowerCase().trim();
+    if (!q) { fz_renderizarEmojis(FZ_EMOJIS); return; }
+    fz_renderizarEmojis(Object.values(FZ_EMOJIS).flat());
+};
+
+window.fz_seleccionarEmoji = function(emoji) {
+    document.getElementById('fz-cat-emoji-preview').textContent = emoji;
+    document.getElementById('fz-modal-emoji').classList.remove('visible');
 };
 
 // ==========================================
@@ -1059,6 +1299,3 @@ window.fz_guardarFormularioTransferencia = function() {
     document.getElementById('fz-modal-transferencia').classList.remove('visible');
     fz_pintarTransacciones();
 };
-
-
-

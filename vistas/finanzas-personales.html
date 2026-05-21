@@ -80,22 +80,47 @@
         <div class="kpi-grid" id="fz-lista-cuentas" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px;"></div>
     </div>
 
-    <div id="pantalla-categorias" style="display: none;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <h3 style="color: var(--text-hi); font-size: 16px;">Categorías de Transacción</h3>
-            <button class="btn-primario" onclick="fz_abrirModalCategoria()"><i class="ti ti-plus"></i> Nueva Categoría</button>
+<div id="pantalla-categorias" style="display: none;">
+
+    <div class="fz-cat-topbar">
+        <div class="fz-cat-tipo-dropdown-wrap">
+            <button class="fz-cat-tipo-pill" id="fz-cat-pill-btn" onclick="fz_toggleCatTipoMenu()">
+                <i class="ti ti-chevron-down" id="fz-cat-pill-arrow"></i>
+                <span id="fz-cat-pill-label">Categorías Gastos</span>
+            </button>
+            <div class="fz-cat-tipo-menu" id="fz-cat-tipo-menu">
+                <div class="fz-cat-tipo-item" onclick="fz_cambiarTipoCat('gasto')">
+                    <i class="ti ti-minus-circle"></i> Categorías Gastos
+                </div>
+                <div class="fz-cat-tipo-item" onclick="fz_cambiarTipoCat('ingreso')">
+                    <i class="ti ti-plus-circle"></i> Categorías Ingresos
+                </div>
+            </div>
         </div>
-        <div class="finanzas-grid">
-            <div class="card-surface" style="padding: 20px;">
-                <h4 style="color: var(--status-ok); margin-bottom: 12px; border-bottom: 1px solid var(--border-card); padding-bottom: 8px;">Categorías de Ingreso</h4>
-                <div id="fz-lista-categorias-ingreso" style="display: flex; flex-direction: column; gap: 8px;"></div>
-            </div>
-            <div class="card-surface" style="padding: 20px;">
-                <h4 style="color: var(--status-danger); margin-bottom: 12px; border-bottom: 1px solid var(--border-card); padding-bottom: 8px;">Categorías de Gasto</h4>
-                <div id="fz-lista-categorias-gasto" style="display: flex; flex-direction: column; gap: 8px;"></div>
-            </div>
+
+        <div class="fz-cat-actions-right">
+            <button class="fz-cat-icon-btn" title="Buscar" onclick="fz_toggleBuscadorCat()"><i class="ti ti-search"></i></button>
+            <button class="fz-cat-icon-btn" title="Más opciones"><i class="ti ti-dots-vertical"></i></button>
+            <button class="fz-cat-icon-btn fz-cat-add-pill" title="Nueva categoría" onclick="fz_abrirModalCategoria()"><i class="ti ti-plus"></i></button>
         </div>
     </div>
+
+    <div class="fz-cat-search-bar" id="fz-cat-search-bar" style="display:none;">
+        <i class="ti ti-search"></i>
+        <input type="text" id="fz-cat-search-input" placeholder="Buscar categoría..." oninput="fz_pintarCategorias()">
+    </div>
+
+    <div class="fz-cat-table">
+        <div class="fz-cat-table-head">
+            <span class="fz-cat-col-nombre">Nombre</span>
+            <span class="fz-cat-col-icono">Icono</span>
+            <span class="fz-cat-col-color">Color</span>
+            <span class="fz-cat-col-acciones">Acciones</span>
+        </div>
+        <div id="fz-lista-categorias-tabla"></div>
+    </div>
+
+</div>
 
     <div id="pantalla-transacciones" style="display: none;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
@@ -201,30 +226,80 @@
 </div>
 
 <div class="modal-overlay" id="fz-modal-categoria">
-    <div class="modal-caja">
-        <h3 id="fz-modal-categoria-titulo">Nueva Categoría</h3>
+    <div class="modal-caja fz-modal-premium" style="max-width: 420px !important;">
+        <div class="fz-modal-header-exacto">
+            <h3 id="fz-modal-categoria-titulo">Nueva Categoría</h3>
+            <button class="btn-ghost fz-btn-cerrar-exacto" onclick="document.getElementById('fz-modal-categoria').classList.remove('visible')">
+                <i class="ti ti-x"></i>
+            </button>
+        </div>
+
         <input type="hidden" id="fz-categoria-id">
-        <div style="display: flex; flex-direction: column; gap: 12px; text-align: left; margin-bottom: 20px;">
-            <div>
-                <label style="color: var(--text-lo); font-size: 12px;">Nombre de la Categoría</label>
-                <input type="text" id="fz-categoria-nombre" class="input-base" placeholder="Ej: Supermercado" autocomplete="off">
+        <input type="hidden" id="fz-categoria-parent-id">
+        <input type="hidden" id="fz-categoria-es-sub">
+
+        <div class="fz-modal-content-exacto">
+
+            <!-- Emoji picker (solo para categorías padre) -->
+            <div class="fz-group-exacto" id="fz-cat-emoji-group">
+                <label class="fz-label-exacto">Ícono (Emoji)</label>
+                <div class="fz-emoji-selector-row">
+                    <button type="button" class="fz-emoji-display-btn" id="fz-cat-emoji-btn" onclick="fz_toggleEmojiPicker()">
+                        <span id="fz-cat-emoji-preview">🏷️</span>
+                    </button>
+                    <span style="color: var(--text-lo); font-size: 12px;">Toca para cambiar el ícono</span>
+                </div>
             </div>
-            <div>
-                <label style="color: var(--text-lo); font-size: 12px;">Tipo</label>
-                <select id="fz-categoria-tipo" class="input-base">
-                    <option value="gasto">Gasto (Rojo)</option>
-                    <option value="ingreso">Ingreso (Verde)</option>
+
+            <div class="fz-group-exacto">
+                <label class="fz-label-exacto">Nombre</label>
+                <input type="text" id="fz-categoria-nombre" class="fz-input-exacto" placeholder="Ej: Restaurantes, Salario..." autocomplete="off">
+            </div>
+
+            <div class="fz-group-exacto" id="fz-cat-tipo-group">
+                <label class="fz-label-exacto">Tipo</label>
+                <select id="fz-categoria-tipo" class="fz-select-exacto">
+                    <option value="gasto">Gasto</option>
+                    <option value="ingreso">Ingreso</option>
                 </select>
             </div>
-            <div>
-                <label style="color: var(--text-lo); font-size: 12px;">Color distintivo</label>
-                <input type="color" id="fz-categoria-color" value="#2773d6" style="width: 100%; height: 38px; border: none; border-radius: 8px; cursor: pointer; background: transparent;">
+
+            <div class="fz-group-exacto">
+                <label class="fz-label-exacto">Color</label>
+                <div class="fz-cat-color-row">
+                    <div class="fz-cat-color-circle" style="background:#e74c3c" onclick="fz_seleccionarColorCat(this,'#e74c3c')"><i class="ti ti-check"></i></div>
+                    <div class="fz-cat-color-circle" style="background:#e67e22" onclick="fz_seleccionarColorCat(this,'#e67e22')"><i class="ti ti-check"></i></div>
+                    <div class="fz-cat-color-circle" style="background:#f1c40f" onclick="fz_seleccionarColorCat(this,'#f1c40f')"><i class="ti ti-check"></i></div>
+                    <div class="fz-cat-color-circle" style="background:#2ecc71" onclick="fz_seleccionarColorCat(this,'#2ecc71')"><i class="ti ti-check"></i></div>
+                    <div class="fz-cat-color-circle" style="background:#3498db" onclick="fz_seleccionarColorCat(this,'#3498db')"><i class="ti ti-check"></i></div>
+                    <div class="fz-cat-color-circle" style="background:#9b59b6" onclick="fz_seleccionarColorCat(this,'#9b59b6')"><i class="ti ti-check"></i></div>
+                    <div class="fz-cat-color-circle" style="background:#1abc9c" onclick="fz_seleccionarColorCat(this,'#1abc9c')"><i class="ti ti-check"></i></div>
+                    <div class="fz-cat-color-circle" style="background:#e91e63" onclick="fz_seleccionarColorCat(this,'#e91e63')"><i class="ti ti-check"></i></div>
+                    <div class="fz-cat-color-circle fz-cat-color-custom" onclick="document.getElementById('fz-cat-color-custom-input').click()">
+                        <i class="ti ti-plus"></i>
+                        <input type="color" id="fz-cat-color-custom-input" style="display:none;position:absolute;" onchange="fz_colorCatCustom(this)">
+                    </div>
+                    <input type="hidden" id="fz-categoria-color" value="#e74c3c">
+                </div>
             </div>
         </div>
-        <div class="modal-botones-row">
-            <button class="btn-cancelar-modal" onclick="document.getElementById('fz-modal-categoria').classList.remove('visible')">Cancelar</button>
-            <button class="btn-primario" onclick="fz_guardarFormularioCategoria()">Guardar Categoría</button>
+
+        <div class="fz-modal-footer-exacto">
+            <button class="fz-btn-secundario-izq" onclick="document.getElementById('fz-modal-categoria').classList.remove('visible')">Cancelar</button>
+            <button class="fz-btn-primario-der" onclick="fz_guardarFormularioCategoria()">Guardar</button>
         </div>
+    </div>
+</div>
+
+<!-- MODAL EMOJI PICKER -->
+<div class="modal-overlay" id="fz-modal-emoji">
+    <div class="fz-emoji-picker-caja">
+        <div class="fz-emoji-picker-header">
+            <input type="text" class="fz-emoji-search" id="fz-emoji-search" placeholder="🔍  Buscar emoji..." oninput="fz_filtrarEmojis()">
+            <button class="btn-ghost" onclick="document.getElementById('fz-modal-emoji').classList.remove('visible')"><i class="ti ti-x"></i></button>
+        </div>
+        <div class="fz-emoji-section-label" id="fz-emoji-section-title">Frecuentes</div>
+        <div class="fz-emoji-grid" id="fz-emoji-grid"></div>
     </div>
 </div>
 
