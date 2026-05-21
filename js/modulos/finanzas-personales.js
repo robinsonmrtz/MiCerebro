@@ -8,7 +8,7 @@ let fz_tabActual = 'resumen';
 
 // Formateador de moneda utilitario
 const formatearDinero = (monto) => {
-    return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(monto);
+    return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(monto);
 };
 
 // 1. INICIALIZACIÓN (Llamada por app.js)
@@ -172,37 +172,211 @@ function fz_pintarTransacciones() {
     }).join('');
 }
 // Para que los botones rápidos funcionen
+// Para que los botones rápidos funcionen
 window.abrirModalTransaccion = function(tipo) { window.fz_abrirModalTransaccion(tipo); };
 
 window.fz_abrirModalTransaccion = function(tipo, id = null) {
     const datos = fz_obtenerDatos();
     const cuentasActivas = datos.cuentas.filter(c => !c.archivada);
-    const categoriasActivas = datos.categorias.filter(c => !c.archivada && c.tipo === tipo);
-
-    if (cuentasActivas.length === 0) return alert("Debes crear al menos una Cuenta primero.");
-    if (categoriasActivas.length === 0) return alert(`Debes crear al menos una Categoría de tipo ${tipo} primero.`);
-
-    // Llenar selects
-    document.getElementById('fz-trans-cuenta').innerHTML = cuentasActivas.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
-    document.getElementById('fz-trans-categoria').innerHTML = categoriasActivas.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
-
-    // Configurar Modal
-    document.getElementById('fz-trans-tipo').value = tipo;
-    const colorHeader = tipo === 'ingreso' ? 'var(--status-ok)' : 'var(--status-danger)';
-    document.getElementById('fz-modal-trans-titulo').innerHTML = `<span style="color: ${colorHeader};">${tipo === 'ingreso' ? 'Ingreso' : 'Gasto'}</span>`;
     
-    // Limpiar campos
-    document.getElementById('fz-trans-id').value = '';
+    if (cuentasActivas.length === 0) {
+        return alert("Debes crear al menos una Cuenta financiera antes de registrar movimientos.");
+    }
+
+    // Configurar Tipo
+    document.getElementById('fz-trans-tipo').value = tipo;
+    document.getElementById('fz-trans-id').value = id || '';
+    
+    // Muta Visualmente el Modal
+    const txtTitulo = document.getElementById('fz-modal-trans-titulo');
+    const txtSimbolo = document.getElementById('fz-trans-simbolo-tipo');
+    const containerGastoFijo = document.getElementById('fz-container-gasto-fijo');
+    
+    if (tipo === 'ingreso') {
+        txtTitulo.innerHTML = `Registrar <span style="color: var(--status-ok);">Ingreso</span>`;
+        txtSimbolo.style.color = 'var(--status-ok)';
+        containerGastoFijo.style.visibility = 'hidden'; 
+    } else {
+        txtTitulo.innerHTML = `Registrar <span style="color: var(--status-danger);">Gasto</span>`;
+        txtSimbolo.style.color = 'var(--status-danger)';
+        containerGastoFijo.style.visibility = 'visible'; 
+    }
+
+    // Llenar Cuentas
+    document.getElementById('fz-trans-cuenta').innerHTML = cuentasActivas.map(c => 
+        `<option value="${c.id}">${c.nombre}</option>`
+    ).join('');
+
+    // Limpiar inputs
     document.getElementById('fz-trans-monto').value = '';
     document.getElementById('fz-trans-desc').value = '';
+    document.getElementById('fz-trans-unidad').value = '';
+    document.getElementById('fz-trans-observacion').value = '';
+    document.getElementById('fz-trans-cat-input').value = '';
+    document.getElementById('fz-trans-categoria').value = '';
+    document.getElementById('fz-trans-comercio-input').value = '';
+    document.getElementById('fz-trans-pagado').checked = true;
+    document.getElementById('fz-trans-gasto-fijo').checked = false;
     
-    // Poner fecha de hoy por defecto
-    const hoy = new Date();
-    document.getElementById('fz-trans-fecha').value = hoy.toISOString().split('T')[0];
+    document.getElementById('fz-trans-pagado').onchange = function() {
+        document.getElementById('fz-lbl-toggle-pagado').innerText = this.checked ? 'Marcado como pagado' : 'Pendiente por pagar / Cobrar';
+    };
+    document.getElementById('fz-trans-pagado').onchange();
+
+    fz_establecerFechaRapida('hoy');
+    fz_cerrarTodosLosDropdownsAutoComplete();
 
     document.getElementById('fz-modal-transaccion').classList.add('visible');
 };
 
+// --- CONTROLADOR DE FECHAS ---
+window.fz_establecerFechaRapida = function(periodo) {
+    const inputFecha = document.getElementById('fz-trans-fecha');
+    const btnHoy = document.getElementById('fz-btn-fecha-hoy');
+    const btnAyer = document.getElementById('fz-btn-fecha-ayer');
+    
+    btnHoy.classList.remove('activa');
+    btnAyer.classList.remove('activa');
+    
+    const d = new Date();
+    if (periodo === 'hoy') {
+        btnHoy.classList.add('activa');
+        inputFecha.value = d.toISOString().split('T')[0];
+    } else if (periodo === 'ayer') {
+        btnAyer.classList.add('activa');
+        d.setDate(d.getDate() - 1);
+        inputFecha.value = d.toISOString().split('T')[0];
+    }
+};
+
+window.fz_alCambiarFechaManual = function() {
+    document.getElementById('fz-btn-fecha-hoy').classList.remove('activa');
+    document.getElementById('fz-btn-fecha-ayer').classList.remove('activa');
+};
+
+// --- CONTROLADOR DE UNIDADES ---
+window.fz_toggleDropdownInline = function(idContainer) {
+    const el = document.getElementById(idContainer);
+    const estaAbierto = el.classList.contains('visible');
+    fz_cerrarTodosLosDropdownsAutoComplete();
+    if(!estaAbierto) el.classList.add('visible');
+};
+
+window.fz_seleccionarUnidad = function(unidad) {
+    document.getElementById('fz-trans-unidad').value = unidad;
+    document.getElementById('fz-drop-unidad').classList.remove('visible');
+};
+
+// --- AUTOCOMPLETADO Y CREACIÓN EXPRÉS ---
+window.fz_filtrarDropdownCategorias = function() {
+    const input = document.getElementById('fz-trans-cat-input');
+    const query = input.value.trim().toLowerCase();
+    const dropdown = document.getElementById('fz-drop-categorias');
+    const tipo = document.getElementById('fz-trans-tipo').value;
+    
+    const datos = fz_obtenerDatos();
+    const catsFiltradas = datos.categorias.filter(c => !c.archivada && c.tipo === tipo);
+    
+    dropdown.innerHTML = '';
+    dropdown.classList.add('visible');
+
+    catsFiltradas.forEach(c => {
+        if (c.nombre.toLowerCase().includes(query)) {
+            const item = document.createElement('div');
+            item.className = 'fz-autocomplete-option';
+            item.innerHTML = `<div style="width:10px; height:10px; border-radius:50%; background:${c.color || '#888'}"></div> <span>${c.nombre}</span>`;
+            item.onclick = () => {
+                input.value = c.nombre;
+                document.getElementById('fz-trans-categoria').value = c.id;
+                dropdown.classList.remove('visible');
+            };
+            dropdown.appendChild(item);
+        }
+    });
+
+    if (query.length > 0 && !catsFiltradas.some(c => c.nombre.toLowerCase() === query)) {
+        const itemExpress = document.createElement('div');
+        itemExpress.className = 'fz-autocomplete-option-express';
+        itemExpress.innerHTML = `<i class="ti ti-sparkles"></i> Crear "${input.value}" al vuelo...`;
+        itemExpress.onclick = () => fz_crearExpressCategoria(input.value, tipo);
+        dropdown.appendChild(itemExpress);
+    }
+};
+
+function fz_crearExpressCategoria(nombre, tipo) {
+    const nuevaCat = {
+        id: Date.now(),
+        nombre: nombre.trim(),
+        tipo: tipo,
+        color: tipo === 'ingreso' ? '#2ecc71' : '#e74c3c',
+        archivada: false
+    };
+    fz_guardarCategoria(nuevaCat);
+    document.getElementById('fz-trans-cat-input').value = nuevaCat.nombre;
+    document.getElementById('fz-trans-categoria').value = nuevaCat.id;
+    document.getElementById('fz-drop-categorias').classList.remove('visible');
+}
+
+window.fz_filtrarDropdownComercios = function() {
+    const input = document.getElementById('fz-trans-comercio-input');
+    const query = input.value.trim().toLowerCase();
+    const dropdown = document.getElementById('fz-drop-comercios');
+    
+    let datosCerebroGlobal = cargarDatos();
+    if(!datosCerebroGlobal.finanzas_personales.comercios) datosCerebroGlobal.finanzas_personales.comercios = [];
+    const comercios = datosCerebroGlobal.finanzas_personales.comercios;
+    
+    dropdown.innerHTML = '';
+    dropdown.classList.add('visible');
+
+    comercios.forEach(com => {
+        if (com.toLowerCase().includes(query)) {
+            const item = document.createElement('div');
+            item.className = 'fz-autocomplete-option';
+            item.innerHTML = `<i class="ti ti-building-store" style="color:var(--text-lo)"></i> <span>${com}</span>`;
+            item.onclick = () => {
+                input.value = com;
+                dropdown.classList.remove('visible');
+            };
+            dropdown.appendChild(item);
+        }
+    });
+
+    if (query.length > 0 && !comercios.some(c => c.toLowerCase() === query)) {
+        const itemExpress = document.createElement('div');
+        itemExpress.className = 'fz-autocomplete-option-express';
+        itemExpress.innerHTML = `<i class="ti ti-plus"></i> Registrar comercio "${input.value}"...`;
+        itemExpress.onclick = () => {
+            let d = cargarDatos();
+            if(!d.finanzas_personales.comercios) d.finanzas_personales.comercios = [];
+            d.finanzas_personales.comercios.push(input.value.trim());
+            guardarDatos(d);
+            input.value = input.value.trim();
+            dropdown.classList.remove('visible');
+        };
+        dropdown.appendChild(itemExpress);
+    }
+};
+
+function fz_cerrarTodosLosDropdownsAutoComplete() {
+    document.getElementById('fz-drop-unidad').classList.remove('visible');
+    document.getElementById('fz-drop-categorias').classList.remove('visible');
+    document.getElementById('fz-drop-comercios').classList.remove('visible');
+}
+
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('#fz-trans-unidad') && !e.target.closest('#fz-drop-unidad')) {
+        document.getElementById('fz-drop-unidad').classList.remove('visible');
+    }
+    if (!e.target.closest('#fz-trans-cat-input') && !e.target.closest('#fz-drop-categorias')) {
+        document.getElementById('fz-drop-categorias').classList.remove('visible');
+    }
+    if (!e.target.closest('#fz-trans-comercio-input') && !e.target.closest('#fz-drop-comercios')) {
+        document.getElementById('fz-drop-comercios').classList.remove('visible');
+    }
+});
+
+// --- GUARDAR FORMULARIO DE TRANSACCIONES ---
 window.fz_guardarFormularioTransaccion = function() {
     const idInput = document.getElementById('fz-trans-id').value;
     const tipo = document.getElementById('fz-trans-tipo').value;
@@ -211,10 +385,16 @@ window.fz_guardarFormularioTransaccion = function() {
     const fecha = document.getElementById('fz-trans-fecha').value;
     const cuenta_id = parseInt(document.getElementById('fz-trans-cuenta').value);
     const categoria_id = parseInt(document.getElementById('fz-trans-categoria').value);
+    const comercio = document.getElementById('fz-trans-comercio-input').value.trim();
+    const unidad = document.getElementById('fz-trans-unidad').value;
+    const pagado = document.getElementById('fz-trans-pagado').checked;
+    const gasto_fijo = (tipo === 'gasto') ? document.getElementById('fz-trans-gasto-fijo').checked : false;
+    const observacion = document.getElementById('fz-trans-observacion').value.trim();
 
-    if (!monto || monto <= 0) return alert("Ingresa un monto válido.");
-    if (!desc) return alert("Ingresa una descripción.");
-    if (!fecha) return alert("Selecciona una fecha.");
+    if (!monto || monto <= 0) return alert("Por favor, introduce un monto válido superior a cero.");
+    if (!desc) return alert("La descripción o concepto es obligatoria.");
+    if (!fecha) return alert("Debes seleccionar una fecha.");
+    if (!categoria_id) return alert("Debes vincular una categoría al movimiento.");
 
     fz_guardarTransaccion({
         id: idInput ? parseInt(idInput) : Date.now(),
@@ -224,11 +404,18 @@ window.fz_guardarFormularioTransaccion = function() {
         fecha: fecha,
         cuenta_id: cuenta_id,
         categoria_id: categoria_id,
+        comercio: comercio,
+        unidad: unidad,
+        pagado: pagado,
+        gasto_fijo: gasto_fijo,
+        observacion: observacion,
         archivada: false
     });
 
     document.getElementById('fz-modal-transaccion').classList.remove('visible');
-    fz_pintarTransacciones();
+    
+    if (fz_tabActual === 'transacciones') fz_pintarTransacciones();
+    if (fz_tabActual === 'resumen') fz_pintarResumen();
 };
 
 window.fz_archivarTransaccionUI = function(id) {
@@ -269,38 +456,95 @@ function fz_pintarCuentas() {
     }).join('');
 }
 
+// ==========================================
+// LÓGICA DE CUENTAS (ACTUALIZADA)
+// ==========================================
+
+// Acciones asociadas al botón izquierdo dinámico
+window.fz_reajustarSaldoUI = function() {
+    const idInput = document.getElementById('fz-cuenta-id').value;
+    if (idInput) {
+        // Modo Edición: Foco rápido al input gigante de saldo para cambiar el valor
+        const inputSaldo = document.getElementById('fz-cuenta-saldo');
+        inputSaldo.focus();
+        inputSaldo.select();
+    } else {
+        // Modo Creador: Simplemente limpia el formulario
+        document.getElementById('fz-cuenta-saldo').value = '';
+        document.getElementById('fz-cuenta-nombre').value = '';
+        document.getElementById('fz-cuenta-logo-url').value = '';
+        fz_actualizarPreviewLogo();
+    }
+};
+
+// ====================================================
+// CONTROLADOR INTEGRAL DEL MODAL PREMIUM DE CUENTAS
+// ====================================================
+
 window.fz_abrirModalCuenta = function(id = null) {
-    document.getElementById('fz-modal-cuenta-titulo').textContent = id ? 'Editar Cuenta' : 'Nueva Cuenta';
+    document.getElementById('fz-modal-cuenta-titulo').textContent = id ? 'Editar cuenta' : 'Añadir cuenta';
     document.getElementById('fz-cuenta-id').value = id || '';
+    
+    // Obtener referencias exactas a los campos
+    const inputSaldo = document.getElementById('fz-cuenta-saldo');
+    const inputNombre = document.getElementById('fz-cuenta-nombre');
+    const selectTipo = document.getElementById('fz-cuenta-tipo-select');
+    const inputLogoUrl = document.getElementById('fz-cuenta-logo-url');
+    const inputToggle = document.getElementById('fz-cuenta-incluir');
+    const btnReajustar = document.getElementById('fz-btn-reajustar');
     
     if (id) {
         const cuenta = fz_obtenerDatos().cuentas.find(c => c.id === id);
-        document.getElementById('fz-cuenta-nombre').value = cuenta.nombre;
-        document.getElementById('fz-cuenta-saldo').value = cuenta.saldo_inicial;
+        inputSaldo.value = parseFloat(cuenta.saldo_inicial || 0).toFixed(2);
+        inputNombre.value = cuenta.nombre || '';
+        selectTipo.value = cuenta.tipo || 'debito';
+        inputLogoUrl.value = cuenta.logo || '';
+        inputToggle.checked = cuenta.incluir_dashboard !== false;
+        
+        // Cambiamos el texto del botón izquierdo si está editando
+        btnReajustar.innerHTML = `<i class="ti ti-adjustments"></i> Re-ajustar saldo`;
+        fz_activarColorUI(cuenta.color || '#3498db');
     } else {
-        document.getElementById('fz-cuenta-nombre').value = '';
-        document.getElementById('fz-cuenta-saldo').value = '';
+        inputSaldo.value = '';
+        inputNombre.value = '';
+        selectTipo.value = 'debito';
+        inputLogoUrl.value = '';
+        inputToggle.checked = true;
+        
+        // Si es una cuenta nueva, actúa como botón de limpiar/cancelar
+        btnReajustar.innerHTML = `<i class="ti ti-trash"></i> Limpiar campos`;
+        fz_activarColorUI('#3498db');
     }
     
+    fz_actualizarPreviewLogo();
     document.getElementById('fz-modal-cuenta').classList.add('visible');
 };
 
 window.fz_guardarFormularioCuenta = function() {
     const idInput = document.getElementById('fz-cuenta-id').value;
-    const nombre = document.getElementById('fz-cuenta-nombre').value.trim();
     const saldo = parseFloat(document.getElementById('fz-cuenta-saldo').value) || 0;
+    const nombre = document.getElementById('fz-cuenta-nombre').value.trim();
+    const tipo = document.getElementById('fz-cuenta-tipo-select').value;
+    const logoUrl = document.getElementById('fz-cuenta-logo-url').value.trim();
+    const color = document.getElementById('fz-cuenta-color').value;
+    const incluir = document.getElementById('fz-cuenta-incluir').checked;
 
-    if (!nombre) return alert("El nombre es obligatorio");
+    if (!nombre) return alert("Por favor, introduce el nombre de la institución financiera.");
 
     fz_guardarCuenta({
         id: idInput ? parseInt(idInput) : Date.now(),
         nombre: nombre,
         saldo_inicial: saldo,
+        tipo: tipo,
+        logo: logoUrl,
+        color: color,
+        incluir_dashboard: incluir,
         archivada: false
     });
 
     document.getElementById('fz-modal-cuenta').classList.remove('visible');
     fz_pintarCuentas();
+    if (typeof fz_pintarResumen === 'function') fz_pintarResumen();
 };
 
 window.fz_archivarCuentaUI = function(id) {
@@ -310,6 +554,60 @@ window.fz_archivarCuentaUI = function(id) {
     }
 };
 
+// ------------------------------------------
+// Lógica de Interfaz del Modal (Colores y Logo)
+// ------------------------------------------
+// Manejo estricto de UI de la paleta de colores
+window.fz_seleccionarColor = function(elemento, colorHex) {
+    document.getElementById('fz-cuenta-color').value = colorHex;
+    document.querySelectorAll('.fz-circle-exacto').forEach(el => el.classList.remove('activa'));
+    elemento.classList.add('activa');
+};
+
+window.fz_seleccionarColorPersonalizado = function(input) {
+    const colorHex = input.value;
+    const trigger = input.parentElement;
+    fz_seleccionarColor(trigger, colorHex);
+    trigger.style.background = colorHex;
+};
+
+window.fz_activarColorUI = function(colorHex) {
+    document.getElementById('fz-cuenta-color').value = colorHex;
+    const circulos = document.querySelectorAll('.fz-circle-exacto:not(.fz-custom-picker-trigger)');
+    let encontrado = false;
+    
+    circulos.forEach(c => {
+        c.classList.remove('activa');
+        if (c.style.backgroundColor === colorHex || c.style.background.includes(colorHex)) {
+            c.classList.add('activa');
+            encontrado = true;
+        }
+    });
+
+    const triggerCustom = document.querySelector('.fz-custom-picker-trigger');
+    if (!encontrado) {
+        triggerCustom.classList.add('activa');
+        triggerCustom.style.background = colorHex;
+    } else {
+        triggerCustom.style.background = 'conic-gradient(red, yellow, lime, aqua, blue, magenta, red)';
+    }
+};
+
+window.fz_actualizarPreviewLogo = function() {
+    const url = document.getElementById('fz-cuenta-logo-url').value.trim();
+    const icon = document.getElementById('fz-logo-icon');
+    const img = document.getElementById('fz-logo-img');
+
+    if (url) {
+        img.src = url;
+        img.style.display = 'block';
+        icon.style.display = 'none';
+    } else {
+        img.src = '';
+        img.style.display = 'none';
+        icon.style.display = 'block';
+    }
+};
 // ==========================================
 // LÓGICA DE CATEGORÍAS
 // ==========================================
@@ -413,7 +711,8 @@ function fz_calcularSaldoCuenta(cuentaId) {
 // 2. Calcula la suma de TODO el dinero en todas las cuentas
 function fz_calcularSaldoTotal() {
     const datos = fz_obtenerDatos();
-    const cuentasActivas = datos.cuentas.filter(c => !c.archivada);
+    // 🚨 Filtro: Si incluir_dashboard es exactamente false, lo saltamos.
+    const cuentasActivas = datos.cuentas.filter(c => !c.archivada && c.incluir_dashboard !== false);
     return cuentasActivas.reduce((total, c) => total + fz_calcularSaldoCuenta(c.id), 0);
 }
 
@@ -555,4 +854,6 @@ window.fz_guardarFormularioTransferencia = function() {
     document.getElementById('fz-modal-transferencia').classList.remove('visible');
     fz_pintarTransacciones();
 };
+
+
 

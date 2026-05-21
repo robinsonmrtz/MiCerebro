@@ -167,3 +167,318 @@
         border-radius: 16px;
     }
 }
+
+/* ====================================================
+   DISEÑO QUIRÚRGICO DE PRECISIÓN: MODAL DE CUENTAS
+   ==================================================== */
+.fz-modal-premium {
+    max-width: 500px !important;
+    width: 90%;
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+    padding: 0 !important;
+    overflow: hidden;
+    animation: fzFadeIn 0.25s ease-out;
+}
+
+@keyframes fzFadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.fz-modal-header-exacto {
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--border-card);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.fz-modal-header-exacto h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-hi);
+    margin: 0;
+}
+
+.fz-btn-cerrar-exacto {
+    color: var(--text-lo);
+    font-size: 18px;
+    padding: 4px;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+.fz-btn-cerrar-exacto:hover { color: var(--text-base); }
+
+.fz-modal-content-exacto {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* 1. MONTO NUMÉRICO GIGANTE (ESTILO STRIPE/NOTION) */
+.fz-monto-container-exacto {
+    display: flex;
+    align-items: center;
+    justify-content: left;
+    gap: 4px;
+    padding: 10px 0;
+    border-bottom: 2px dashed var(--border-card);
+    margin-bottom: 8px;
+}
+
+.fz-monto-simbolo {
+    font-size: 38px;
+    font-weight: 700;
+    color: var(--text-hi);
+    user-select: none;
+}
+
+.fz-monto-input-exacto {
+    background: transparent !important;
+    border: none !important;
+    outline: none !important;
+    font-size: 38px;
+    font-weight: 700;
+    color: var(--text-hi);
+    width: 580px;
+    padding: 0;
+    margin: 0;
+    font-family: inherit;
+}
+/* Remueve flechas nativas del input number */
+.fz-monto-input-exacto::-webkit-outer-spin-button,
+.fz-monto-input-exacto::-webkit-inner-spin-button {
+    -webkit-appearance: none; margin: 0;
+}
+.fz-monto-input-exacto { -moz-appearance: textfield; }
+
+/* 2 Y 3. LABELS E INPUTS DEL FORMULARIO */
+.fz-group-exacto {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.fz-label-exacto {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-lo);
+    text-transform: none;
+    letter-spacing: normal;
+}
+
+.fz-input-exacto, .fz-select-exacto {
+    background: var(--bg-input) !important;
+    border: 1px solid var(--border-card) !important;
+    border-radius: 10px !important;
+    padding: 11px 14px !important;
+    font-size: 13.5px !important;
+    color: var(--text-base) !important;
+    width: 100% !important;
+    box-sizing: border-box;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.fz-input-exacto:focus, .fz-select-exacto:focus {
+    border-color: var(--accent) !important;
+    box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.15) !important;
+}
+
+/* 4. SECCIONES DE DETALLE (PREVIEW LOGO Y PALETA) */
+.fz-row-detalles-exacto {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.fz-input-with-preview {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.fz-logo-mini-box {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    border: 1px solid var(--border-card);
+    background: var(--bg-input);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    overflow: hidden;
+}
+.fz-logo-mini-box i { font-size: 20px; color: var(--text-lo); }
+.fz-logo-mini-box img { width: 100%; height: 100%; object-fit: cover; }
+
+.fz-palette-exacta {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    height: 40px; /* Alínea con los inputs */
+}
+
+.fz-circle-exacto {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: transparent;
+    transition: transform 0.15s, box-shadow 0.15s;
+}
+.fz-circle-exacto i { font-size: 12px; font-weight: bold; }
+
+.fz-circle-exacto.activa {
+    color: #ffffff;
+    transform: scale(1.1);
+    box-shadow: 0 0 0 2px var(--bg-card), 0 0 0 4px var(--accent);
+}
+
+.fz-custom-picker-trigger {
+    background: conic-gradient(red, yellow, lime, aqua, blue, magenta, red);
+    color: #ffffff !important;
+}
+
+/* 5. TOGGLE IDENTICO */
+.fz-toggle-box-exacto {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--bg-input);
+    padding: 14px 16px;
+    border-radius: 12px;
+    border: 1px solid var(--border-card);
+    margin-top: 4px;
+}
+
+.fz-toggle-textos {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.fz-toggle-titulo {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-hi);
+}
+
+.fz-toggle-sub {
+    font-size: 11.5px;
+    color: var(--text-lo);
+}
+
+.fz-switch-exacto {
+    position: relative;
+    display: inline-block;
+    width: 40px;
+    height: 22px;
+    flex-shrink: 0;
+}
+.fz-switch-exacto input { opacity: 0; width: 0; height: 0; }
+
+.fz-slider-exacto {
+    position: absolute;
+    cursor: pointer;
+    inset: 0;
+    background-color: var(--border-card);
+    transition: .25s;
+    border-radius: 30px;
+}
+.fz-slider-exacto:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 3px;
+    bottom: 3px;
+    background-color: #ffffff;
+    transition: .25s;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+
+input:checked + .fz-slider-exacto { background-color: var(--accent); }
+input:checked + .fz-slider-exacto:before { transform: translateX(18px); }
+
+/* 6. FOOTER PREMIUM INVERTIDO (BOTONES OPUESTOS) */
+.fz-modal-footer-exacto {
+    padding: 16px 24px;
+    border-top: 1px solid var(--border-card);
+    background: var(--bg-root);
+    display: flex;
+    justify-content: space-between; /* Distribuye un botón a cada extremo */
+    align-items: center;
+}
+
+.fz-btn-secundario-izq {
+    background: transparent;
+    border: 1px solid var(--border-card);
+    color: var(--text-lo);
+    padding: 10px 16px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.2s, color 0.2s;
+}
+.fz-btn-secundario-izq:hover {
+    background: var(--bg-input);
+    color: var(--text-base);
+}
+
+.fz-btn-primario-der {
+    background: var(--accent);
+    border: 1px solid transparent;
+    color: #ffffff;
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: filter 0.2s;
+}
+.fz-btn-primario-der:hover { filter: brightness(1.1); }
+
+@media (max-width: 500px) {
+    .fz-row-detalles-exacto { grid-template-columns: 1fr; gap: 14px; }
+    .fz-modal-footer-exacto { flex-direction: column-reverse; gap: 10px; }
+    .fz-btn-secundario-izq, .fz-btn-primario-der { width: 100%; justify-content: center; }
+}
+
+/* Shortcuts de Fecha Estilo Premium */
+.fz-modal-wide { max-width: 650px !important; }
+.fz-date-shortcut-row { display: flex; gap: 8px; align-items: center; }
+.fz-btn-date-shortcut {
+    background: var(--bg-input); border: 1px solid var(--border-card); color: var(--text-lo);
+    padding: 11px 18px; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s ease;
+}
+.fz-btn-date-shortcut:hover { background: var(--bg-hover); color: var(--text-base); }
+.fz-btn-date-shortcut.activa { background: var(--accent) !important; color: #ffffff !important; border-color: transparent !important; }
+.fz-input-date-custom { padding-right: 36px !important; cursor: pointer; }
+.fz-icon-inside-date { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); color: var(--text-lo); font-size: 16px; pointer-events: none; }
+
+/* Cajas Flotantes de Sugerencias y Autocompletado */
+.fz-floating-autocomplete-menu {
+    display: none; position: absolute; top: 100%; left: 0; width: 100%; background: var(--bg-card);
+    border: 1px solid var(--border-card); border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+    z-index: 200; max-height: 220px; overflow-y: auto; margin-top: 5px; padding: 6px 0;
+}
+.fz-floating-autocomplete-menu.visible { display: flex; flex-direction: column; }
+.fz-autocomplete-option { padding: 10px 14px; font-size: 13px; color: var(--text-base); cursor: pointer; display: flex; align-items: center; gap: 10px; transition: background 0.15s; }
+.fz-autocomplete-option:hover { background: var(--bg-hover); color: var(--accent); }
+.fz-autocomplete-option-express { padding: 11px 14px; font-size: 12.5px; font-weight: 600; color: var(--status-ok); background: rgba(var(--accent-rgb), 0.05); cursor: pointer; border-top: 1px dashed var(--border-card); display: flex; align-items: center; gap: 8px; }
+.fz-autocomplete-option-express:hover { background: rgba(var(--accent-rgb), 0.12); }
+.fz-autocomplete-option-clear { padding: 8px 14px; font-size: 12px; color: var(--status-danger); cursor: pointer; border-top: 1px solid var(--border-card); }
+.fz-autocomplete-option-clear:hover { background: var(--bg-hover); }

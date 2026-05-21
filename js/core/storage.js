@@ -15,8 +15,11 @@ function cargarDatos() {
             parseado.finanzas_personales = {
                 cuentas: [],
                 categorias: [],
-                transacciones: []
+                transacciones: [],
+                comercios: []
             };
+        } else if (!parseado.finanzas_personales.comercios) {
+            parseado.finanzas_personales.comercios = [];
         }
         return parseado;
     }

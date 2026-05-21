@@ -51,14 +51,9 @@
         <div class="finanzas-grid">
             <div class="card-surface" style="padding: 20px;">
                 <h3 style="color: var(--text-hi); font-size: 15px; margin-bottom: 16px;">Gastos por Categoría</h3>
-                <div style="height: 250px; display: flex; align-items: center; justify-content: center; color: var(--text-lo);">
-                    <div class="card-surface" style="padding: 20px;">
-                <h3 style="color: var(--text-hi); font-size: 15px; margin-bottom: 16px;">Gastos por Categoría</h3>
                 <div style="height: 250px; display: flex; align-items: center; justify-content: center; position: relative;">
                     <p id="fz-grafico-vacio" style="color: var(--text-lo); font-size: 13px; display: none;">No hay gastos registrados en este mes.</p>
                     <canvas id="fz-grafico-gastos"></canvas>
-                </div>
-                </div>
                 </div>
             </div>
 
@@ -76,13 +71,13 @@
             </div>
         </div>
     </div>
+
     <div id="pantalla-cuentas" style="display: none;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
             <h3 style="color: var(--text-hi); font-size: 16px;">Mis Cuentas Activas</h3>
             <button class="btn-primario" onclick="fz_abrirModalCuenta()"><i class="ti ti-plus"></i> Nueva Cuenta</button>
         </div>
-        <div class="kpi-grid" id="fz-lista-cuentas" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px;">
-            </div>
+        <div class="kpi-grid" id="fz-lista-cuentas" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px;"></div>
     </div>
 
     <div id="pantalla-categorias" style="display: none;">
@@ -101,7 +96,8 @@
             </div>
         </div>
     </div>
-<div id="pantalla-transacciones" style="display: none;">
+
+    <div id="pantalla-transacciones" style="display: none;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
             <h3 style="color: var(--text-hi); font-size: 16px;">Movimientos del Mes</h3>
             <div style="display: flex; gap: 8px;">
@@ -116,45 +112,90 @@
                 </button>
             </div>
         </div>
-</div> 
-<div id="pantalla-tarjetas" style="display: none;">
-        <div class="card-surface" style="padding: 40px; text-align: center; color: var(--text-lo);">🚧 Módulo Tarjetas de Crédito en construcción 🚧</div>
+        <div id="fz-lista-transacciones" style="display: flex; flex-direction: column; gap: 10px;"></div>
     </div>
-    <div id="pantalla-presupuestos" style="display: none;">
-        <div class="card-surface" style="padding: 40px; text-align: center; color: var(--text-lo);">🚧 Módulo Presupuestos en construcción 🚧</div>
-    </div>
-    <div id="pantalla-informes" style="display: none;">
-        <div class="card-surface" style="padding: 40px; text-align: center; color: var(--text-lo);">🚧 Módulo Informes en construcción 🚧</div>
-    </div>
-    <div id="pantalla-objetivos" style="display: none;">
-        <div class="card-surface" style="padding: 40px; text-align: center; color: var(--text-lo);">🚧 Módulo Objetivos en construcción 🚧</div>
-    </div>
-    <div id="pantalla-comercios" style="display: none;">
-        <div class="card-surface" style="padding: 40px; text-align: center; color: var(--text-lo);">🚧 Módulo Comercios en construcción 🚧</div>
-    </div>
-    <div id="pantalla-calendario" style="display: none;">
-        <div class="card-surface" style="padding: 40px; text-align: center; color: var(--text-lo);">🚧 Módulo Calendario en construcción 🚧</div>
-    </div>
-    <div id="pantalla-actuacion" style="display: none;">
-        <div class="card-surface" style="padding: 40px; text-align: center; color: var(--text-lo);">🚧 Módulo Mi Actuación en construcción 🚧</div>
-    </div>
+
+    <div id="pantalla-tarjetas" style="display: none;"><div class="card-surface" style="padding: 40px; text-align: center; color: var(--text-lo);">🚧 Módulo Tarjetas de Crédito en construcción 🚧</div></div>
+    <div id="pantalla-presupuestos" style="display: none;"><div class="card-surface" style="padding: 40px; text-align: center; color: var(--text-lo);">🚧 Módulo Presupuestos en construcción 🚧</div></div>
+    <div id="pantalla-informes" style="display: none;"><div class="card-surface" style="padding: 40px; text-align: center; color: var(--text-lo);">🚧 Módulo Informes en construcción 🚧</div></div>
+    <div id="pantalla-objetivos" style="display: none;"><div class="card-surface" style="padding: 40px; text-align: center; color: var(--text-lo);">🚧 Módulo Objetivos en construcción 🚧</div></div>
+    <div id="pantalla-comercios" style="display: none;"><div class="card-surface" style="padding: 40px; text-align: center; color: var(--text-lo);">🚧 Módulo Comercios en construcción 🚧</div></div>
+    <div id="pantalla-calendario" style="display: none;"><div class="card-surface" style="padding: 40px; text-align: center; color: var(--text-lo);">🚧 Módulo Calendario en construcción 🚧</div></div>
+    <div id="pantalla-actuacion" style="display: none;"><div class="card-surface" style="padding: 40px; text-align: center; color: var(--text-lo);">🚧 Módulo Mi Actuación en construcción 🚧</div></div>
+
+</div>
+
 <div class="modal-overlay" id="fz-modal-cuenta">
-    <div class="modal-caja">
-        <h3 id="fz-modal-cuenta-titulo">Nueva Cuenta</h3>
+    <div class="modal-caja fz-modal-premium">
+        <div class="fz-modal-header-exacto">
+            <h3 id="fz-modal-cuenta-titulo">Añadir cuenta</h3>
+            <button class="btn-ghost fz-btn-cerrar-exacto" onclick="document.getElementById('fz-modal-cuenta').classList.remove('visible')">
+                <i class="ti ti-x"></i>
+            </button>
+        </div>
         <input type="hidden" id="fz-cuenta-id">
-        <div style="display: flex; flex-direction: column; gap: 12px; text-align: left; margin-bottom: 20px;">
-            <div>
-                <label style="color: var(--text-lo); font-size: 12px;">Nombre de la cuenta (Ej. Banco, Efectivo)</label>
-                <input type="text" id="fz-cuenta-nombre" class="input-base" placeholder="Ej: Cuenta de Ahorros" autocomplete="off">
+        <input type="hidden" id="fz-cuenta-color" value="#3498db">
+        <div class="fz-modal-content-exacto">
+            <div class="fz-monto-container-exacto">
+                <span class="fz-monto-simbolo">$</span>
+                <input type="number" id="fz-cuenta-saldo" class="fz-monto-input-exacto" placeholder="0.00" step="0.01" autocomplete="off" onblur="if(this.value) this.value = parseFloat(this.value).toFixed(2)">
             </div>
-            <div>
-                <label style="color: var(--text-lo); font-size: 12px;">Saldo Inicial ($)</label>
-                <input type="number" id="fz-cuenta-saldo" class="input-base" placeholder="0.00">
+            <div class="fz-group-exacto">
+                <label class="fz-label-exacto">Nombre de la institución financiera</label>
+                <input type="text" id="fz-cuenta-nombre" class="fz-input-exacto" placeholder="Ej. Bancolombia, Efectivo..." autocomplete="off">
+            </div>
+            <div class="fz-group-exacto">
+                <label class="fz-label-exacto">Tipo de cuenta</label>
+                <select id="fz-cuenta-tipo-select" class="fz-select-exacto">
+                    <option value="efectivo">💵 Efectivo / Cash</option>
+                    <option value="debito" selected>💳 Cuenta de Débito / Ahorros</option>
+                    <option value="corriente">🏦 Cuenta Corriente</option>
+                    <option value="credito">🎫 Tarjeta de Crédito</option>
+                    <option value="inversion">📈 Inversión / Broker</option>
+                </select>
+            </div>
+            <div class="fz-row-detalles-exacto">
+                <div class="fz-group-exacto">
+                    <label class="fz-label-exacto">URL del Logo institucional</label>
+                    <div class="fz-input-with-preview">
+                        <div class="fz-logo-mini-box" id="fz-logo-preview-box">
+                            <i class="ti ti-building-bank" id="fz-logo-icon"></i>
+                            <img id="fz-logo-img" src="" style="display:none;">
+                        </div>
+                        <input type="text" id="fz-cuenta-logo-url" class="fz-input-exacto" placeholder="URL de la imagen..." autocomplete="off" oninput="fz_actualizarPreviewLogo()">
+                    </div>
+                </div>
+                <div class="fz-group-exacto">
+                    <label class="fz-label-exacto">Color distintivo</label>
+                    <div class="fz-palette-exacta" id="fz-color-palette">
+                        <div class="fz-circle-exacto" style="background: #e74c3c;" onclick="fz_seleccionarColor(this, '#e74c3c')"><i class="ti ti-check"></i></div>
+                        <div class="fz-circle-exacto" style="background: #2ecc71;" onclick="fz_seleccionarColor(this, '#2ecc71')"><i class="ti ti-check"></i></div>
+                        <div class="fz-circle-exacto" style="background: #f1c40f;" onclick="fz_seleccionarColor(this, '#f1c40f')"><i class="ti ti-check"></i></div>
+                        <div class="fz-circle-exacto activa" style="background: #3498db;" onclick="fz_seleccionarColor(this, '#3498db')"><i class="ti ti-check"></i></div>
+                        <div class="fz-circle-exacto" style="background: #9b59b6;" onclick="fz_seleccionarColor(this, '#9b59b6')"><i class="ti ti-check"></i></div>
+                        <div class="fz-circle-exacto fz-custom-picker-trigger" onclick="document.getElementById('fz-custom-color-input').click()">
+                            <i class="ti ti-plus"></i>
+                            <input type="color" id="fz-custom-color-input" onchange="fz_seleccionarColorPersonalizado(this)" style="display:none; position:absolute;">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="fz-toggle-box-exacto">
+                <div class="fz-toggle-textos">
+                    <span class="fz-toggle-titulo">Incluir en la suma del dashboard</span>
+                    <span class="fz-toggle-sub">El saldo acumulado se sumará al patrimonio total visible.</span>
+                </div>
+                <label class="fz-switch-exacto">
+                    <input type="checkbox" id="fz-cuenta-incluir" checked>
+                    <span class="fz-slider-exacto"></span>
+                </label>
             </div>
         </div>
-        <div class="modal-botones-row">
-            <button class="btn-cancelar-modal" onclick="document.getElementById('fz-modal-cuenta').classList.remove('visible')">Cancelar</button>
-            <button class="btn-primario" onclick="fz_guardarFormularioCuenta()">Guardar Cuenta</button>
+        <div class="fz-modal-footer-exacto">
+            <button class="fz-btn-secundario-izq" id="fz-btn-reajustar" onclick="fz_reajustarSaldoUI()">
+                <i class="ti ti-adjustments"></i> Re-ajustar saldo
+            </button>
+            <button class="fz-btn-primario-der" onclick="fz_guardarFormularioCuenta()">Guardar cuenta</button>
         </div>
     </div>
 </div>
@@ -176,7 +217,7 @@
                 </select>
             </div>
             <div>
-                <label style="color: var(--text-lo); font-size: 12px;">Color (Opcional Hexadecimal)</label>
+                <label style="color: var(--text-lo); font-size: 12px;">Color distintivo</label>
                 <input type="color" id="fz-categoria-color" value="#2773d6" style="width: 100%; height: 38px; border: none; border-radius: 8px; cursor: pointer; background: transparent;">
             </div>
         </div>
@@ -188,64 +229,160 @@
 </div>
 
 <div class="modal-overlay" id="fz-modal-transaccion">
-    <div class="modal-caja">
-        <h3 id="fz-modal-trans-titulo">Nueva Transacción</h3>
-        <input type="hidden" id="fz-trans-id">
-        <input type="hidden" id="fz-trans-tipo"> <div style="display: flex; flex-direction: column; gap: 12px; text-align: left; margin-bottom: 20px;">
-            <div>
-                <label style="color: var(--text-lo); font-size: 12px;">Monto ($)</label>
-                <input type="number" id="fz-trans-monto" class="input-base" placeholder="0.00">
-            </div>
-            <div>
-                <label style="color: var(--text-lo); font-size: 12px;">Descripción / Concepto</label>
-                <input type="text" id="fz-trans-desc" class="input-base" placeholder="Ej: Supermercado, Salario..." autocomplete="off">
-            </div>
-            <div>
-                <label style="color: var(--text-lo); font-size: 12px;">Fecha</label>
-                <input type="date" id="fz-trans-fecha" class="input-base">
-            </div>
-            <div>
-                <label style="color: var(--text-lo); font-size: 12px;">Cuenta</label>
-                <select id="fz-trans-cuenta" class="input-base"></select>
-            </div>
-            <div>
-                <label style="color: var(--text-lo); font-size: 12px;">Categoría</label>
-                <select id="fz-trans-categoria" class="input-base"></select>
-            </div>
+    <div class="modal-caja fz-modal-premium fz-modal-wide">
+        
+        <div class="fz-modal-header-exacto">
+            <h3 id="fz-modal-trans-titulo">Registrar Movimiento</h3>
+            <button class="btn-ghost fz-btn-cerrar-exacto" onclick="document.getElementById('fz-modal-transaccion').classList.remove('visible')">
+                <i class="ti ti-x"></i>
+            </button>
         </div>
-        <div class="modal-botones-row">
-            <button class="btn-cancelar-modal" onclick="document.getElementById('fz-modal-transaccion').classList.remove('visible')">Cancelar</button>
-            <button class="btn-primario" id="fz-btn-guardar-trans" onclick="fz_guardarFormularioTransaccion()">Guardar</button>
+
+        <input type="hidden" id="fz-trans-id">
+        <input type="hidden" id="fz-trans-tipo">
+
+        <div class="fz-modal-content-exacto">
+            
+            <div class="fz-monto-container-exacto">
+                <span class="fz-monto-simbolo" id="fz-trans-simbolo-tipo">$</span>
+                <input type="number" id="fz-trans-monto" class="fz-monto-input-exacto" placeholder="0.00" step="0.01" autocomplete="off" onblur="if(this.value) this.value = parseFloat(this.value).toFixed(2)">
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div class="fz-toggle-box-exacto">
+                    <div class="fz-toggle-textos">
+                        <span class="fz-toggle-titulo">Estado del pago</span>
+                        <span class="fz-toggle-sub" id="fz-lbl-toggle-pagado">Marcado como pagado</span>
+                    </div>
+                    <label class="fz-switch-exacto">
+                        <input type="checkbox" id="fz-trans-pagado" checked>
+                        <span class="fz-slider-exacto"></span>
+                    </label>
+                </div>
+
+                <div class="fz-toggle-box-exacto" id="fz-container-gasto-fijo">
+                    <div class="fz-toggle-textos">
+                        <span class="fz-toggle-titulo">Gasto fijo mensual</span>
+                        <span class="fz-toggle-sub">Se repite el mismo día</span>
+                    </div>
+                    <label class="fz-switch-exacto">
+                        <input type="checkbox" id="fz-trans-gasto-fijo">
+                        <span class="fz-slider-exacto"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="fz-group-exacto">
+                <label class="fz-label-exacto">¿Cuándo ocurrió la transacción?</label>
+                <div class="fz-date-shortcut-row">
+                    <button type="button" class="fz-btn-date-shortcut activa" id="fz-btn-fecha-hoy" onclick="fz_establecerFechaRapida('hoy')">Hoy</button>
+                    <button type="button" class="fz-btn-date-shortcut" id="fz-btn-fecha-ayer" onclick="fz_establecerFechaRapida('ayer')">Ayer</button>
+                    <div style="position: relative; flex-grow: 1;">
+                        <input type="date" id="fz-trans-fecha" class="fz-input-exacto fz-input-date-custom" onchange="fz_alCambiarFechaManual()">
+                        <i class="ti ti-calendar fz-icon-inside-date"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="fz-group-exacto">
+                <label class="fz-label-exacto">Descripción / Concepto básico</label>
+                <input type="text" id="fz-trans-desc" class="fz-input-exacto" placeholder="Ej: Compra de insumos, Pago mensual..." autocomplete="off">
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                <div class="fz-group-exacto">
+                    <label class="fz-label-exacto">Cuenta financiera de origen/destino</label>
+                    <select id="fz-trans-cuenta" class="fz-select-exacto"></select>
+                </div>
+                
+                <div class="fz-group-exacto">
+                    <label class="fz-label-exacto">Unidad de medida (Opcional)</label>
+                    <div style="position: relative;">
+                        <input type="text" id="fz-trans-unidad" class="fz-input-exacto" placeholder="Seleccionar unidad..." readonly onclick="fz_toggleDropdownInline('fz-drop-unidad')">
+                        <div class="fz-floating-autocomplete-menu" id="fz-drop-unidad">
+                            <div class="fz-autocomplete-option" onclick="fz_seleccionarUnidad('Litro')">Litro (L)</div>
+                            <div class="fz-autocomplete-option" onclick="fz_seleccionarUnidad('Mililitro')">Mililitro (ml)</div>
+                            <div class="fz-autocomplete-option" onclick="fz_seleccionarUnidad('Galon')">Galón (gal)</div>
+                            <div class="fz-autocomplete-option" onclick="fz_seleccionarUnidad('Botella')">Botella</div>
+                            <div class="fz-autocomplete-option" onclick="fz_seleccionarUnidad('Kilogramo')">Kilogramo (kg)</div>
+                            <div class="fz-autocomplete-option" onclick="fz_seleccionarUnidad('Gramo')">Gramo (g)</div>
+                            <div class="fz-autocomplete-option" onclick="fz_seleccionarUnidad('Miligramo')">Miligramo (mg)</div>
+                            <div class="fz-autocomplete-option" onclick="fz_seleccionarUnidad('Microgramo')">Microgramo (µg)</div>
+                            <div class="fz-autocomplete-option" onclick="fz_seleccionarUnidad('Libra')">Libra (lb)</div>
+                            <div class="fz-autocomplete-option" onclick="fz_seleccionarUnidad('Onza')">Onza (oz)</div>
+                            <div class="fz-autocomplete-option" onclick="fz_seleccionarUnidad('Cm3')">Centímetros Cúbicos (cm³)</div>
+                            <div class="fz-autocomplete-option-clear" onclick="fz_seleccionarUnidad('')">❌ Ninguna unidad</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                <div class="fz-group-exacto">
+                    <label class="fz-label-exacto">Categoría de transacción</label>
+                    <div style="position: relative;">
+                        <input type="text" id="fz-trans-cat-input" class="fz-input-exacto" placeholder="Escribe o selecciona..." autocomplete="off" oninput="fz_filtrarDropdownCategorias()" onfocus="fz_filtrarDropdownCategorias()">
+                        <input type="hidden" id="fz-trans-categoria">
+                        <div class="fz-floating-autocomplete-menu" id="fz-drop-categorias"></div>
+                    </div>
+                </div>
+
+                <div class="fz-group-exacto">
+                    <label class="fz-label-exacto">Comercio / Establecimiento</label>
+                    <div style="position: relative;">
+                        <input type="text" id="fz-trans-comercio-input" class="fz-input-exacto" placeholder="Escribe o selecciona..." autocomplete="off" oninput="fz_filtrarDropdownComercios()" onfocus="fz_filtrarDropdownComercios()">
+                        <div class="fz-floating-autocomplete-menu" id="fz-drop-comercios"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="fz-group-exacto">
+                <label class="fz-label-exacto">Observaciones adicionales</label>
+                <textarea id="fz-trans-observacion" class="fz-input-exacto" style="height: 65px; resize: none; font-family: inherit;" placeholder="Notas explicativas sobre este movimiento..."></textarea>
+            </div>
+
+        </div>
+
+        <div class="fz-modal-footer-exacto">
+            <button class="fz-btn-secundario-izq" onclick="document.getElementById('fz-modal-transaccion').classList.remove('visible')">
+                Cancelar
+            </button>
+            <button class="fz-btn-primario-der" id="fz-btn-guardar-trans-premium" onclick="fz_guardarFormularioTransaccion()">
+                Confirmar movimiento
+            </button>
         </div>
     </div>
 </div>
 
 <div class="modal-overlay" id="fz-modal-transferencia">
-    <div class="modal-caja">
-        <h3 style="color: #2773d6;">Transferir Dinero</h3>
-        <div style="display: flex; flex-direction: column; gap: 12px; text-align: left; margin-bottom: 20px; margin-top: 15px;">
-            <div>
-                <label style="color: var(--text-lo); font-size: 12px;">Monto a transferir ($)</label>
-                <input type="number" id="fz-transf-monto" class="input-base" placeholder="0.00">
+    <div class="modal-caja fz-modal-premium">
+        <div class="fz-modal-header-exacto">
+            <h3 style="color: #2773d6; margin:0; font-size:16px;">Transferir Dinero</h3>
+            <button class="btn-ghost fz-btn-cerrar-exacto" onclick="document.getElementById('fz-modal-transferencia').classList.remove('visible')">
+                <i class="ti ti-x"></i>
+            </button>
+        </div>
+        <div class="fz-modal-content-exacto">
+            <div class="fz-monto-container-exacto">
+                <span class="fz-monto-simbolo" style="color: #2773d6;">$</span>
+                <input type="number" id="fz-transf-monto" class="fz-monto-input-exacto" placeholder="0.00" step="0.01">
             </div>
-            <div>
-                <label style="color: var(--text-lo); font-size: 12px;">Sale de: (Cuenta Origen)</label>
-                <select id="fz-transf-origen" class="input-base"></select>
+            <div class="fz-group-exacto">
+                <label class="fz-label-exacto">Sale de: (Cuenta Origen)</label>
+                <select id="fz-transf-origen" class="fz-select-exacto"></select>
             </div>
-            <div>
-                <label style="color: var(--text-lo); font-size: 12px;">Entra a: (Cuenta Destino)</label>
-                <select id="fz-transf-destino" class="input-base"></select>
+            <div class="fz-group-exacto">
+                <label class="fz-label-exacto">Entra a: (Cuenta Destino)</label>
+                <select id="fz-transf-destino" class="fz-select-exacto"></select>
             </div>
-            <div>
-                <label style="color: var(--text-lo); font-size: 12px;">Fecha</label>
-                <input type="date" id="fz-transf-fecha" class="input-base">
+            <div class="fz-group-exacto">
+                <label class="fz-label-exacto">Fecha de ejecución</label>
+                <input type="date" id="fz-transf-fecha" class="fz-input-exacto">
             </div>
         </div>
-        <div class="modal-botones-row">
-            <button class="btn-cancelar-modal" onclick="document.getElementById('fz-modal-transferencia').classList.remove('visible')">Cancelar</button>
-            <button class="btn-primario" style="background: #2773d6;" onclick="fz_guardarFormularioTransferencia()">Confirmar</button>
+        <div class="fz-modal-footer-exacto">
+            <button class="fz-btn-secundario-izq" onclick="document.getElementById('fz-modal-transferencia').classList.remove('visible')">Cancelar</button>
+            <button class="fz-btn-primario-der" style="background: #2773d6;" onclick="fz_guardarFormularioTransferencia()">Confirmar envío</button>
         </div>
     </div>
-</div>
-    
 </div>
