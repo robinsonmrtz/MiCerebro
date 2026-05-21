@@ -1217,6 +1217,9 @@ window.fz_abrirModalCategoria = function(id = null) {
             // Es subcategoría: sin emoji ni tipo
             emojiGroup.style.display = 'none';
             tipoGroup.style.display  = 'none';
+            // Mantener la jerarquía al editar para que no se convierta en categoría padre
+            document.getElementById('fz-categoria-parent-id').value = cat.parent_id;
+            document.getElementById('fz-categoria-es-sub').value = '1';
         } else {
             emojiGroup.style.display = 'flex';
             tipoGroup.style.display  = 'flex';
