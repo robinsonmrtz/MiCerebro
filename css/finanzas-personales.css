@@ -848,3 +848,174 @@ input:checked + .fz-slider-exacto:before { transform: translateX(18px); }
     .fz-trans-col-cat { grid-column: 1 / 2; grid-row: 2 / 3; }
     .fz-trans-col-acc { grid-column: 2 / 3; grid-row: 2 / 3; justify-content: flex-end; }
 }
+
+/* =========================================
+   CUENTAS: DISEÑO TIPO MOBILLS
+   ========================================= */
+.fz-cuentas-layout {
+    display: grid;
+    grid-template-columns: 1fr 260px;
+    gap: 20px;
+    align-items: start;
+}
+
+.fz-cuentas-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 16px;
+}
+
+/* Card base */
+.fz-cuenta-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: 16px;
+    overflow: visible;
+    transition: box-shadow 0.2s;
+}
+.fz-cuenta-card:hover { box-shadow: 0 4px 24px rgba(0,0,0,0.18); }
+
+/* Card: Nueva cuenta */
+.fz-cuenta-nueva {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 168px;
+    cursor: pointer;
+    border: 2px dashed var(--border-card);
+    background: transparent;
+    transition: border-color 0.2s, background 0.2s;
+}
+.fz-cuenta-nueva:hover {
+    border-color: var(--accent);
+    background: rgba(var(--accent-rgb), 0.04);
+}
+.fz-cuenta-nueva-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    color: var(--accent);
+}
+.fz-cuenta-nueva-circle {
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    border: 2px solid var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px;
+    transition: transform 0.2s;
+}
+.fz-cuenta-nueva:hover .fz-cuenta-nueva-circle { transform: scale(1.1); }
+.fz-cuenta-nueva-inner span { font-size: 14px; font-weight: 600; }
+
+/* Card: Header */
+.fz-cuenta-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 14px 12px;
+}
+.fz-cuenta-card-nombre {
+    font-size: 14px; font-weight: 700;
+    color: var(--text-hi);
+}
+
+/* Card: Body saldos */
+.fz-cuenta-card-body {
+    padding: 0 16px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.fz-cuenta-saldo-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.fz-cuenta-saldo-label {
+    font-size: 12px;
+    color: var(--text-lo);
+    display: flex; align-items: center; gap: 4px;
+}
+.fz-cuenta-saldo-label i { font-size: 13px; cursor: help; }
+.fz-cuenta-saldo-valor { font-size: 14px; font-weight: 700; }
+
+/* Card: Footer quick action */
+.fz-cuenta-card-footer {
+    padding: 11px 16px;
+    border-top: 1px solid var(--border-card);
+    text-align: right;
+}
+.fz-cuenta-quick-btn {
+    background: none; border: none;
+    color: var(--accent);
+    font-size: 11.5px; font-weight: 700;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+.fz-cuenta-quick-btn:hover { opacity: 0.7; }
+
+/* Menú contextual ⋮ */
+.fz-cuenta-menu {
+    display: none;
+    position: absolute;
+    right: 0; top: calc(100% + 4px);
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.22);
+    z-index: 150;
+    min-width: 160px;
+    padding: 6px 0;
+}
+.fz-cuenta-menu.visible { display: block; }
+
+/* Panel resumen lateral */
+.fz-cuentas-resumen {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    position: sticky;
+    top: 20px;
+}
+.fz-resumen-mini-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: 16px;
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    position: relative;
+    overflow: hidden;
+    min-height: 88px;
+    justify-content: center;
+}
+.fz-resumen-mini-label {
+    font-size: 12px; color: var(--text-lo); font-weight: 500;
+}
+.fz-resumen-mini-valor {
+    font-size: 20px; font-weight: 800; color: var(--text-hi);
+}
+.fz-resumen-mini-icon {
+    position: absolute;
+    right: 16px; top: 50%;
+    transform: translateY(-50%);
+    width: 42px; height: 42px;
+    border-radius: 50%;
+    background: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 19px;
+}
+
+/* Responsive */
+@media (max-width: 960px) {
+    .fz-cuentas-layout { grid-template-columns: 1fr; }
+    .fz-cuentas-resumen { flex-direction: row; position: static; }
+    .fz-resumen-mini-card { flex: 1; }
+}
+@media (max-width: 560px) {
+    .fz-cuentas-resumen { flex-direction: column; }
+    .fz-cuentas-grid { grid-template-columns: 1fr; }
+}

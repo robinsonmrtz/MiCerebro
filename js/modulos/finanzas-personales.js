@@ -788,55 +788,153 @@ window.fz_archivarTransaccionUI = function(id) {
 // ==========================================
 // LÓGICA DE CUENTAS
 // ==========================================
-function fz_pintarCuentas() {
-    const contenedor = document.getElementById('fz-lista-cuentas');
+// ==========================================
+// CÁLCULO DE SALDO PREVISTO
+// ==========================================
+
+// Saldo actual  = saldo_inicial + transacciones PAGADAS hasta HOY
+// (ya lo hace fz_calcularSaldoCuenta — sin cambios)
+
+// Saldo previsto = saldo_inicial + TODAS las transacciones hasta el fin del mes seleccionado
+function fz_calcularSaldoPrevisto(cuentaId) {
     const datos = fz_obtenerDatos();
-    const cuentasActivas = datos.cuentas.filter(c => !c.archivada);
+    const cuenta = datos.cuentas.find(c => c.id === cuentaId);
+    if (!cuenta) return 0;
 
-    if (cuentasActivas.length === 0) {
-        contenedor.innerHTML = `<p style="color: var(--text-lo); grid-column: 1 / -1;">No hay cuentas activas. Crea una para empezar.</p>`;
-        return;
-    }
+    const year  = fz_fechaActual.getFullYear();
+    const month = fz_fechaActual.getMonth();
+    const finMes = new Date(year, month + 1, 0).toISOString().split('T')[0]; // último día del mes
 
-        contenedor.innerHTML = cuentasActivas.map(c => {
-        const saldoReal = fz_calcularSaldoCuenta(c.id); // ¡Llama a nuestra nueva calculadora!
-        return `
-        <div class="card-surface" style="padding: 16px; position: relative;">
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
-                <h4 style="color: var(--text-hi); font-size: 14px; margin: 0;">${c.nombre}</h4>
-                <div>
-                    <button class="btn-ghost" style="padding: 4px;" onclick="fz_abrirModalCuenta(${c.id})"><i class="ti ti-edit"></i></button>
-                    <button class="btn-borrar" style="padding: 4px;" onclick="fz_archivarCuentaUI(${c.id})"><i class="ti ti-archive"></i></button>
-                </div>
-            </div>
-            <p style="font-size: 11px; color: var(--text-lo);">Saldo Actual</p>
-            <p style="font-size: 18px; font-weight: 700; color: ${saldoReal >= 0 ? 'var(--status-ok)' : 'var(--status-danger)'};">${formatearDinero(saldoReal)}</p>
-        </div>
-        `;
-    }).join('');
+    let saldo = cuenta.saldo_inicial || 0;
+
+    // Incluye pagadas Y pendientes, hasta el fin del mes navegado
+    datos.transacciones.filter(t => !t.archivada && t.fecha <= finMes).forEach(t => {
+        if (t.tipo === 'ingreso' && t.cuenta_id === cuentaId) saldo += t.monto;
+        if (t.tipo === 'gasto'   && t.cuenta_id === cuentaId) saldo -= t.monto;
+        if (t.tipo === 'transferencia') {
+            if (t.cuenta_id         === cuentaId) saldo -= t.monto;
+            if (t.cuenta_destino_id === cuentaId) saldo += t.monto;
+        }
+    });
+
+    return saldo;
 }
 
 // ==========================================
-// LÓGICA DE CUENTAS (ACTUALIZADA)
+// PINTADO DE CUENTAS — REDISEÑO MOBILLS
 // ==========================================
+function fz_pintarCuentas() {
+    const contenedor = document.getElementById('fz-lista-cuentas');
+    if (!contenedor) return;
 
-// Acciones asociadas al botón izquierdo dinámico
-window.fz_reajustarSaldoUI = function() {
-    const idInput = document.getElementById('fz-cuenta-id').value;
-    if (idInput) {
-        // Modo Edición: Foco rápido al input gigante de saldo para cambiar el valor
-        const inputSaldo = document.getElementById('fz-cuenta-saldo');
-        inputSaldo.focus();
-        inputSaldo.select();
-    } else {
-        // Modo Creador: Simplemente limpia el formulario
-        document.getElementById('fz-cuenta-saldo').value = '';
-        document.getElementById('fz-cuenta-nombre').value = '';
-        document.getElementById('fz-cuenta-logo-url').value = '';
-        fz_actualizarPreviewLogo();
-    }
+    const datos = fz_obtenerDatos();
+    const cuentasActivas = datos.cuentas.filter(c => !c.archivada);
+
+    // Totales del panel lateral
+    const cuentasDashboard = datos.cuentas.filter(c => !c.archivada && c.incluir_dashboard !== false);
+    const saldoActualTotal  = cuentasDashboard.reduce((s, c) => s + fz_calcularSaldoCuenta(c.id), 0);
+    const saldoPrevistoTotal = cuentasDashboard.reduce((s, c) => s + fz_calcularSaldoPrevisto(c.id), 0);
+
+    const cardsHtml = cuentasActivas.map(c => {
+        const saldoActual   = fz_calcularSaldoCuenta(c.id);
+        const saldoPrevisto = fz_calcularSaldoPrevisto(c.id);
+        const colAct  = saldoActual   >= 0 ? 'var(--status-ok)' : 'var(--status-danger)';
+        const colPrev = saldoPrevisto >= 0 ? 'var(--status-ok)' : 'var(--status-danger)';
+
+        const logoHtml = c.logo
+            ? `<img src="${c.logo}" style="width:34px;height:34px;border-radius:8px;object-fit:cover;" onerror="this.style.display='none'">`
+            : `<div style="width:34px;height:34px;border-radius:8px;background:${c.color||'#3498db'};display:flex;align-items:center;justify-content:center;">
+                   <i class="ti ti-building-bank" style="color:#fff;font-size:17px;"></i>
+               </div>`;
+
+        return `
+        <div class="fz-cuenta-card">
+            <div class="fz-cuenta-card-header">
+                <div style="display:flex;align-items:center;gap:10px;">
+                    ${logoHtml}
+                    <span class="fz-cuenta-card-nombre">${c.nombre}</span>
+                </div>
+                <div style="position:relative;">
+                    <button class="fz-cat-icon-btn" style="border:none;background:transparent;width:30px;height:30px;" onclick="fz_toggleMenuCuenta(event,${c.id})">
+                        <i class="ti ti-dots-vertical"></i>
+                    </button>
+                    <div class="fz-cuenta-menu" id="fz-menu-cuenta-${c.id}">
+                        <div class="fz-cat-tipo-item" onclick="fz_abrirModalCuenta(${c.id})">
+                            <i class="ti ti-pencil"></i> Editar
+                        </div>
+                        <div class="fz-cat-tipo-item" style="color:var(--status-danger)" onclick="fz_archivarCuentaUI(${c.id})">
+                            <i class="ti ti-archive"></i> Archivar
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="fz-cuenta-card-body">
+                <div class="fz-cuenta-saldo-row">
+                    <span class="fz-cuenta-saldo-label">Saldo actual</span>
+                    <span class="fz-cuenta-saldo-valor" style="color:${colAct}">${formatearDinero(saldoActual)}</span>
+                </div>
+                <div class="fz-cuenta-saldo-row">
+                    <span class="fz-cuenta-saldo-label">
+                        Saldo previsto
+                        <i class="ti ti-info-circle" title="Proyección al final del mes · incluye movimientos pendientes"></i>
+                    </span>
+                    <span class="fz-cuenta-saldo-valor" style="color:${colPrev}">${formatearDinero(saldoPrevisto)}</span>
+                </div>
+            </div>
+
+            <div class="fz-cuenta-card-footer">
+                <button class="fz-cuenta-quick-btn" onclick="fz_quickGasto(${c.id})">AÑADIR GASTO</button>
+            </div>
+        </div>`;
+    }).join('');
+
+    contenedor.innerHTML = `
+    <div class="fz-cuentas-layout">
+
+        <div class="fz-cuentas-grid">
+            <div class="fz-cuenta-card fz-cuenta-nueva" onclick="fz_abrirModalCuenta()">
+                <div class="fz-cuenta-nueva-inner">
+                    <div class="fz-cuenta-nueva-circle"><i class="ti ti-plus"></i></div>
+                    <span>Nueva cuenta</span>
+                </div>
+            </div>
+            ${cardsHtml || `<p style="color:var(--text-lo);padding:20px;">Crea tu primera cuenta para empezar.</p>`}
+        </div>
+
+        <div class="fz-cuentas-resumen">
+            <div class="fz-resumen-mini-card">
+                <span class="fz-resumen-mini-label">Saldo actual</span>
+                <span class="fz-resumen-mini-valor">${formatearDinero(saldoActualTotal)}</span>
+                <div class="fz-resumen-mini-icon"><i class="ti ti-building-bank"></i></div>
+            </div>
+            <div class="fz-resumen-mini-card">
+                <span class="fz-resumen-mini-label">Saldo previsto</span>
+                <span class="fz-resumen-mini-valor">${formatearDinero(saldoPrevistoTotal)}</span>
+                <div class="fz-resumen-mini-icon"><i class="ti ti-chart-line"></i></div>
+            </div>
+        </div>
+
+    </div>`;
+}
+
+// Abre modal de gasto y preselecciona la cuenta
+window.fz_quickGasto = function(cuentaId) {
+    fz_abrirModalTransaccion('gasto');
+    setTimeout(() => {
+        const sel = document.getElementById('fz-trans-cuenta');
+        if (sel) sel.value = cuentaId;
+    }, 60);
 };
 
+// Menú contextual ⋮ de cada cuenta
+window.fz_toggleMenuCuenta = function(e, id) {
+    e.stopPropagation();
+    document.querySelectorAll('.fz-cuenta-menu.visible').forEach(m => {
+        if (m.id !== `fz-menu-cuenta-${id}`) m.classList.remove('visible');
+    });
+    document.getElementById(`fz-menu-cuenta-${id}`)?.classList.toggle('visible');
+};
 // ====================================================
 // CONTROLADOR INTEGRAL DEL MODAL PREMIUM DE CUENTAS
 // ====================================================
@@ -1094,6 +1192,9 @@ document.addEventListener('click', function(e) {
         menu.classList.remove('visible');
         const arrow = document.getElementById('fz-cat-pill-arrow');
         if (arrow) arrow.style.transform = '';
+    }
+        if (!e.target.closest('.fz-cuenta-menu') && !e.target.closest('button[onclick*="fz_toggleMenuCuenta"]')) {
+        document.querySelectorAll('.fz-cuenta-menu.visible').forEach(m => m.classList.remove('visible'));
     }
 });
 
