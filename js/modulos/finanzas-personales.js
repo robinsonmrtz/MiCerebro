@@ -119,62 +119,144 @@ function renderizarPantallaActual() {
 // LÓGICA DE TRANSACCIONES
 // ==========================================
 
+window.fz_filtroTransTipoActual = 'todos'; // Variable global de filtro
+
 function fz_pintarTransacciones() {
-    const contenedor = document.getElementById('fz-lista-transacciones');
+    const contenedor = document.getElementById('fz-lista-transacciones-tabla');
+    if (!contenedor) return;
+
     const datos = fz_obtenerDatos();
     const transActivas = datos.transacciones.filter(t => !t.archivada);
-    
+    const query = (document.getElementById('fz-trans-search-input')?.value || '').toLowerCase();
+
     const year = fz_fechaActual.getFullYear();
     const month = String(fz_fechaActual.getMonth() + 1).padStart(2, '0');
     const mesFiltro = `${year}-${month}`;
-    const transDelMes = transActivas.filter(t => t.fecha.startsWith(mesFiltro));
 
-    transDelMes.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+    // 1. Filtrar por mes
+    let transDelMes = transActivas.filter(t => t.fecha.startsWith(mesFiltro));
+
+    // 2. Filtro por tipo (gasto, ingreso, todos, transferencias)
+    if (window.fz_filtroTransTipoActual !== 'todos') {
+        transDelMes = transDelMes.filter(t => t.tipo === window.fz_filtroTransTipoActual);
+    }
+
+    // 3. Búsqueda por texto (Descripción o Comercio)
+    if (query) {
+        transDelMes = transDelMes.filter(t => 
+            t.descripcion.toLowerCase().includes(query) || 
+            (t.comercio && t.comercio.toLowerCase().includes(query))
+        );
+    }
 
     if (transDelMes.length === 0) {
-        contenedor.innerHTML = `<div class="card-surface" style="padding: 30px; text-align: center; color: var(--text-lo);">No hay movimientos en este mes.</div>`;
+        contenedor.innerHTML = `<div style="padding: 30px; text-align: center; color: var(--text-lo);">No hay movimientos registrados.</div>`;
         return;
     }
 
-    contenedor.innerHTML = transDelMes.map(t => {
-        let colorDinero, signo, desc, info, colorCat;
+    // 4. Agrupar por fecha
+    const grupos = {};
+    transDelMes.forEach(t => {
+        if (!grupos[t.fecha]) grupos[t.fecha] = [];
+        grupos[t.fecha].push(t);
+    });
 
-        if (t.tipo === 'transferencia') {
-            colorDinero = '#2773d6'; // Azul
-            signo = '⇄ ';
-            const origen = datos.cuentas.find(c => c.id == t.cuenta_id);
-            const destino = datos.cuentas.find(c => c.id == t.cuenta_destino_id);
-            info = `${origen ? origen.nombre : '?'} ➔ ${destino ? destino.nombre : '?'} • ${t.fecha}`;
-            colorCat = '#2773d6';
-            desc = "Transferencia";
-        } else {
-            const esIngreso = t.tipo === 'ingreso';
-            colorDinero = esIngreso ? 'var(--status-ok)' : 'var(--status-danger)';
-            signo = esIngreso ? '+' : '-';
-            const cuenta = datos.cuentas.find(c => c.id == t.cuenta_id);
-            const categoria = datos.categorias.find(c => c.id == t.categoria_id);
-            info = `${cuenta ? cuenta.nombre : '?'} • ${t.fecha}`;
-            colorCat = categoria ? categoria.color : 'var(--text-lo)';
-            desc = t.descripcion;
-        }
+    let html = '';
 
-        return `
-            <div class="card-surface" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px;">
-                <div style="display: flex; gap: 12px; align-items: center;">
-                    <div style="width: 14px; height: 14px; border-radius: 50%; background: ${colorCat};"></div>
-                    <div>
-                        <h4 style="color: var(--text-hi); font-size: 13px; margin: 0;">${desc}</h4>
-                        <p style="color: var(--text-lo); font-size: 11px; margin: 0;">${info}</p>
+    // 5. Renderizar ordenado (de más reciente a más antiguo)
+    Object.keys(grupos).sort((a, b) => new Date(b) - new Date(a)).forEach(fecha => {
+        
+        // Formateador de Fecha "Viernes, 21 de Mayo"
+        const objFecha = new Date(fecha + 'T00:00:00');
+        const opciones = { weekday: 'long', day: 'numeric', month: 'long' };
+        let fechaTexto = objFecha.toLocaleDateString('es-ES', opciones);
+        fechaTexto = fechaTexto.charAt(0).toUpperCase() + fechaTexto.slice(1);
+
+        html += `<div class="fz-trans-date-header">${fechaTexto}</div>`;
+
+        grupos[fecha].sort((a, b) => b.id - a.id).forEach(t => {
+            let colorDinero, signo, colorCat, iconoCat, nombreCat;
+
+            if (t.tipo === 'transferencia') {
+                colorDinero = '#2773d6';
+                signo = '⇄ ';
+                colorCat = '#2773d6';
+                iconoCat = '⇄';
+                nombreCat = 'Transferencia';
+            } else {
+                const esIngreso = t.tipo === 'ingreso';
+                colorDinero = esIngreso ? 'var(--status-ok)' : 'var(--status-danger)';
+                signo = esIngreso ? '+' : '-';
+                const categoria = datos.categorias.find(c => c.id == t.categoria_id);
+                colorCat = categoria ? categoria.color : 'var(--text-lo)';
+                iconoCat = categoria ? (categoria.emoji || '🏷️') : '🏷️';
+                nombreCat = categoria ? categoria.nombre : 'Sin categoría';
+            }
+
+            // Función de Edición Dinámica
+            const editFn = t.tipo === 'transferencia' ? `fz_abrirModalTransferencia(${t.id})` : `fz_abrirModalTransaccion('${t.tipo}', ${t.id})`;
+
+            html += `
+            <div class="fz-trans-row">
+                <div class="fz-cat-col-nombre-cell fz-trans-col-desc">
+                    <div style="display:flex; flex-direction:column; gap:2px;">
+                        <span style="font-weight:600; color:var(--text-hi); font-size:13.5px;">${t.descripcion}</span>
+                        ${t.comercio ? `<span style="font-size:11px; color:var(--text-lo);"><i class="ti ti-building-store"></i> ${t.comercio}</span>` : ''}
                     </div>
                 </div>
-                <div style="text-align: right;">
-                    <p style="color: ${colorDinero}; font-size: 14px; font-weight: 700; margin: 0;">${signo}${formatearDinero(t.monto)}</p>
-                    <button class="btn-borrar" style="padding: 2px 6px; margin-top: 4px;" onclick="fz_archivarTransaccionUI(${t.id})"><i class="ti ti-archive"></i></button>
+                <div class="fz-cat-col-icono-cell fz-trans-col-cat">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <div style="width:26px; height:26px; border-radius:8px; background:rgba(0,0,0,0.05); border: 1px solid var(--border-card); display:flex; align-items:center; justify-content:center; font-size:14px; color:${colorCat};">
+                            ${iconoCat}
+                        </div>
+                        <span style="font-size:12.5px; color:var(--text-base);">${nombreCat}</span>
+                    </div>
                 </div>
-            </div>
-        `;
-    }).join('');
+                <div class="fz-cat-col-color-cell fz-trans-col-monto" style="justify-content: flex-end;">
+                    <span style="color: ${colorDinero}; font-size: 14px; font-weight: 700;">${signo}${formatearDinero(t.monto)}</span>
+                </div>
+                <div class="fz-cat-col-acciones-cell fz-trans-col-acc" style="justify-content: center;">
+                    <button class="fz-cat-action-btn" title="Editar" onclick="${editFn}"><i class="ti ti-pencil"></i></button>
+                    <button class="fz-cat-action-btn" title="Archivar" onclick="fz_archivarTransaccionUI(${t.id})"><i class="ti ti-archive"></i></button>
+                </div>
+            </div>`;
+        });
+    });
+
+    contenedor.innerHTML = html;
 }
+
+// --- HELPERS UI DE TRANSACCIONES ---
+window.fz_toggleBuscadorTrans = function() {
+    const bar = document.getElementById('fz-trans-search-bar');
+    const oculto = bar.style.display === 'none' || bar.style.display === '';
+    bar.style.display = oculto ? 'flex' : 'none';
+    if (oculto) document.getElementById('fz-trans-search-input')?.focus();
+};
+
+window.fz_toggleTransTipoMenu = function() {
+    document.getElementById('fz-trans-tipo-menu').classList.toggle('visible');
+    document.getElementById('fz-trans-add-menu').classList.remove('visible'); // Cierra el otro
+};
+
+window.fz_toggleAddTransMenu = function() {
+    document.getElementById('fz-trans-add-menu').classList.toggle('visible');
+    document.getElementById('fz-trans-tipo-menu').classList.remove('visible'); // Cierra el otro
+};
+
+window.fz_filtrarTransacciones = function(tipo) {
+    window.fz_filtroTransTipoActual = tipo;
+    const label = document.getElementById('fz-trans-pill-label');
+    const icon = document.getElementById('fz-trans-pill-arrow');
+    
+    if(tipo === 'todos') { label.innerText = 'Todos los movimientos'; icon.className = 'ti ti-filter'; }
+    if(tipo === 'ingreso') { label.innerText = 'Ingresos'; icon.className = 'ti ti-plus'; }
+    if(tipo === 'gasto') { label.innerText = 'Gastos'; icon.className = 'ti ti-minus'; }
+    if(tipo === 'transferencia') { label.innerText = 'Transferencias'; icon.className = 'ti ti-arrows-right-left'; }
+    
+    document.getElementById('fz-trans-tipo-menu').classList.remove('visible');
+    fz_pintarTransacciones();
+};
 // Para que los botones rápidos funcionen
 // Para que los botones rápidos funcionen
 window.abrirModalTransaccion = function(tipo) { window.fz_abrirModalTransaccion(tipo); };
@@ -187,32 +269,30 @@ window.fz_abrirModalTransaccion = function(tipo, id = null) {
         return alert("Debes crear al menos una Cuenta financiera antes de registrar movimientos.");
     }
 
-    // Configurar Tipo
+    // Configurar Tipo y Títulos Visuales
     document.getElementById('fz-trans-tipo').value = tipo;
     document.getElementById('fz-trans-id').value = id || '';
     
-    // Muta Visualmente el Modal
     const txtTitulo = document.getElementById('fz-modal-trans-titulo');
     const txtSimbolo = document.getElementById('fz-trans-simbolo-tipo');
     const containerGastoFijo = document.getElementById('fz-container-gasto-fijo');
     const containerUnidad = document.getElementById('fz-container-unidad');
     const containerCantidad = document.getElementById('fz-container-cantidad');
     
-    // Ajustes visuales según tipo (gasto / ingreso)
     if (tipo === 'ingreso') {
-        txtTitulo.innerHTML = `Registrar <span style="color: var(--status-ok);">Ingreso</span>`;
+        txtTitulo.innerHTML = id ? `Editar <span style="color: var(--status-ok);">Ingreso</span>` : `Registrar <span style="color: var(--status-ok);">Ingreso</span>`;
         txtSimbolo.style.color = 'var(--status-ok)';
         if (containerGastoFijo) {
             containerGastoFijo.style.visibility = 'visible';
             const tituloFijo = containerGastoFijo.querySelector('.fz-toggle-titulo');
             if (tituloFijo) tituloFijo.innerText = 'Ingreso fijo mensual';
         }
-        if (containerUnidad) containerUnidad.style.display = 'none'; // Ocultamos solo unidad
-        if (containerCantidad) containerCantidad.style.display = 'flex'; // Aseguramos que cantidad siga visible
+        if (containerUnidad) containerUnidad.style.display = 'none';
+        if (containerCantidad) containerCantidad.style.display = 'flex';
         const toggleTitulo = document.getElementById('fz-lbl-toggle-titulo');
         if (toggleTitulo) toggleTitulo.innerText = 'Recibido';
     } else {
-        txtTitulo.innerHTML = `Registrar <span style="color: var(--status-danger);">Gasto</span>`;
+        txtTitulo.innerHTML = id ? `Editar <span style="color: var(--status-danger);">Gasto</span>` : `Registrar <span style="color: var(--status-danger);">Gasto</span>`;
         txtSimbolo.style.color = 'var(--status-danger)';
         if (containerGastoFijo) {
             containerGastoFijo.style.visibility = 'visible';
@@ -230,29 +310,62 @@ window.fz_abrirModalTransaccion = function(tipo, id = null) {
         `<option value="${c.id}">${c.nombre}</option>`
     ).join('');
 
-    // Limpiar inputs
-    document.getElementById('fz-trans-monto').value = '';
-    document.getElementById('fz-trans-desc').value = '';
-    document.getElementById('fz-trans-unidad').value = '';
-    if(document.getElementById('fz-trans-cantidad')) document.getElementById('fz-trans-cantidad').value = '';
-    document.getElementById('fz-trans-observacion').value = '';
-    document.getElementById('fz-trans-cat-input').value = '';
-    document.getElementById('fz-trans-categoria').value = '';
-    document.getElementById('fz-trans-comercio-input').value = '';
-    document.getElementById('fz-trans-pagado').checked = true;
-    document.getElementById('fz-trans-gasto-fijo').checked = false;
-    
+    // === MODO EDICIÓN vs MODO CREACIÓN ===
+    if (id) {
+        // Pre-llenar Formulario (Update)
+        const trans = datos.transacciones.find(t => t.id === id);
+        if(trans) {
+            document.getElementById('fz-trans-monto').value = trans.monto;
+            document.getElementById('fz-trans-desc').value = trans.descripcion;
+            document.getElementById('fz-trans-fecha').value = trans.fecha;
+            document.getElementById('fz-trans-cuenta').value = trans.cuenta_id;
+            document.getElementById('fz-trans-categoria').value = trans.categoria_id;
+            
+            const cat = datos.categorias.find(c => c.id == trans.categoria_id);
+            document.getElementById('fz-trans-cat-input').value = cat ? cat.nombre : '';
+            
+            document.getElementById('fz-trans-comercio-input').value = trans.comercio || '';
+            if(document.getElementById('fz-trans-unidad')) document.getElementById('fz-trans-unidad').value = trans.unidad || '';
+            if(document.getElementById('fz-trans-cantidad')) document.getElementById('fz-trans-cantidad').value = trans.cantidad || '';
+            document.getElementById('fz-trans-observacion').value = trans.observacion || '';
+            
+            document.getElementById('fz-trans-pagado').checked = trans.pagado;
+            if(document.getElementById('fz-trans-gasto-fijo')) document.getElementById('fz-trans-gasto-fijo').checked = trans.gasto_fijo;
+            
+            fz_alCambiarFechaManual(); // Limpia los botones "Hoy/Ayer"
+        }
+    } else {
+        // Limpiar Formulario (Create)
+        document.getElementById('fz-trans-monto').value = '';
+        document.getElementById('fz-trans-desc').value = '';
+        if(document.getElementById('fz-trans-unidad')) document.getElementById('fz-trans-unidad').value = '';
+        if(document.getElementById('fz-trans-cantidad')) document.getElementById('fz-trans-cantidad').value = '';
+        document.getElementById('fz-trans-observacion').value = '';
+        document.getElementById('fz-trans-cat-input').value = '';
+        document.getElementById('fz-trans-categoria').value = '';
+        document.getElementById('fz-trans-comercio-input').value = '';
+        document.getElementById('fz-trans-pagado').checked = true;
+        if(document.getElementById('fz-trans-gasto-fijo')) document.getElementById('fz-trans-gasto-fijo').checked = false;
+        
+        fz_establecerFechaRapida('hoy');
+    }
+
+    // Toggle Labels
     document.getElementById('fz-trans-pagado').onchange = function() {
         const esIngreso = document.getElementById('fz-trans-tipo').value === 'ingreso';
-        if (esIngreso) {
-            document.getElementById('fz-lbl-toggle-pagado').innerText = this.checked ? 'Sí' : 'No';
-        } else {
-            document.getElementById('fz-lbl-toggle-pagado').innerText = this.checked ? 'Marcado como pagado' : 'Pendiente por pagar / Cobrar';
+        const label = document.getElementById('fz-lbl-toggle-pagado');
+        if (label) {
+            if (esIngreso) {
+                label.innerText = this.checked ? 'Sí' : 'No';
+            } else {
+                label.innerText = this.checked ? 'Marcado como pagado' : 'Pendiente por pagar / Cobrar';
+            }
         }
     };
     document.getElementById('fz-trans-pagado').onchange();
-
-    fz_establecerFechaRapida('hoy');
+    
+    // Cerrar Menús
+    document.getElementById('fz-trans-add-menu')?.classList.remove('visible');
     fz_cerrarTodosLosDropdownsAutoComplete();
 
     document.getElementById('fz-modal-transaccion').classList.add('visible');
@@ -458,6 +571,19 @@ document.addEventListener('click', function(e) {
     if (!e.target.closest('#fz-trans-comercio-input') && !e.target.closest('#fz-drop-comercios')) {
         document.getElementById('fz-drop-comercios').classList.remove('visible');
     }
+    // --- Agregar esto dentro del eventListener del Clic global ---
+    const menuTransTipo = document.getElementById('fz-trans-tipo-menu');
+    const btnTransTipo  = document.getElementById('fz-trans-pill-btn');
+    if (menuTransTipo && menuTransTipo.classList.contains('visible') && btnTransTipo && !btnTransTipo.contains(e.target)) {
+        menuTransTipo.classList.remove('visible');
+    }
+
+    const menuTransAdd = document.getElementById('fz-trans-add-menu');
+    const btnTransAdd  = document.getElementById('fz-btn-add-trans');
+    if (menuTransAdd && menuTransAdd.classList.contains('visible') && btnTransAdd && !btnTransAdd.contains(e.target)) {
+        menuTransAdd.classList.remove('visible');
+    }
+    
 });
 
 // === RECURRANCES: Generador de instancias mensuales ===
@@ -1260,28 +1386,42 @@ function fz_renderizarGraficoGastos(transDelMes, categorias) {
 }
 
 // Funciones Modal Transferencia
-window.fz_abrirModalTransferencia = function() {
+window.fz_abrirModalTransferencia = function(id = null) {
     const datos = fz_obtenerDatos();
     const cuentasActivas = datos.cuentas.filter(c => !c.archivada);
 
     if (cuentasActivas.length < 2) return alert("Debes crear al menos 2 Cuentas para poder transferir dinero entre ellas.");
 
+    document.getElementById('fz-modal-transf-titulo').innerText = id ? 'Editar Transferencia' : 'Transferir Dinero';
+    
     const opciones = cuentasActivas.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
     document.getElementById('fz-transf-origen').innerHTML = opciones;
     document.getElementById('fz-transf-destino').innerHTML = opciones;
-    
-    // Seleccionar por defecto la segunda cuenta en el destino para que no sean la misma
-    if(cuentasActivas.length > 1) {
-        document.getElementById('fz-transf-destino').selectedIndex = 1;
+
+    if (id) {
+        // MODO EDICIÓN
+        const t = datos.transacciones.find(tr => tr.id === id);
+        if(t) {
+            document.getElementById('fz-transf-id').value = t.id;
+            document.getElementById('fz-transf-monto').value = t.monto;
+            document.getElementById('fz-transf-origen').value = t.cuenta_id;
+            document.getElementById('fz-transf-destino').value = t.cuenta_destino_id;
+            document.getElementById('fz-transf-fecha').value = t.fecha;
+        }
+    } else {
+        // MODO CREACIÓN
+        document.getElementById('fz-transf-id').value = '';
+        if(cuentasActivas.length > 1) document.getElementById('fz-transf-destino').selectedIndex = 1;
+        document.getElementById('fz-transf-monto').value = '';
+        document.getElementById('fz-transf-fecha').value = new Date().toISOString().split('T')[0];
     }
 
-    document.getElementById('fz-transf-monto').value = '';
-    document.getElementById('fz-transf-fecha').value = new Date().toISOString().split('T')[0];
-
+    document.getElementById('fz-trans-add-menu')?.classList.remove('visible');
     document.getElementById('fz-modal-transferencia').classList.add('visible');
 };
 
 window.fz_guardarFormularioTransferencia = function() {
+    const idInput = document.getElementById('fz-transf-id').value;
     const monto = parseFloat(document.getElementById('fz-transf-monto').value);
     const origen = parseInt(document.getElementById('fz-transf-origen').value);
     const destino = parseInt(document.getElementById('fz-transf-destino').value);
@@ -1292,7 +1432,7 @@ window.fz_guardarFormularioTransferencia = function() {
     if (!fecha) return alert("Selecciona una fecha.");
 
     fz_guardarTransaccion({
-        id: Date.now(),
+        id: idInput ? parseInt(idInput) : Date.now(),
         tipo: 'transferencia',
         monto: monto,
         descripcion: "Transferencia",
@@ -1300,6 +1440,7 @@ window.fz_guardarFormularioTransferencia = function() {
         cuenta_id: origen,
         cuenta_destino_id: destino,
         categoria_id: null,
+        pagado: true, // Siempre pagado
         archivada: false
     });
 

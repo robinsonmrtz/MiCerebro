@@ -803,3 +803,48 @@ input:checked + .fz-slider-exacto:before { transform: translateX(18px); }
     .fz-emoji-picker-caja { width: 95vw; }
     .fz-cat-topbar { flex-wrap: wrap; }
 }
+
+/* =========================================
+   GRID ESPECÍFICO PARA TRANSACCIONES (CRUD)
+   ========================================= */
+.fz-trans-table-head,
+.fz-trans-row {
+    display: grid;
+    grid-template-columns: 2fr 1.5fr 1fr 100px;
+    padding: 14px 20px;
+    align-items: center;
+    border-bottom: 1px solid var(--border-card);
+    transition: background 0.15s;
+}
+
+.fz-trans-row:last-child { border-bottom: none; }
+.fz-trans-row:hover { background: var(--bg-hover); }
+
+/* Divisores de Fecha estilo Extracto Bancario */
+.fz-trans-date-header {
+    background: var(--bg-root);
+    padding: 8px 20px;
+    font-size: 11.5px;
+    font-weight: 700;
+    color: var(--text-lo);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--border-card);
+    border-top: 1px solid var(--border-card);
+}
+.fz-trans-date-header:first-child { border-top: none; }
+
+/* Responsive de la Tabla de Movimientos */
+@media (max-width: 768px) {
+    .fz-trans-table-head { display: none; } /* Ocultar cabecera en móvil */
+    .fz-trans-row {
+        grid-template-columns: 1fr auto;
+        grid-template-rows: auto auto;
+        gap: 8px;
+        padding: 14px 16px;
+    }
+    .fz-trans-col-desc { grid-column: 1 / 2; grid-row: 1 / 2; }
+    .fz-trans-col-monto { grid-column: 2 / 3; grid-row: 1 / 2; text-align: right; }
+    .fz-trans-col-cat { grid-column: 1 / 2; grid-row: 2 / 3; }
+    .fz-trans-col-acc { grid-column: 2 / 3; grid-row: 2 / 3; justify-content: flex-end; }
+}
