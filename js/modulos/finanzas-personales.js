@@ -706,7 +706,7 @@ window.fz_guardarFormularioTransaccion = function() {
     const comercio = document.getElementById('fz-trans-comercio-input').value.trim();
     const unidad = document.getElementById('fz-trans-unidad') ? document.getElementById('fz-trans-unidad').value : '';
     const inputCantidad = document.getElementById('fz-trans-cantidad');
-    const cantidad = (inputCantidad && inputCantidad.value.trim() !== '') ? parseInt(inputCantidad.value.trim()) : null;
+    const cantidad = (inputCantidad && inputCantidad.value.trim() !== '') ? parseFloat(inputCantidad.value.trim()) : null;
     const pagado = document.getElementById('fz-trans-pagado').checked;
     const gasto_fijo = document.getElementById('fz-trans-gasto-fijo').checked;
     const observacion = document.getElementById('fz-trans-observacion').value.trim();

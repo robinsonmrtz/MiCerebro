@@ -444,7 +444,7 @@
                     </div>
                     <div class="fz-group-exacto" id="fz-container-cantidad" style="flex: 1; max-width: 90px;">
                         <label class="fz-label-exacto">Cantidad</label>
-                        <input type="text" id="fz-trans-cantidad" class="fz-input-exacto" placeholder="Ej: 1" maxlength="5" autocomplete="off" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                        <input type="text" id="fz-trans-cantidad" class="fz-input-exacto" placeholder="Ej: 0.69" maxlength="8" autocomplete="off" oninput="this.value = this.value.replace(/[^0-9.]/g, '').replace(/\.(?=.*\.)/g, '')">
                     </div>
                 </div>
             </div>
