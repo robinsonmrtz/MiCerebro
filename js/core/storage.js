@@ -185,3 +185,10 @@ function fz_archivarTransaccion(id) {
     if (trans) trans.archivada = true;
     guardarDatos(datos);
 }
+
+function fz_eliminarComercio(nombre) {
+    let datos = cargarDatos();
+    if (!datos.finanzas_personales.comercios) return;
+    datos.finanzas_personales.comercios = datos.finanzas_personales.comercios.filter(c => c !== nombre);
+    guardarDatos(datos);
+}

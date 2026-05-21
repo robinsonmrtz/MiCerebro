@@ -65,7 +65,7 @@
                 <button class="btn-primario" style="background: var(--status-ok); border-color: transparent;" onclick="abrirModalTransaccion('ingreso')">
                     <i class="ti ti-plus"></i> Registrar Ingreso
                 </button>
-                <button class="btn-secundario" onclick="abrirModalTransaccion('transferencia')">
+                <button class="btn-secundario" onclick="fz_abrirModalTransferencia()">
                     <i class="ti ti-arrows-exchange"></i> Transferencia
                 </button>
             </div>
@@ -170,7 +170,35 @@
     <div id="pantalla-presupuestos" style="display: none;"><div class="card-surface" style="padding: 40px; text-align: center; color: var(--text-lo);">🚧 Módulo Presupuestos en construcción 🚧</div></div>
     <div id="pantalla-informes" style="display: none;"><div class="card-surface" style="padding: 40px; text-align: center; color: var(--text-lo);">🚧 Módulo Informes en construcción 🚧</div></div>
     <div id="pantalla-objetivos" style="display: none;"><div class="card-surface" style="padding: 40px; text-align: center; color: var(--text-lo);">🚧 Módulo Objetivos en construcción 🚧</div></div>
-    <div id="pantalla-comercios" style="display: none;"><div class="card-surface" style="padding: 40px; text-align: center; color: var(--text-lo);">🚧 Módulo Comercios en construcción 🚧</div></div>
+<div id="pantalla-comercios" style="display: none;">
+
+    <div class="fz-cat-topbar">
+        <div class="fz-cat-tipo-dropdown-wrap">
+            <button class="fz-cat-tipo-pill" style="background: var(--accent);">
+                <i class="ti ti-building-store"></i>
+                <span>Comercios registrados</span>
+            </button>
+        </div>
+        <div class="fz-cat-actions-right">
+            <button class="fz-cat-icon-btn" title="Buscar" onclick="fz_toggleBuscadorComercios()"><i class="ti ti-search"></i></button>
+            <button class="fz-cat-icon-btn fz-cat-add-pill" style="background: var(--accent) !important;" title="Nuevo comercio" onclick="fz_abrirModalComercio()"><i class="ti ti-plus"></i></button>
+        </div>
+    </div>
+
+    <div class="fz-cat-search-bar" id="fz-com-search-bar" style="display:none;">
+        <i class="ti ti-search"></i>
+        <input type="text" id="fz-com-search-input" placeholder="Buscar comercio..." oninput="fz_pintarComercios()">
+    </div>
+
+    <div class="fz-cat-table">
+        <div class="fz-cat-table-head" style="grid-template-columns: 1fr 160px;">
+            <span class="fz-cat-col-nombre">Nombre del Comercio</span>
+            <span class="fz-cat-col-acciones">Acciones</span>
+        </div>
+        <div id="fz-lista-comercios-tabla"></div>
+    </div>
+
+</div>
     <div id="pantalla-calendario" style="display: none;"><div class="card-surface" style="padding: 40px; text-align: center; color: var(--text-lo);">🚧 Módulo Calendario en construcción 🚧</div></div>
     <div id="pantalla-actuacion" style="display: none;"><div class="card-surface" style="padding: 40px; text-align: center; color: var(--text-lo);">🚧 Módulo Mi Actuación en construcción 🚧</div></div>
 
@@ -501,6 +529,28 @@
         <div class="fz-modal-footer-exacto">
             <button class="fz-btn-secundario-izq" onclick="document.getElementById('fz-modal-transferencia').classList.remove('visible')">Cancelar</button>
             <button class="fz-btn-primario-der" style="background: #2773d6;" onclick="fz_guardarFormularioTransferencia()">Confirmar envío</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="fz-modal-comercio">
+    <div class="modal-caja fz-modal-premium" style="max-width: 380px !important;">
+        <div class="fz-modal-header-exacto">
+            <h3 id="fz-modal-comercio-titulo">Nuevo Comercio</h3>
+            <button class="btn-ghost fz-btn-cerrar-exacto" onclick="document.getElementById('fz-modal-comercio').classList.remove('visible')">
+                <i class="ti ti-x"></i>
+            </button>
+        </div>
+        <input type="hidden" id="fz-comercio-nombre-original">
+        <div class="fz-modal-content-exacto">
+            <div class="fz-group-exacto">
+                <label class="fz-label-exacto">Nombre del establecimiento</label>
+                <input type="text" id="fz-comercio-nombre-input" class="fz-input-exacto" placeholder="Ej: Éxito, Amazon, OXXO..." autocomplete="off">
+            </div>
+        </div>
+        <div class="fz-modal-footer-exacto">
+            <button class="fz-btn-secundario-izq" onclick="document.getElementById('fz-modal-comercio').classList.remove('visible')">Cancelar</button>
+            <button class="fz-btn-primario-der" style="background: var(--accent);" onclick="fz_guardarFormularioComercio()">Guardar</button>
         </div>
     </div>
 </div>

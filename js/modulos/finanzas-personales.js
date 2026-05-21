@@ -113,6 +113,7 @@ function renderizarPantallaActual() {
     else if (fz_tabActual === 'cuentas') fz_pintarCuentas();
     else if (fz_tabActual === 'categorias') fz_pintarCategorias();
     else if (fz_tabActual === 'transacciones') fz_pintarTransacciones();
+    else if (fz_tabActual === 'comercios') fz_pintarComercios();
     // Las nuevas vistas no tienen función aún, así que no llaman a nada y muestran el letrero "En construcción"
 }
 // ==========================================
@@ -1431,6 +1432,22 @@ window.fz_guardarFormularioTransferencia = function() {
     if (origen === destino) return alert("La cuenta de origen y destino no pueden ser la misma.");
     if (!fecha) return alert("Selecciona una fecha.");
 
+    // ==========================================
+    // 🔒 NUEVO CANDADO DE FONDOS INSUFICIENTES
+    // ==========================================
+    const datos = fz_obtenerDatos();
+    let saldoDisponible = fz_calcularSaldoCuenta(origen);
+
+    // Si estamos editando, devolvemos temporalmente el dinero viejo a la cuenta para que las mates cuadren
+    if (idInput) {
+        const transVieja = datos.transacciones.find(tr => tr.id === parseInt(idInput));
+        if (transVieja) saldoDisponible += transVieja.monto;
+    }
+
+    if (monto > saldoDisponible) {
+        return alert(`FONDOS INSUFICIENTES:\nNo puedes transferir ${formatearDinero(monto)}. La cuenta origen solo dispone de ${formatearDinero(saldoDisponible)}.`);
+    }
+
     fz_guardarTransaccion({
         id: idInput ? parseInt(idInput) : Date.now(),
         tipo: 'transferencia',
@@ -1446,4 +1463,95 @@ window.fz_guardarFormularioTransferencia = function() {
 
     document.getElementById('fz-modal-transferencia').classList.remove('visible');
     fz_pintarTransacciones();
+};
+
+// ==========================================
+// LÓGICA DE COMERCIOS
+// ==========================================
+
+function fz_pintarComercios() {
+    const contenedor = document.getElementById('fz-lista-comercios-tabla');
+    if (!contenedor) return;
+
+    const query = (document.getElementById('fz-com-search-input')?.value || '').toLowerCase();
+    const datos = cargarDatos();
+    const comercios = (datos.finanzas_personales.comercios || []);
+
+    const filtrados = query
+        ? comercios.filter(c => c.toLowerCase().includes(query))
+        : comercios;
+
+    if (filtrados.length === 0) {
+        contenedor.innerHTML = `<div style="padding: 30px; text-align: center; color: var(--text-lo);">
+            ${query ? 'No se encontraron comercios.' : 'Sin comercios registrados. Los que crees al registrar gastos aparecerán aquí.'}
+        </div>`;
+        return;
+    }
+
+    contenedor.innerHTML = filtrados
+        .slice() // no mutamos el original
+        .sort((a, b) => a.localeCompare(b, 'es'))
+        .map(nombre => `
+        <div class="fz-cat-row" style="grid-template-columns: 1fr 160px;">
+            <div class="fz-cat-col-nombre-cell">
+                <i class="ti ti-building-store" style="color: var(--text-lo); font-size: 18px;"></i>
+                <span style="font-weight: 500; color: var(--text-hi);">${nombre}</span>
+            </div>
+            <div class="fz-cat-col-acciones-cell" style="justify-content: center;">
+                <button class="fz-cat-action-btn" title="Editar" onclick="fz_abrirModalComercio('${nombre.replace(/'/g, "\\'")}')">
+                    <i class="ti ti-pencil"></i>
+                </button>
+                <button class="fz-cat-action-btn" title="Eliminar" onclick="fz_eliminarComercioUI('${nombre.replace(/'/g, "\\'")}')">
+                    <i class="ti ti-trash"></i>
+                </button>
+            </div>
+        </div>
+        `).join('');
+}
+
+window.fz_toggleBuscadorComercios = function() {
+    const bar = document.getElementById('fz-com-search-bar');
+    const oculto = bar.style.display === 'none' || bar.style.display === '';
+    bar.style.display = oculto ? 'flex' : 'none';
+    if (oculto) document.getElementById('fz-com-search-input')?.focus();
+};
+
+window.fz_abrirModalComercio = function(nombreExistente = null) {
+    document.getElementById('fz-modal-comercio-titulo').textContent = nombreExistente ? 'Editar Comercio' : 'Nuevo Comercio';
+    document.getElementById('fz-comercio-nombre-original').value = nombreExistente || '';
+    document.getElementById('fz-comercio-nombre-input').value = nombreExistente || '';
+    document.getElementById('fz-modal-comercio').classList.add('visible');
+    setTimeout(() => document.getElementById('fz-comercio-nombre-input')?.focus(), 100);
+};
+
+window.fz_guardarFormularioComercio = function() {
+    const nombreNuevo = document.getElementById('fz-comercio-nombre-input').value.trim();
+    const nombreOriginal = document.getElementById('fz-comercio-nombre-original').value;
+
+    if (!nombreNuevo) return alert("El nombre del comercio no puede estar vacío.");
+
+    let datos = cargarDatos();
+    if (!datos.finanzas_personales.comercios) datos.finanzas_personales.comercios = [];
+
+    // Si es edición, reemplaza el valor original
+    if (nombreOriginal) {
+        const idx = datos.finanzas_personales.comercios.indexOf(nombreOriginal);
+        if (idx > -1) datos.finanzas_personales.comercios[idx] = nombreNuevo;
+    } else {
+        // Evitar duplicados (case-insensitive)
+        const existe = datos.finanzas_personales.comercios.some(c => c.toLowerCase() === nombreNuevo.toLowerCase());
+        if (existe) return alert(`El comercio "${nombreNuevo}" ya existe.`);
+        datos.finanzas_personales.comercios.push(nombreNuevo);
+    }
+
+    guardarDatos(datos);
+    document.getElementById('fz-modal-comercio').classList.remove('visible');
+    fz_pintarComercios();
+};
+
+window.fz_eliminarComercioUI = function(nombre) {
+    if (confirm(`¿Eliminar el comercio "${nombre}"? Solo se borrará del catálogo, las transacciones que lo usan no se verán afectadas.`)) {
+        fz_eliminarComercio(nombre);
+        fz_pintarComercios();
+    }
 };

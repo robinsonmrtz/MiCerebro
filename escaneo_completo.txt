@@ -1,0 +1,3233 @@
+================================================================
+🔎 RADIOGRAFÍA FOCALIZADA: Módulo [FINANZAS-PERSONALES]
+================================================================
+
+
+================================================================
+📐 CONTRATO DE ARQUITECTURA — NO ROMPER BAJO NINGUNA CIRCUNSTANCIA
+================================================================
+ 
+1. CLAVE ÚNICA DE STORAGE: 'datos_cerebro'
+   - TODA la app lee y escribe SOLO en localStorage['datos_cerebro']
+   - Estructura del objeto:
+     {
+       version,
+       habitos[],
+       registro_trabajo[],
+       registro_habitos{},
+       config_habitos{},
+       finanzas[]
+     }
+   - NUNCA crear nuevas claves principales de storage.
+   - EXCEPCIÓN PERMITIDA (claves efímeras del temporizador, no se backupean):
+       · 'sesionTrabajoTemporal'  → estado del reloj en curso
+       · 'memoria_diaria_trabajo' → acumulado del día actual
+ 
+2. SISTEMA DE BACKUP:
+   - Exportar: lee localStorage['datos_cerebro'] y lo descarga como JSON directo.
+   - Importar: sobreescribe 'datos_cerebro' con el JSON del archivo.
+              + limpia 'sesionTrabajoTemporal' y 'memoria_diaria_trabajo'.
+   - NUNCA modificar este sistema ni crear uno paralelo.
+   - Las funciones exportarDatos() e importarDatos() viven SOLO en app.js.
+ 
+3. PUNTO ÚNICO DE LECTURA/ESCRITURA:
+   - js/core/storage.js es el ÚNICO archivo autorizado a hacer
+     localStorage.getItem / localStorage.setItem de 'datos_cerebro'.
+   - Los módulos (habitos.js, temporizador.js, metricas.js) llaman a las
+     funciones de storage.js, NUNCA tocan localStorage directamente.
+ 
+4. ARCHIVOS CORE (no duplicar su lógica en otros lados):
+   - js/core/storage.js  → toda la persistencia de datos
+   - js/core/app.js      → router de vistas + backup
+ 
+5. MÓDULOS Y SUS RESPONSABILIDADES:
+   - js/modulos/temporizador.js → reloj de trabajo, alarmas, recuperación de sesión
+   - js/modulos/metricas.js     → gráficas, KPIs, tabla de historial de trabajo
+   - js/modulos/habitos.js      → hábitos, grupos, cronómetros, calendario
+
+6. ESTRUCTURA DE DATOS (futura base de datos):
+- usuarios: { id, nombre }
+- registro_trabajo: { id, usuario_id, fecha, meta, trabajado }
+- habitos: { id, usuario_id, nombre, tipo, meta, color, grupo }
+- registro_habitos: { id, usuario_id, fecha, habito_id, progreso }
+- config_habitos: { id, usuario_id, grupos[], paleta[] }
+================================================================
+
+// ====================================================
+// RUTA DEL ARCHIVO: vistas/finanzas-personales.html
+// ====================================================
+<div class="seccion-titulo">
+    <h2>💵 Finanzas Personales</h2>
+    <p>Controla tus ingresos, gastos, cuentas y patrimonio neto.</p>
+</div>
+
+<nav class="finanzas-nav" id="finanzas-tabs">
+    <div class="finanzas-tab activa" data-tab="resumen"><i class="ti ti-layout-dashboard"></i> <span>Resumen</span></div>
+    <div class="finanzas-tab" data-tab="cuentas"><i class="ti ti-building-bank"></i> <span>Cuentas</span></div>
+    <div class="finanzas-tab" data-tab="transacciones"><i class="ti ti-arrows-right-left"></i> <span>Transacciones</span></div>
+    <div class="finanzas-tab" data-tab="tarjetas"><i class="ti ti-credit-card"></i> <span>Tarjetas</span></div>
+    <div class="finanzas-tab" data-tab="presupuestos"><i class="ti ti-chart-pie"></i> <span>Presupuestos</span></div>
+    <div class="finanzas-tab" data-tab="informes"><i class="ti ti-report-analytics"></i> <span>Informes</span></div>
+    
+    <div class="finanzas-tab-dropdown-container">
+        <div class="finanzas-tab" id="btn-mas-opciones"><i class="ti ti-dots"></i> <span>Más</span></div>
+        
+        <div class="finanzas-dropdown-menu" id="menu-mas-opciones">
+            <div class="finanzas-dropdown-item" data-tab="objetivos"><i class="ti ti-target"></i> Objetivos</div>
+            <div class="finanzas-dropdown-item" data-tab="categorias"><i class="ti ti-tags"></i> Categorías</div>
+            <div class="finanzas-dropdown-item" data-tab="comercios"><i class="ti ti-building-store"></i> Comercios</div>
+            <div class="finanzas-dropdown-item" data-tab="calendario"><i class="ti ti-calendar"></i> Calendario</div>
+            <div class="finanzas-dropdown-item" data-tab="actuacion"><i class="ti ti-star"></i> Mi Actuación</div>
+        </div>
+    </div>
+</nav>
+
+<div class="finanzas-mes-control">
+    <button class="btn-ghost" onclick="finanzasMoverMes(-1)"><i class="ti ti-chevron-left"></i></button>
+    <h3 id="finanzas-mes-actual">Mayo 2026</h3>
+    <button class="btn-ghost" onclick="finanzasMoverMes(1)"><i class="ti ti-chevron-right"></i></button>
+</div>
+
+<div id="finanzas-contenido-dinamico">
+    
+    <div id="pantalla-resumen">
+        <div class="kpi-grid">
+            <div class="widget">
+                <h4>Saldo General</h4>
+                <p id="fz-saldo-general" style="color: var(--accent);">$0.00</p>
+            </div>
+            <div class="widget">
+                <h4>Ingresos</h4>
+                <p id="fz-ingresos-mes" style="color: var(--status-ok);">+$0.00</p>
+            </div>
+            <div class="widget">
+                <h4>Gastos</h4>
+                <p id="fz-gastos-mes" style="color: var(--status-danger);">-$0.00</p>
+            </div>
+        </div>
+
+        <div class="finanzas-grid">
+            <div class="card-surface" style="padding: 20px;">
+                <h3 style="color: var(--text-hi); font-size: 15px; margin-bottom: 16px;">Gastos por Categoría</h3>
+                <div style="height: 250px; display: flex; align-items: center; justify-content: center; position: relative;">
+                    <p id="fz-grafico-vacio" style="color: var(--text-lo); font-size: 13px; display: none;">No hay gastos registrados en este mes.</p>
+                    <canvas id="fz-grafico-gastos"></canvas>
+                </div>
+            </div>
+
+            <div class="card-surface" style="padding: 20px; display: flex; flex-direction: column; gap: 12px;">
+                <h3 style="color: var(--text-hi); font-size: 15px; margin-bottom: 8px;">Acciones Rápidas</h3>
+                <button class="btn-primario" style="background: var(--status-danger); border-color: transparent;" onclick="abrirModalTransaccion('gasto')">
+                    <i class="ti ti-minus"></i> Registrar Gasto
+                </button>
+                <button class="btn-primario" style="background: var(--status-ok); border-color: transparent;" onclick="abrirModalTransaccion('ingreso')">
+                    <i class="ti ti-plus"></i> Registrar Ingreso
+                </button>
+                <button class="btn-secundario" onclick="fz_abrirModalTransferencia()">
+                    <i class="ti ti-arrows-exchange"></i> Transferencia
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="pantalla-cuentas" style="display: none;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3 style="color: var(--text-hi); font-size: 16px;">Mis Cuentas Activas</h3>
+            <button class="btn-primario" onclick="fz_abrirModalCuenta()"><i class="ti ti-plus"></i> Nueva Cuenta</button>
+        </div>
+        <div class="kpi-grid" id="fz-lista-cuentas" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px;"></div>
+    </div>
+
+<div id="pantalla-categorias" style="display: none;">
+
+    <div class="fz-cat-topbar">
+        <div class="fz-cat-tipo-dropdown-wrap">
+            <button class="fz-cat-tipo-pill" id="fz-cat-pill-btn" onclick="fz_toggleCatTipoMenu()">
+                <i class="ti ti-chevron-down" id="fz-cat-pill-arrow"></i>
+                <span id="fz-cat-pill-label">Categorías Gastos</span>
+            </button>
+            <div class="fz-cat-tipo-menu" id="fz-cat-tipo-menu">
+                <div class="fz-cat-tipo-item" onclick="fz_cambiarTipoCat('gasto')">
+                    <i class="ti ti-minus-circle"></i> Categorías Gastos
+                </div>
+                <div class="fz-cat-tipo-item" onclick="fz_cambiarTipoCat('ingreso')">
+                    <i class="ti ti-plus-circle"></i> Categorías Ingresos
+                </div>
+            </div>
+        </div>
+
+        <div class="fz-cat-actions-right">
+            <button class="fz-cat-icon-btn" title="Buscar" onclick="fz_toggleBuscadorCat()"><i class="ti ti-search"></i></button>
+            <button class="fz-cat-icon-btn" title="Más opciones"><i class="ti ti-dots-vertical"></i></button>
+            <button class="fz-cat-icon-btn fz-cat-add-pill" title="Nueva categoría" onclick="fz_abrirModalCategoria()"><i class="ti ti-plus"></i></button>
+        </div>
+    </div>
+
+    <div class="fz-cat-search-bar" id="fz-cat-search-bar" style="display:none;">
+        <i class="ti ti-search"></i>
+        <input type="text" id="fz-cat-search-input" placeholder="Buscar categoría..." oninput="fz_pintarCategorias()">
+    </div>
+
+    <div class="fz-cat-table">
+        <div class="fz-cat-table-head">
+            <span class="fz-cat-col-nombre">Nombre</span>
+            <span class="fz-cat-col-icono">Icono</span>
+            <span class="fz-cat-col-color">Color</span>
+            <span class="fz-cat-col-acciones">Acciones</span>
+        </div>
+        <div id="fz-lista-categorias-tabla"></div>
+    </div>
+
+</div>
+
+<div id="pantalla-transacciones" style="display: none;">
+        <div class="fz-cat-topbar">
+            <div class="fz-cat-tipo-dropdown-wrap">
+                <button class="fz-cat-tipo-pill" id="fz-trans-pill-btn" style="background: var(--bg-input); color: var(--text-base); border: 1px solid var(--border-card);" onclick="fz_toggleTransTipoMenu()">
+                    <i class="ti ti-filter" id="fz-trans-pill-arrow"></i>
+                    <span id="fz-trans-pill-label">Todos los movimientos</span>
+                </button>
+                <div class="fz-cat-tipo-menu" id="fz-trans-tipo-menu">
+                    <div class="fz-cat-tipo-item" onclick="fz_filtrarTransacciones('todos')"><i class="ti ti-list"></i> Todos</div>
+                    <div class="fz-cat-tipo-item" onclick="fz_filtrarTransacciones('ingreso')"><i class="ti ti-plus" style="color: var(--status-ok);"></i> Ingresos</div>
+                    <div class="fz-cat-tipo-item" onclick="fz_filtrarTransacciones('gasto')"><i class="ti ti-minus" style="color: var(--status-danger);"></i> Gastos</div>
+                    <div class="fz-cat-tipo-item" onclick="fz_filtrarTransacciones('transferencia')"><i class="ti ti-arrows-right-left" style="color: #2773d6;"></i> Transferencias</div>
+                </div>
+            </div>
+
+            <div class="fz-cat-actions-right">
+                <button class="fz-cat-icon-btn" title="Buscar" onclick="fz_toggleBuscadorTrans()"><i class="ti ti-search"></i></button>
+                <div class="fz-cat-tipo-dropdown-wrap">
+                    <button class="fz-cat-icon-btn fz-cat-add-pill" id="fz-btn-add-trans" title="Nuevo movimiento" onclick="fz_toggleAddTransMenu()"><i class="ti ti-plus"></i></button>
+                    <div class="fz-cat-tipo-menu" id="fz-trans-add-menu" style="right: 0; left: auto; min-width: 170px;">
+                        <div class="fz-cat-tipo-item" onclick="fz_abrirModalTransaccion('gasto')"><i class="ti ti-minus" style="color: var(--status-danger)"></i> Registrar Gasto</div>
+                        <div class="fz-cat-tipo-item" onclick="fz_abrirModalTransaccion('ingreso')"><i class="ti ti-plus" style="color: var(--status-ok)"></i> Registrar Ingreso</div>
+                        <div class="fz-cat-tipo-item" onclick="fz_abrirModalTransferencia()"><i class="ti ti-arrows-right-left" style="color: #2773d6"></i> Transferir</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="fz-cat-search-bar" id="fz-trans-search-bar" style="display:none;">
+            <i class="ti ti-search"></i>
+            <input type="text" id="fz-trans-search-input" placeholder="Buscar concepto o comercio..." oninput="fz_pintarTransacciones()">
+        </div>
+
+        <div class="fz-cat-table" id="fz-tabla-transacciones-contenedor">
+            <div class="fz-cat-table-head fz-trans-table-head">
+                <span class="fz-cat-col-nombre">Descripción</span>
+                <span class="fz-cat-col-icono">Categoría</span>
+                <span class="fz-cat-col-color" style="text-align: right;">Monto</span>
+                <span class="fz-cat-col-acciones" style="text-align: center;">Acciones</span>
+            </div>
+            <div id="fz-lista-transacciones-tabla"></div>
+        </div>
+    </div>
+
+    <div id="pantalla-tarjetas" style="display: none;"><div class="card-surface" style="padding: 40px; text-align: center; color: var(--text-lo);">🚧 Módulo Tarjetas de Crédito en construcción 🚧</div></div>
+    <div id="pantalla-presupuestos" style="display: none;"><div class="card-surface" style="padding: 40px; text-align: center; color: var(--text-lo);">🚧 Módulo Presupuestos en construcción 🚧</div></div>
+    <div id="pantalla-informes" style="display: none;"><div class="card-surface" style="padding: 40px; text-align: center; color: var(--text-lo);">🚧 Módulo Informes en construcción 🚧</div></div>
+    <div id="pantalla-objetivos" style="display: none;"><div class="card-surface" style="padding: 40px; text-align: center; color: var(--text-lo);">🚧 Módulo Objetivos en construcción 🚧</div></div>
+    <div id="pantalla-comercios" style="display: none;"><div class="card-surface" style="padding: 40px; text-align: center; color: var(--text-lo);">🚧 Módulo Comercios en construcción 🚧</div></div>
+    <div id="pantalla-calendario" style="display: none;"><div class="card-surface" style="padding: 40px; text-align: center; color: var(--text-lo);">🚧 Módulo Calendario en construcción 🚧</div></div>
+    <div id="pantalla-actuacion" style="display: none;"><div class="card-surface" style="padding: 40px; text-align: center; color: var(--text-lo);">🚧 Módulo Mi Actuación en construcción 🚧</div></div>
+
+</div>
+
+<div class="modal-overlay" id="fz-modal-cuenta">
+    <div class="modal-caja fz-modal-premium">
+        <div class="fz-modal-header-exacto">
+            <h3 id="fz-modal-cuenta-titulo">Añadir cuenta</h3>
+            <button class="btn-ghost fz-btn-cerrar-exacto" onclick="document.getElementById('fz-modal-cuenta').classList.remove('visible')">
+                <i class="ti ti-x"></i>
+            </button>
+        </div>
+        <input type="hidden" id="fz-cuenta-id">
+        <input type="hidden" id="fz-cuenta-color" value="#3498db">
+        <div class="fz-modal-content-exacto">
+            <div class="fz-monto-container-exacto">
+                <span class="fz-monto-simbolo">$</span>
+                <input type="number" id="fz-cuenta-saldo" class="fz-monto-input-exacto" placeholder="0.00" step="0.01" autocomplete="off" onblur="if(this.value) this.value = parseFloat(this.value).toFixed(2)">
+            </div>
+            <div class="fz-group-exacto">
+                <label class="fz-label-exacto">Nombre de la institución financiera</label>
+                <input type="text" id="fz-cuenta-nombre" class="fz-input-exacto" placeholder="Ej. Bancolombia, Efectivo..." autocomplete="off">
+            </div>
+            <div class="fz-group-exacto">
+                <label class="fz-label-exacto">Tipo de cuenta</label>
+                <select id="fz-cuenta-tipo-select" class="fz-select-exacto">
+                    <option value="efectivo">💵 Efectivo / Cash</option>
+                    <option value="debito" selected>💳 Cuenta de Débito / Ahorros</option>
+                    <option value="corriente">🏦 Cuenta Corriente</option>
+                    <option value="credito">🎫 Tarjeta de Crédito</option>
+                    <option value="inversion">📈 Inversión / Broker</option>
+                </select>
+            </div>
+            <div class="fz-row-detalles-exacto">
+                <div class="fz-group-exacto">
+                    <label class="fz-label-exacto">URL del Logo institucional</label>
+                    <div class="fz-input-with-preview">
+                        <div class="fz-logo-mini-box" id="fz-logo-preview-box">
+                            <i class="ti ti-building-bank" id="fz-logo-icon"></i>
+                            <img id="fz-logo-img" src="" style="display:none;">
+                        </div>
+                        <input type="text" id="fz-cuenta-logo-url" class="fz-input-exacto" placeholder="URL de la imagen..." autocomplete="off" oninput="fz_actualizarPreviewLogo()">
+                    </div>
+                </div>
+                <div class="fz-group-exacto">
+                    <label class="fz-label-exacto">Color distintivo</label>
+                    <div class="fz-palette-exacta" id="fz-color-palette">
+                        <div class="fz-circle-exacto" style="background: #e74c3c;" onclick="fz_seleccionarColor(this, '#e74c3c')"><i class="ti ti-check"></i></div>
+                        <div class="fz-circle-exacto" style="background: #2ecc71;" onclick="fz_seleccionarColor(this, '#2ecc71')"><i class="ti ti-check"></i></div>
+                        <div class="fz-circle-exacto" style="background: #f1c40f;" onclick="fz_seleccionarColor(this, '#f1c40f')"><i class="ti ti-check"></i></div>
+                        <div class="fz-circle-exacto activa" style="background: #3498db;" onclick="fz_seleccionarColor(this, '#3498db')"><i class="ti ti-check"></i></div>
+                        <div class="fz-circle-exacto" style="background: #9b59b6;" onclick="fz_seleccionarColor(this, '#9b59b6')"><i class="ti ti-check"></i></div>
+                        <div class="fz-circle-exacto fz-custom-picker-trigger" onclick="document.getElementById('fz-custom-color-input').click()">
+                            <i class="ti ti-plus"></i>
+                            <input type="color" id="fz-custom-color-input" onchange="fz_seleccionarColorPersonalizado(this)" style="display:none; position:absolute;">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="fz-toggle-box-exacto">
+                <div class="fz-toggle-textos">
+                    <span class="fz-toggle-titulo">Incluir en la suma del dashboard</span>
+                    <span class="fz-toggle-sub">El saldo acumulado se sumará al patrimonio total visible.</span>
+                </div>
+                <label class="fz-switch-exacto">
+                    <input type="checkbox" id="fz-cuenta-incluir" checked>
+                    <span class="fz-slider-exacto"></span>
+                </label>
+            </div>
+        </div>
+        <div class="fz-modal-footer-exacto">
+            <button class="fz-btn-secundario-izq" id="fz-btn-reajustar" onclick="fz_reajustarSaldoUI()">
+                <i class="ti ti-adjustments"></i> Re-ajustar saldo
+            </button>
+            <button class="fz-btn-primario-der" onclick="fz_guardarFormularioCuenta()">Guardar cuenta</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="fz-modal-categoria">
+    <div class="modal-caja fz-modal-premium" style="max-width: 420px !important;">
+        <div class="fz-modal-header-exacto">
+            <h3 id="fz-modal-categoria-titulo">Nueva Categoría</h3>
+            <button class="btn-ghost fz-btn-cerrar-exacto" onclick="document.getElementById('fz-modal-categoria').classList.remove('visible')">
+                <i class="ti ti-x"></i>
+            </button>
+        </div>
+
+        <input type="hidden" id="fz-categoria-id">
+        <input type="hidden" id="fz-categoria-parent-id">
+        <input type="hidden" id="fz-categoria-es-sub">
+
+        <div class="fz-modal-content-exacto">
+
+            <!-- Emoji picker (solo para categorías padre) -->
+            <div class="fz-group-exacto" id="fz-cat-emoji-group">
+                <label class="fz-label-exacto">Ícono (Emoji)</label>
+                <div class="fz-emoji-selector-row">
+                    <button type="button" class="fz-emoji-display-btn" id="fz-cat-emoji-btn" onclick="fz_toggleEmojiPicker()">
+                        <span id="fz-cat-emoji-preview">🏷️</span>
+                    </button>
+                    <span style="color: var(--text-lo); font-size: 12px;">Toca para cambiar el ícono</span>
+                </div>
+            </div>
+
+            <div class="fz-group-exacto">
+                <label class="fz-label-exacto">Nombre</label>
+                <input type="text" id="fz-categoria-nombre" class="fz-input-exacto" placeholder="Ej: Restaurantes, Salario..." autocomplete="off">
+            </div>
+
+            <div class="fz-group-exacto" id="fz-cat-tipo-group">
+                <label class="fz-label-exacto">Tipo</label>
+                <select id="fz-categoria-tipo" class="fz-select-exacto">
+                    <option value="gasto">Gasto</option>
+                    <option value="ingreso">Ingreso</option>
+                </select>
+            </div>
+
+            <div class="fz-group-exacto">
+                <label class="fz-label-exacto">Color</label>
+                <div class="fz-cat-color-row">
+                    <div class="fz-cat-color-circle" style="background:#e74c3c" onclick="fz_seleccionarColorCat(this,'#e74c3c')"><i class="ti ti-check"></i></div>
+                    <div class="fz-cat-color-circle" style="background:#e67e22" onclick="fz_seleccionarColorCat(this,'#e67e22')"><i class="ti ti-check"></i></div>
+                    <div class="fz-cat-color-circle" style="background:#f1c40f" onclick="fz_seleccionarColorCat(this,'#f1c40f')"><i class="ti ti-check"></i></div>
+                    <div class="fz-cat-color-circle" style="background:#2ecc71" onclick="fz_seleccionarColorCat(this,'#2ecc71')"><i class="ti ti-check"></i></div>
+                    <div class="fz-cat-color-circle" style="background:#3498db" onclick="fz_seleccionarColorCat(this,'#3498db')"><i class="ti ti-check"></i></div>
+                    <div class="fz-cat-color-circle" style="background:#9b59b6" onclick="fz_seleccionarColorCat(this,'#9b59b6')"><i class="ti ti-check"></i></div>
+                    <div class="fz-cat-color-circle" style="background:#1abc9c" onclick="fz_seleccionarColorCat(this,'#1abc9c')"><i class="ti ti-check"></i></div>
+                    <div class="fz-cat-color-circle" style="background:#e91e63" onclick="fz_seleccionarColorCat(this,'#e91e63')"><i class="ti ti-check"></i></div>
+                    <div class="fz-cat-color-circle fz-cat-color-custom" onclick="document.getElementById('fz-cat-color-custom-input').click()">
+                        <i class="ti ti-plus"></i>
+                        <input type="color" id="fz-cat-color-custom-input" style="display:none;position:absolute;" onchange="fz_colorCatCustom(this)">
+                    </div>
+                    <input type="hidden" id="fz-categoria-color" value="#e74c3c">
+                </div>
+            </div>
+        </div>
+
+        <div class="fz-modal-footer-exacto">
+            <button class="fz-btn-secundario-izq" onclick="document.getElementById('fz-modal-categoria').classList.remove('visible')">Cancelar</button>
+            <button class="fz-btn-primario-der" onclick="fz_guardarFormularioCategoria()">Guardar</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL EMOJI PICKER -->
+<div class="modal-overlay" id="fz-modal-emoji">
+    <div class="fz-emoji-picker-caja">
+        <div class="fz-emoji-picker-header">
+            <input type="text" class="fz-emoji-search" id="fz-emoji-search" placeholder="🔍  Buscar emoji..." oninput="fz_filtrarEmojis()">
+            <button class="btn-ghost" onclick="document.getElementById('fz-modal-emoji').classList.remove('visible')"><i class="ti ti-x"></i></button>
+        </div>
+        <div class="fz-emoji-section-label" id="fz-emoji-section-title">Frecuentes</div>
+        <div class="fz-emoji-grid" id="fz-emoji-grid"></div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="fz-modal-transaccion">
+    <div class="modal-caja fz-modal-premium fz-modal-wide">
+        
+        <div class="fz-modal-header-exacto">
+            <h3 id="fz-modal-trans-titulo">Registrar Movimiento</h3>
+            <button class="btn-ghost fz-btn-cerrar-exacto" onclick="document.getElementById('fz-modal-transaccion').classList.remove('visible')">
+                <i class="ti ti-x"></i>
+            </button>
+        </div>
+
+        <input type="hidden" id="fz-trans-id">
+        <input type="hidden" id="fz-trans-tipo">
+
+        <div class="fz-modal-content-exacto">
+            
+            <div class="fz-monto-container-exacto">
+                <span class="fz-monto-simbolo" id="fz-trans-simbolo-tipo">$</span>
+                <input type="number" id="fz-trans-monto" class="fz-monto-input-exacto" placeholder="0.00" step="0.01" autocomplete="off" onblur="if(this.value) this.value = parseFloat(this.value).toFixed(2)">
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div class="fz-toggle-box-exacto">
+                    <div class="fz-toggle-textos">
+                        <span class="fz-toggle-titulo">Estado del pago</span>
+                        <span class="fz-toggle-sub" id="fz-lbl-toggle-pagado">Marcado como pagado</span>
+                    </div>
+                    <label class="fz-switch-exacto">
+                        <input type="checkbox" id="fz-trans-pagado" checked>
+                        <span class="fz-slider-exacto"></span>
+                    </label>
+                </div>
+
+                <div class="fz-toggle-box-exacto" id="fz-container-gasto-fijo">
+                    <div class="fz-toggle-textos">
+                        <span class="fz-toggle-titulo">Gasto fijo mensual</span>
+                        <span class="fz-toggle-sub">Se repite el mismo día</span>
+                    </div>
+                    <label class="fz-switch-exacto">
+                        <input type="checkbox" id="fz-trans-gasto-fijo">
+                        <span class="fz-slider-exacto"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="fz-group-exacto">
+                <label class="fz-label-exacto">¿Cuándo ocurrió la transacción?</label>
+                <div class="fz-date-shortcut-row">
+                    <button type="button" class="fz-btn-date-shortcut activa" id="fz-btn-fecha-hoy" onclick="fz_establecerFechaRapida('hoy')">Hoy</button>
+                    <button type="button" class="fz-btn-date-shortcut" id="fz-btn-fecha-ayer" onclick="fz_establecerFechaRapida('ayer')">Ayer</button>
+                    <div style="position: relative; flex-grow: 1;">
+                        <input type="date" id="fz-trans-fecha" class="fz-input-exacto fz-input-date-custom" onchange="fz_alCambiarFechaManual()">
+                        <i class="ti ti-calendar fz-icon-inside-date"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="fz-group-exacto">
+                <label class="fz-label-exacto">Descripción / Concepto básico</label>
+                <input type="text" id="fz-trans-desc" class="fz-input-exacto" placeholder="Ej: Compra de insumos, Pago mensual..." autocomplete="off">
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                <div class="fz-group-exacto">
+                    <label class="fz-label-exacto">Cuenta financiera de origen/destino</label>
+                    <select id="fz-trans-cuenta" class="fz-select-exacto"></select>
+                </div>
+                
+                    <div style="display: flex; gap: 12px; width: 100%;">
+                    <div class="fz-group-exacto" id="fz-container-unidad" style="flex: 1;">
+                        <label class="fz-label-exacto">Unidad de medida (Opcional)</label>
+                        <div style="position: relative;">
+                            <input type="text" id="fz-trans-unidad" class="fz-input-exacto" placeholder="Seleccionar unidad..." readonly onclick="fz_toggleDropdownInline('fz-drop-unidad')">
+                            <div class="fz-floating-autocomplete-menu" id="fz-drop-unidad">
+                                <div class="fz-autocomplete-option" onclick="fz_seleccionarUnidad('Unidad')">Unidad/es</div>
+                                <div class="fz-autocomplete-option" onclick="fz_seleccionarUnidad('Litro')">Litro (L)</div>
+                                <div class="fz-autocomplete-option" onclick="fz_seleccionarUnidad('Mililitro')">Mililitro (ml)</div>
+                                <div class="fz-autocomplete-option" onclick="fz_seleccionarUnidad('Galon')">Galón (gal)</div>
+                                <div class="fz-autocomplete-option" onclick="fz_seleccionarUnidad('Botella')">Botella</div>
+                                <div class="fz-autocomplete-option" onclick="fz_seleccionarUnidad('Kilogramo')">Kilogramo (kg)</div>
+                                <div class="fz-autocomplete-option" onclick="fz_seleccionarUnidad('Gramo')">Gramo (g)</div>
+                                <div class="fz-autocomplete-option" onclick="fz_seleccionarUnidad('Miligramo')">Miligramo (mg)</div>
+                                <div class="fz-autocomplete-option" onclick="fz_seleccionarUnidad('Microgramo')">Microgramo (µg)</div>
+                                <div class="fz-autocomplete-option" onclick="fz_seleccionarUnidad('Libra')">Libra (lb)</div>
+                                <div class="fz-autocomplete-option" onclick="fz_seleccionarUnidad('Onza')">Onza (oz)</div>
+                                <div class="fz-autocomplete-option" onclick="fz_seleccionarUnidad('Cm3')">Centímetros Cúbicos (cm³)</div>
+                                <div class="fz-autocomplete-option-clear" onclick="fz_seleccionarUnidad('')">❌ Ninguna unidad</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="fz-group-exacto" id="fz-container-cantidad" style="flex: 1; max-width: 90px;">
+                        <label class="fz-label-exacto">Cantidad</label>
+                        <input type="text" id="fz-trans-cantidad" class="fz-input-exacto" placeholder="Ej: 1" maxlength="5" autocomplete="off" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                <div class="fz-group-exacto">
+                    <label class="fz-label-exacto">Categoría de transacción</label>
+                    <div style="position: relative;">
+                        <input type="text" id="fz-trans-cat-input" class="fz-input-exacto" placeholder="Escribe o selecciona..." autocomplete="off" oninput="fz_filtrarDropdownCategorias()" onfocus="fz_filtrarDropdownCategorias()">
+                        <input type="hidden" id="fz-trans-categoria">
+                        <div class="fz-floating-autocomplete-menu" id="fz-drop-categorias"></div>
+                    </div>
+                </div>
+
+                <div class="fz-group-exacto">
+                    <label class="fz-label-exacto">Comercio / Establecimiento</label>
+                    <div style="position: relative;">
+                        <input type="text" id="fz-trans-comercio-input" class="fz-input-exacto" placeholder="Escribe o selecciona..." autocomplete="off" oninput="fz_filtrarDropdownComercios()" onfocus="fz_filtrarDropdownComercios()">
+                        <div class="fz-floating-autocomplete-menu" id="fz-drop-comercios"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="fz-group-exacto">
+                <label class="fz-label-exacto">Observaciones adicionales</label>
+                <textarea id="fz-trans-observacion" class="fz-input-exacto" style="height: 65px; resize: none; font-family: inherit;" placeholder="Notas explicativas sobre este movimiento..."></textarea>
+            </div>
+
+        </div>
+
+        <div class="fz-modal-footer-exacto">
+            <button class="fz-btn-secundario-izq" onclick="document.getElementById('fz-modal-transaccion').classList.remove('visible')">
+                Cancelar
+            </button>
+            <button class="fz-btn-primario-der" id="fz-btn-guardar-trans-premium" onclick="fz_guardarFormularioTransaccion()">
+                Confirmar movimiento
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="fz-modal-transferencia">
+    <div class="modal-caja fz-modal-premium">
+        <div class="fz-modal-header-exacto">
+            <h3 style="color: #2773d6; margin:0; font-size:16px;" id="fz-modal-transf-titulo">Transferir Dinero</h3>
+            <button class="btn-ghost fz-btn-cerrar-exacto" onclick="document.getElementById('fz-modal-transferencia').classList.remove('visible')">
+                <i class="ti ti-x"></i>
+            </button>
+        </div>
+        
+        <input type="hidden" id="fz-transf-id">
+
+        <div class="fz-modal-content-exacto">
+            <div class="fz-monto-container-exacto">
+                <span class="fz-monto-simbolo" style="color: #2773d6;">$</span>
+                <input type="number" id="fz-transf-monto" class="fz-monto-input-exacto" placeholder="0.00" step="0.01" autocomplete="off" onblur="if(this.value) this.value = parseFloat(this.value).toFixed(2)">
+            </div>
+
+            <div class="fz-group-exacto">
+                <label class="fz-label-exacto">¿Cuándo ocurrió la transferencia?</label>
+                <div style="position: relative;">
+                    <input type="date" id="fz-transf-fecha" class="fz-input-exacto fz-input-date-custom">
+                    <i class="ti ti-calendar fz-icon-inside-date"></i>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                <div class="fz-group-exacto">
+                    <label class="fz-label-exacto">Cuenta de Origen (-)</label>
+                    <select id="fz-transf-origen" class="fz-select-exacto"></select>
+                </div>
+                <div class="fz-group-exacto">
+                    <label class="fz-label-exacto">Cuenta de Destino (+)</label>
+                    <select id="fz-transf-destino" class="fz-select-exacto"></select>
+                </div>
+            </div>
+        </div>
+        <div class="fz-modal-footer-exacto">
+            <button class="fz-btn-secundario-izq" onclick="document.getElementById('fz-modal-transferencia').classList.remove('visible')">Cancelar</button>
+            <button class="fz-btn-primario-der" style="background: #2773d6;" onclick="fz_guardarFormularioTransferencia()">Confirmar envío</button>
+        </div>
+    </div>
+</div>
+
+
+
+// ====================================================
+// RUTA DEL ARCHIVO: css/finanzas-personales.css
+// ====================================================
+/* =========================================
+   MÓDULO: FINANZAS PERSONALES
+   ========================================= */
+
+/* 💻 ESCRITORIO: Arriba, estilo Pestañas */
+.finanzas-nav {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--border-card);
+    padding-bottom: 10px;
+}
+
+.finanzas-tab {
+    padding: 8px 16px;
+    border-radius: 8px;
+    color: var(--text-lo);
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.finanzas-tab i { font-size: 18px; }
+.finanzas-tab:hover { background: var(--bg-hover); color: var(--text-base); }
+.finanzas-tab.activa { background: var(--accent); color: var(--clr-white); }
+
+/* Control de Mes Global */
+.finanzas-mes-control {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 24px;
+    background: var(--bg-card);
+    padding: 12px;
+    border-radius: 12px;
+    border: 1px solid var(--border-card);
+}
+.finanzas-mes-control h3 { 
+    font-size: 16px; 
+    font-weight: 700; 
+    color: var(--text-hi); 
+    min-width: 140px; 
+    text-align: center; 
+}
+
+/* Layout Principal del Dashboard */
+.finanzas-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 20px;
+}
+
+/* =========================================
+   📱 MÓVIL: BARRA INFERIOR (Estilo App Nativa)
+   ========================================= */
+@media (max-width: 900px) { 
+    .finanzas-grid { grid-template-columns: 1fr; } 
+}
+
+@media (max-width: 768px) {
+    /* Espacio extra al final para que la barra flotante no tape el contenido */
+    #finanzas-contenido-dinamico {
+        padding-bottom: 80px; 
+    }
+
+    .finanzas-nav {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        background: var(--bg-root);
+        border-top: 1px solid var(--border);
+        border-bottom: none;
+        margin: 0;
+        padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+        justify-content: space-around;
+        z-index: 50;
+        box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4);
+    }
+
+    .finanzas-tab {
+        flex-direction: column;
+        padding: 4px;
+        gap: 4px;
+        background: transparent !important;
+        color: var(--text-lo);
+    }
+
+    .finanzas-tab i {
+        font-size: 22px;
+        transition: transform 0.2s, color 0.2s;
+    }
+
+    .finanzas-tab span {
+        font-size: 10px;
+        font-weight: 500;
+    }
+
+    /* Estado activo minimalista */
+    .finanzas-tab.activa { color: var(--accent) !important; }
+    .finanzas-tab.activa i { transform: translateY(-2px); }
+}
+
+/* =========================================
+   ESTILOS DEL SUBMENÚ "MÁS OPCIONES"
+   ========================================= */
+.finanzas-tab-dropdown-container { position: relative; display: flex; }
+
+.finanzas-dropdown-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    z-index: 100;
+    min-width: 180px;
+    padding: 8px 0;
+    margin-top: 8px;
+}
+
+.finanzas-dropdown-menu.visible { display: flex; flex-direction: column; }
+
+.finanzas-dropdown-item {
+    padding: 12px 16px;
+    color: var(--text-hi);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: background 0.2s;
+}
+
+.finanzas-dropdown-item:hover { background: var(--bg-hover); color: var(--accent); }
+.finanzas-dropdown-item i { font-size: 18px; }
+
+/* 📱 REFUERZO RESPONSIVE (Celulares) */
+@media (max-width: 768px) {
+    .finanzas-nav {
+        /* Permite deslizar con el dedo si no caben las 7 pestañas */
+        overflow-x: auto;
+        justify-content: flex-start;
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+    .finanzas-nav::-webkit-scrollbar { display: none; }
+    
+    .finanzas-tab { min-width: 65px; } /* Evita que se aplasten */
+
+    /* El submenú en celular flota como modal desde abajo */
+    .finanzas-dropdown-menu {
+        position: fixed;
+        bottom: 80px;
+        right: 10px;
+        left: auto;
+        top: auto;
+        min-width: 200px;
+        border-radius: 16px;
+    }
+}
+
+/* ====================================================
+   DISEÑO QUIRÚRGICO DE PRECISIÓN: MODAL DE CUENTAS
+   ==================================================== */
+.fz-modal-premium {
+    max-width: 500px !important;
+    width: 90%;
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+    padding: 0 !important;
+    overflow: hidden;
+    animation: fzFadeIn 0.25s ease-out;
+}
+
+@keyframes fzFadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.fz-modal-header-exacto {
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--border-card);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.fz-modal-header-exacto h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-hi);
+    margin: 0;
+}
+
+.fz-btn-cerrar-exacto {
+    color: var(--text-lo);
+    font-size: 18px;
+    padding: 4px;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+.fz-btn-cerrar-exacto:hover { color: var(--text-base); }
+
+.fz-modal-content-exacto {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* 1. MONTO NUMÉRICO GIGANTE (ESTILO STRIPE/NOTION) */
+.fz-monto-container-exacto {
+    display: flex;
+    align-items: center;
+    justify-content: left;
+    gap: 4px;
+    padding: 10px 0;
+    border-bottom: 2px dashed var(--border-card);
+    margin-bottom: 8px;
+}
+
+.fz-monto-simbolo {
+    font-size: 38px;
+    font-weight: 700;
+    color: var(--text-hi);
+    user-select: none;
+}
+
+.fz-monto-input-exacto {
+    background: transparent !important;
+    border: none !important;
+    outline: none !important;
+    font-size: 38px;
+    font-weight: 700;
+    color: var(--text-hi);
+    width: 580px;
+    padding: 0;
+    margin: 0;
+    font-family: inherit;
+}
+/* Remueve flechas nativas del input number */
+.fz-monto-input-exacto::-webkit-outer-spin-button,
+.fz-monto-input-exacto::-webkit-inner-spin-button {
+    -webkit-appearance: none; margin: 0;
+}
+.fz-monto-input-exacto { -moz-appearance: textfield; }
+
+/* 2 Y 3. LABELS E INPUTS DEL FORMULARIO */
+.fz-group-exacto {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.fz-label-exacto {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-lo);
+    text-transform: none;
+    letter-spacing: normal;
+}
+
+.fz-input-exacto, .fz-select-exacto {
+    background: var(--bg-input) !important;
+    border: 1px solid var(--border-card) !important;
+    border-radius: 10px !important;
+    padding: 11px 14px !important;
+    font-size: 13.5px !important;
+    color: var(--text-base) !important;
+    width: 100% !important;
+    box-sizing: border-box;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.fz-input-exacto:focus, .fz-select-exacto:focus {
+    border-color: var(--accent) !important;
+    box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.15) !important;
+}
+
+/* 4. SECCIONES DE DETALLE (PREVIEW LOGO Y PALETA) */
+.fz-row-detalles-exacto {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.fz-input-with-preview {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.fz-logo-mini-box {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    border: 1px solid var(--border-card);
+    background: var(--bg-input);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    overflow: hidden;
+}
+.fz-logo-mini-box i { font-size: 20px; color: var(--text-lo); }
+.fz-logo-mini-box img { width: 100%; height: 100%; object-fit: cover; }
+
+.fz-palette-exacta {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    height: 40px; /* Alínea con los inputs */
+}
+
+.fz-circle-exacto {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: transparent;
+    transition: transform 0.15s, box-shadow 0.15s;
+}
+.fz-circle-exacto i { font-size: 12px; font-weight: bold; }
+
+.fz-circle-exacto.activa {
+    color: #ffffff;
+    transform: scale(1.1);
+    box-shadow: 0 0 0 2px var(--bg-card), 0 0 0 4px var(--accent);
+}
+
+.fz-custom-picker-trigger {
+    background: conic-gradient(red, yellow, lime, aqua, blue, magenta, red);
+    color: #ffffff !important;
+}
+
+/* 5. TOGGLE IDENTICO */
+.fz-toggle-box-exacto {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--bg-input);
+    padding: 14px 16px;
+    border-radius: 12px;
+    border: 1px solid var(--border-card);
+    margin-top: 4px;
+}
+
+.fz-toggle-textos {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.fz-toggle-titulo {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-hi);
+}
+
+.fz-toggle-sub {
+    font-size: 11.5px;
+    color: var(--text-lo);
+}
+
+.fz-switch-exacto {
+    position: relative;
+    display: inline-block;
+    width: 40px;
+    height: 22px;
+    flex-shrink: 0;
+}
+.fz-switch-exacto input { opacity: 0; width: 0; height: 0; }
+
+.fz-slider-exacto {
+    position: absolute;
+    cursor: pointer;
+    inset: 0;
+    background-color: var(--border-card);
+    transition: .25s;
+    border-radius: 30px;
+}
+.fz-slider-exacto:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 3px;
+    bottom: 3px;
+    background-color: #ffffff;
+    transition: .25s;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+
+input:checked + .fz-slider-exacto { background-color: var(--accent); }
+input:checked + .fz-slider-exacto:before { transform: translateX(18px); }
+
+/* 6. FOOTER PREMIUM INVERTIDO (BOTONES OPUESTOS) */
+.fz-modal-footer-exacto {
+    padding: 16px 24px;
+    border-top: 1px solid var(--border-card);
+    background: var(--bg-root);
+    display: flex;
+    justify-content: space-between; /* Distribuye un botón a cada extremo */
+    align-items: center;
+}
+
+.fz-btn-secundario-izq {
+    background: transparent;
+    border: 1px solid var(--border-card);
+    color: var(--text-lo);
+    padding: 10px 16px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.2s, color 0.2s;
+}
+.fz-btn-secundario-izq:hover {
+    background: var(--bg-input);
+    color: var(--text-base);
+}
+
+.fz-btn-primario-der {
+    background: var(--accent);
+    border: 1px solid transparent;
+    color: #ffffff;
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: filter 0.2s;
+}
+.fz-btn-primario-der:hover { filter: brightness(1.1); }
+
+@media (max-width: 500px) {
+    .fz-row-detalles-exacto { grid-template-columns: 1fr; gap: 14px; }
+    .fz-modal-footer-exacto { flex-direction: column-reverse; gap: 10px; }
+    .fz-btn-secundario-izq, .fz-btn-primario-der { width: 100%; justify-content: center; }
+}
+
+/* Shortcuts de Fecha Estilo Premium */
+.fz-modal-wide { max-width: 650px !important; }
+.fz-date-shortcut-row { display: flex; gap: 8px; align-items: center; }
+.fz-btn-date-shortcut {
+    background: var(--bg-input); border: 1px solid var(--border-card); color: var(--text-lo);
+    padding: 11px 18px; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s ease;
+}
+.fz-btn-date-shortcut:hover { background: var(--bg-hover); color: var(--text-base); }
+.fz-btn-date-shortcut.activa { background: var(--accent) !important; color: #ffffff !important; border-color: transparent !important; }
+.fz-input-date-custom { padding-right: 36px !important; cursor: pointer; }
+.fz-icon-inside-date { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); color: var(--text-lo); font-size: 16px; pointer-events: none; }
+
+/* Cajas Flotantes de Sugerencias y Autocompletado */
+.fz-floating-autocomplete-menu {
+    display: none; position: absolute; top: 100%; left: 0; width: 100%; background: var(--bg-card);
+    border: 1px solid var(--border-card); border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+    z-index: 200; max-height: 220px; overflow-y: auto; margin-top: 5px; padding: 6px 0;
+}
+.fz-floating-autocomplete-menu.visible { display: flex; flex-direction: column; }
+.fz-autocomplete-option { padding: 10px 14px; font-size: 13px; color: var(--text-base); cursor: pointer; display: flex; align-items: center; gap: 10px; transition: background 0.15s; }
+.fz-autocomplete-option:hover { background: var(--bg-hover); color: var(--accent); }
+.fz-autocomplete-option-express { padding: 11px 14px; font-size: 12.5px; font-weight: 600; color: var(--status-ok); background: rgba(var(--accent-rgb), 0.05); cursor: pointer; border-top: 1px dashed var(--border-card); display: flex; align-items: center; gap: 8px; }
+.fz-autocomplete-option-express:hover { background: rgba(var(--accent-rgb), 0.12); }
+.fz-autocomplete-option-clear { padding: 8px 14px; font-size: 12px; color: var(--status-danger); cursor: pointer; border-top: 1px solid var(--border-card); }
+.fz-autocomplete-option-clear:hover { background: var(--bg-hover); }
+
+/* =========================================
+   MÓDULO: CATEGORÍAS REDISEÑADAS
+   ========================================= */
+
+.fz-cat-topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    gap: 12px;
+}
+
+/* Botón pill tipo "Categorías Gastos" */
+.fz-cat-tipo-dropdown-wrap { position: relative; }
+
+.fz-cat-tipo-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--status-danger);
+    color: #fff;
+    border: none;
+    border-radius: 30px;
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: filter 0.2s;
+}
+.fz-cat-tipo-pill:hover { filter: brightness(1.1); }
+.fz-cat-tipo-pill i { font-size: 16px; transition: transform 0.2s; }
+.fz-cat-tipo-pill.ingreso-activo { background: var(--status-ok); }
+
+.fz-cat-tipo-menu {
+    display: none;
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: 14px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+    z-index: 200;
+    min-width: 220px;
+    padding: 6px 0;
+    overflow: hidden;
+}
+.fz-cat-tipo-menu.visible { display: block; }
+
+.fz-cat-tipo-item {
+    padding: 13px 18px;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text-hi);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: background 0.15s;
+}
+.fz-cat-tipo-item:hover { background: var(--bg-hover); color: var(--accent); }
+.fz-cat-tipo-item i { font-size: 18px; }
+
+/* Botones de la derecha */
+.fz-cat-actions-right { display: flex; gap: 8px; align-items: center; }
+
+.fz-cat-icon-btn {
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    border: 1px solid var(--border-card);
+    background: var(--bg-card);
+    color: var(--text-lo);
+    font-size: 17px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+}
+.fz-cat-icon-btn:hover { background: var(--bg-hover); color: var(--text-base); }
+
+.fz-cat-add-pill {
+    background: var(--status-danger) !important;
+    color: #fff !important;
+    border-color: transparent !important;
+    font-size: 20px !important;
+}
+.fz-cat-add-pill:hover { filter: brightness(1.15); }
+
+/* Barra de búsqueda */
+.fz-cat-search-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-card);
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-bottom: 14px;
+    color: var(--text-lo);
+}
+.fz-cat-search-bar input {
+    background: transparent;
+    border: none;
+    outline: none;
+    flex: 1;
+    font-size: 13px;
+    color: var(--text-base);
+}
+
+/* Tabla de categorías */
+.fz-cat-table {
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+.fz-cat-table-head {
+    display: grid;
+    grid-template-columns: 1fr 80px 80px 160px;
+    padding: 12px 20px;
+    background: var(--bg-input);
+    border-bottom: 1px solid var(--border-card);
+}
+.fz-cat-table-head span {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-lo);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.fz-cat-row {
+    display: grid;
+    grid-template-columns: 1fr 80px 80px 160px;
+    padding: 14px 20px;
+    align-items: center;
+    border-bottom: 1px solid var(--border-card);
+    transition: background 0.15s;
+}
+.fz-cat-row:last-child { border-bottom: none; }
+.fz-cat-row:hover { background: var(--bg-hover); }
+
+/* Fila de subcategoría */
+.fz-cat-row.es-sub .fz-cat-col-nombre-cell {
+    padding-left: 28px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.fz-cat-row.es-sub .fz-cat-sub-arrow {
+    color: var(--text-lo);
+    font-size: 13px;
+    flex-shrink: 0;
+}
+
+.fz-cat-col-nombre-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13.5px;
+    color: var(--text-base);
+    font-weight: 500;
+}
+
+.fz-cat-col-icono-cell { display: flex; align-items: center; }
+.fz-cat-emoji-badge {
+    font-size: 22px;
+    line-height: 1;
+}
+
+.fz-cat-col-color-cell { display: flex; align-items: center; }
+.fz-cat-color-dot {
+    width: 16px; height: 16px;
+    border-radius: 50%;
+}
+
+.fz-cat-col-acciones-cell {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.fz-cat-action-btn {
+    width: 30px; height: 30px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: var(--text-lo);
+    font-size: 16px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+.fz-cat-action-btn:hover { background: var(--bg-hover); color: var(--text-base); }
+.fz-cat-action-btn.add-sub { 
+    background: var(--status-danger); 
+    color: #fff; 
+    border-radius: 50%;
+    width: 26px; height: 26px;
+    font-size: 14px;
+}
+.fz-cat-action-btn.add-sub.ingreso { background: var(--status-ok); }
+.fz-cat-action-btn.add-sub:hover { filter: brightness(1.15); background: var(--status-danger); }
+
+/* =========================================
+   MODAL DE CATEGORÍA REDISEÑADO
+   ========================================= */
+.fz-emoji-selector-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+.fz-emoji-display-btn {
+    width: 56px; height: 56px;
+    border-radius: 14px;
+    border: 2px solid var(--border-card);
+    background: var(--bg-input);
+    font-size: 30px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: border-color 0.2s, transform 0.15s;
+    flex-shrink: 0;
+}
+.fz-emoji-display-btn:hover { border-color: var(--accent); transform: scale(1.05); }
+
+/* Paleta de colores para categorías */
+.fz-cat-color-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+.fz-cat-color-circle {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    color: transparent;
+    transition: transform 0.15s, box-shadow 0.15s;
+    position: relative;
+}
+.fz-cat-color-circle i { font-size: 13px; font-weight: bold; }
+.fz-cat-color-circle.activa {
+    color: #fff;
+    transform: scale(1.15);
+    box-shadow: 0 0 0 2px var(--bg-card), 0 0 0 4px var(--accent);
+}
+.fz-cat-color-custom {
+    background: conic-gradient(red, yellow, lime, aqua, blue, magenta, red);
+    color: #fff !important;
+}
+
+/* =========================================
+   EMOJI PICKER MODAL
+   ========================================= */
+.fz-emoji-picker-caja {
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: 20px;
+    width: 340px;
+    max-height: 480px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+    animation: fzFadeIn 0.2s ease-out;
+}
+.fz-emoji-picker-header {
+    padding: 14px 16px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    border-bottom: 1px solid var(--border-card);
+}
+.fz-emoji-search {
+    flex: 1;
+    background: var(--bg-input);
+    border: 1px solid var(--border-card);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 13px;
+    color: var(--text-base);
+    outline: none;
+}
+.fz-emoji-search:focus { border-color: var(--accent); }
+
+.fz-emoji-section-label {
+    padding: 10px 16px 4px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-lo);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+.fz-emoji-grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 2px;
+    padding: 4px 10px 14px;
+    overflow-y: auto;
+    flex: 1;
+}
+.fz-emoji-btn {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    font-size: 22px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+    line-height: 1;
+}
+.fz-emoji-btn:hover { background: var(--bg-hover); transform: scale(1.2); }
+
+@media (max-width: 768px) {
+    .fz-cat-table-head,
+    .fz-cat-row { grid-template-columns: 1fr 50px 50px 120px; }
+    .fz-emoji-picker-caja { width: 95vw; }
+    .fz-cat-topbar { flex-wrap: wrap; }
+}
+
+/* =========================================
+   GRID ESPECÍFICO PARA TRANSACCIONES (CRUD)
+   ========================================= */
+.fz-trans-table-head,
+.fz-trans-row {
+    display: grid;
+    grid-template-columns: 2fr 1.5fr 1fr 100px;
+    padding: 14px 20px;
+    align-items: center;
+    border-bottom: 1px solid var(--border-card);
+    transition: background 0.15s;
+}
+
+.fz-trans-row:last-child { border-bottom: none; }
+.fz-trans-row:hover { background: var(--bg-hover); }
+
+/* Divisores de Fecha estilo Extracto Bancario */
+.fz-trans-date-header {
+    background: var(--bg-root);
+    padding: 8px 20px;
+    font-size: 11.5px;
+    font-weight: 700;
+    color: var(--text-lo);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--border-card);
+    border-top: 1px solid var(--border-card);
+}
+.fz-trans-date-header:first-child { border-top: none; }
+
+/* Responsive de la Tabla de Movimientos */
+@media (max-width: 768px) {
+    .fz-trans-table-head { display: none; } /* Ocultar cabecera en móvil */
+    .fz-trans-row {
+        grid-template-columns: 1fr auto;
+        grid-template-rows: auto auto;
+        gap: 8px;
+        padding: 14px 16px;
+    }
+    .fz-trans-col-desc { grid-column: 1 / 2; grid-row: 1 / 2; }
+    .fz-trans-col-monto { grid-column: 2 / 3; grid-row: 1 / 2; text-align: right; }
+    .fz-trans-col-cat { grid-column: 1 / 2; grid-row: 2 / 3; }
+    .fz-trans-col-acc { grid-column: 2 / 3; grid-row: 2 / 3; justify-content: flex-end; }
+}
+
+
+
+// ====================================================
+// RUTA DEL ARCHIVO: js/modulos/finanzas-personales.js
+// ====================================================
+// ==========================================
+// MÓDULO: FINANZAS PERSONALES
+// ARQUITECTURA: Sub-router por pestañas y filtro mensual
+// ==========================================
+
+let fz_fechaActual = new Date(); // Guardará el mes y año en el que estamos navegando
+let fz_tabActual = 'resumen';
+
+// Formateador de moneda utilitario
+const formatearDinero = (monto) => {
+    return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(monto);
+};
+
+// 1. INICIALIZACIÓN (Llamada por app.js)
+window.inicializarFinanzasPersonales = function() {
+    console.log("Módulo de Finanzas Personales iniciado.");
+    actualizarEtiquetaMes();
+    configurarSubMenu();
+    // Asegurar que existan instancias de recurrentes para los próximos meses
+    if (typeof fz_generarInstanciasRecurrentesHasta === 'function') fz_generarInstanciasRecurrentesHasta(12);
+    renderizarPantallaActual();
+};
+
+// 2. CONTROL DEL MES
+window.finanzasMoverMes = function(direccion) {
+    // direccion: -1 (atrás) o 1 (adelante)
+    fz_fechaActual.setMonth(fz_fechaActual.getMonth() + direccion);
+    actualizarEtiquetaMes();
+    // Generamos las instancias necesarias para el mes al que navegamos
+    if (typeof fz_generarInstanciasRecurrentesParaMes === 'function') fz_generarInstanciasRecurrentesParaMes(fz_fechaActual);
+    renderizarPantallaActual(); // Recargar datos de la pantalla actual con el nuevo mes
+};
+
+function actualizarEtiquetaMes() {
+    const meses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+    const etiqueta = `${meses[fz_fechaActual.getMonth()]} ${fz_fechaActual.getFullYear()}`;
+    document.getElementById('finanzas-mes-actual').textContent = etiqueta;
+}
+
+// 3. CONTROL DE PESTAÑAS (SUB-MENÚ)
+// 3. CONTROL DE PESTAÑAS Y SUB-MENÚ
+function configurarSubMenu() {
+    const tabsPrincipales = document.querySelectorAll('.finanzas-tab[data-tab]');
+    const dropdownItems = document.querySelectorAll('.finanzas-dropdown-item');
+    const btnMasOpciones = document.getElementById('btn-mas-opciones');
+    const menuMasOpciones = document.getElementById('menu-mas-opciones');
+
+    const cambiarPestana = (tabId, elementoClickeado) => {
+        // Limpiamos estados
+        tabsPrincipales.forEach(t => t.classList.remove('activa'));
+        btnMasOpciones.classList.remove('activa');
+        dropdownItems.forEach(t => t.style.color = 'var(--text-hi)');
+        
+        // Asignar estado activo al presionado
+        if (elementoClickeado.classList.contains('finanzas-tab')) {
+            elementoClickeado.classList.add('activa');
+        } else if (elementoClickeado.classList.contains('finanzas-dropdown-item')) {
+            btnMasOpciones.classList.add('activa'); // Encendemos el botón padre
+            elementoClickeado.style.color = 'var(--accent)'; // Resaltamos el hijo
+        }
+
+        fz_tabActual = tabId;
+        renderizarPantallaActual();
+        menuMasOpciones.classList.remove('visible'); // Cierra el menú siempre
+    };
+
+    // Eventos a las pestañas de la barra
+    tabsPrincipales.forEach(tab => {
+        tab.addEventListener('click', (e) => cambiarPestana(tab.getAttribute('data-tab'), e.currentTarget));
+    });
+
+    // Eventos a los items del submenú
+    dropdownItems.forEach(item => {
+        item.addEventListener('click', (e) => {
+            e.stopPropagation();
+            cambiarPestana(item.getAttribute('data-tab'), e.currentTarget);
+        });
+    });
+
+    // Abrir/Cerrar submenú "Más opciones"
+    if (btnMasOpciones) {
+        btnMasOpciones.addEventListener('click', (e) => {
+            e.stopPropagation();
+            menuMasOpciones.classList.toggle('visible');
+        });
+    }
+
+    // Cerrar el submenú si hacemos clic en cualquier otra parte de la pantalla
+    document.addEventListener('click', (e) => {
+        if (menuMasOpciones && menuMasOpciones.classList.contains('visible') && !btnMasOpciones.contains(e.target)) {
+            menuMasOpciones.classList.remove('visible');
+        }
+    });
+}
+
+// 4. RENDERIZADO MAESTRO AMPLIADO
+function renderizarPantallaActual() {
+    // Array con TODAS las pantallas posibles
+    const pantallas = ['resumen', 'cuentas', 'transacciones', 'tarjetas', 'presupuestos', 'informes', 'categorias', 'objetivos', 'comercios', 'calendario', 'actuacion'];
+    
+    // 1. Apagamos todas las pantallas en el HTML
+    pantallas.forEach(p => {
+        const el = document.getElementById(`pantalla-${p}`);
+        if(el) el.style.display = 'none';
+    });
+    
+    // 2. Encendemos únicamente la actual
+    const pantallaActiva = document.getElementById(`pantalla-${fz_tabActual}`);
+    if (pantallaActiva) pantallaActiva.style.display = 'block';
+
+    // 3. Llamamos a su renderizador de datos si ya existe
+    if (fz_tabActual === 'resumen') fz_pintarResumen();
+    else if (fz_tabActual === 'cuentas') fz_pintarCuentas();
+    else if (fz_tabActual === 'categorias') fz_pintarCategorias();
+    else if (fz_tabActual === 'transacciones') fz_pintarTransacciones();
+    // Las nuevas vistas no tienen función aún, así que no llaman a nada y muestran el letrero "En construcción"
+}
+// ==========================================
+// LÓGICA DE TRANSACCIONES
+// ==========================================
+
+window.fz_filtroTransTipoActual = 'todos'; // Variable global de filtro
+
+function fz_pintarTransacciones() {
+    const contenedor = document.getElementById('fz-lista-transacciones-tabla');
+    if (!contenedor) return;
+
+    const datos = fz_obtenerDatos();
+    const transActivas = datos.transacciones.filter(t => !t.archivada);
+    const query = (document.getElementById('fz-trans-search-input')?.value || '').toLowerCase();
+
+    const year = fz_fechaActual.getFullYear();
+    const month = String(fz_fechaActual.getMonth() + 1).padStart(2, '0');
+    const mesFiltro = `${year}-${month}`;
+
+    // 1. Filtrar por mes
+    let transDelMes = transActivas.filter(t => t.fecha.startsWith(mesFiltro));
+
+    // 2. Filtro por tipo (gasto, ingreso, todos, transferencias)
+    if (window.fz_filtroTransTipoActual !== 'todos') {
+        transDelMes = transDelMes.filter(t => t.tipo === window.fz_filtroTransTipoActual);
+    }
+
+    // 3. Búsqueda por texto (Descripción o Comercio)
+    if (query) {
+        transDelMes = transDelMes.filter(t => 
+            t.descripcion.toLowerCase().includes(query) || 
+            (t.comercio && t.comercio.toLowerCase().includes(query))
+        );
+    }
+
+    if (transDelMes.length === 0) {
+        contenedor.innerHTML = `<div style="padding: 30px; text-align: center; color: var(--text-lo);">No hay movimientos registrados.</div>`;
+        return;
+    }
+
+    // 4. Agrupar por fecha
+    const grupos = {};
+    transDelMes.forEach(t => {
+        if (!grupos[t.fecha]) grupos[t.fecha] = [];
+        grupos[t.fecha].push(t);
+    });
+
+    let html = '';
+
+    // 5. Renderizar ordenado (de más reciente a más antiguo)
+    Object.keys(grupos).sort((a, b) => new Date(b) - new Date(a)).forEach(fecha => {
+        
+        // Formateador de Fecha "Viernes, 21 de Mayo"
+        const objFecha = new Date(fecha + 'T00:00:00');
+        const opciones = { weekday: 'long', day: 'numeric', month: 'long' };
+        let fechaTexto = objFecha.toLocaleDateString('es-ES', opciones);
+        fechaTexto = fechaTexto.charAt(0).toUpperCase() + fechaTexto.slice(1);
+
+        html += `<div class="fz-trans-date-header">${fechaTexto}</div>`;
+
+        grupos[fecha].sort((a, b) => b.id - a.id).forEach(t => {
+            let colorDinero, signo, colorCat, iconoCat, nombreCat;
+
+            if (t.tipo === 'transferencia') {
+                colorDinero = '#2773d6';
+                signo = '⇄ ';
+                colorCat = '#2773d6';
+                iconoCat = '⇄';
+                nombreCat = 'Transferencia';
+            } else {
+                const esIngreso = t.tipo === 'ingreso';
+                colorDinero = esIngreso ? 'var(--status-ok)' : 'var(--status-danger)';
+                signo = esIngreso ? '+' : '-';
+                const categoria = datos.categorias.find(c => c.id == t.categoria_id);
+                colorCat = categoria ? categoria.color : 'var(--text-lo)';
+                iconoCat = categoria ? (categoria.emoji || '🏷️') : '🏷️';
+                nombreCat = categoria ? categoria.nombre : 'Sin categoría';
+            }
+
+            // Función de Edición Dinámica
+            const editFn = t.tipo === 'transferencia' ? `fz_abrirModalTransferencia(${t.id})` : `fz_abrirModalTransaccion('${t.tipo}', ${t.id})`;
+
+            html += `
+            <div class="fz-trans-row">
+                <div class="fz-cat-col-nombre-cell fz-trans-col-desc">
+                    <div style="display:flex; flex-direction:column; gap:2px;">
+                        <span style="font-weight:600; color:var(--text-hi); font-size:13.5px;">${t.descripcion}</span>
+                        ${t.comercio ? `<span style="font-size:11px; color:var(--text-lo);"><i class="ti ti-building-store"></i> ${t.comercio}</span>` : ''}
+                    </div>
+                </div>
+                <div class="fz-cat-col-icono-cell fz-trans-col-cat">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <div style="width:26px; height:26px; border-radius:8px; background:rgba(0,0,0,0.05); border: 1px solid var(--border-card); display:flex; align-items:center; justify-content:center; font-size:14px; color:${colorCat};">
+                            ${iconoCat}
+                        </div>
+                        <span style="font-size:12.5px; color:var(--text-base);">${nombreCat}</span>
+                    </div>
+                </div>
+                <div class="fz-cat-col-color-cell fz-trans-col-monto" style="justify-content: flex-end;">
+                    <span style="color: ${colorDinero}; font-size: 14px; font-weight: 700;">${signo}${formatearDinero(t.monto)}</span>
+                </div>
+                <div class="fz-cat-col-acciones-cell fz-trans-col-acc" style="justify-content: center;">
+                    <button class="fz-cat-action-btn" title="Editar" onclick="${editFn}"><i class="ti ti-pencil"></i></button>
+                    <button class="fz-cat-action-btn" title="Archivar" onclick="fz_archivarTransaccionUI(${t.id})"><i class="ti ti-archive"></i></button>
+                </div>
+            </div>`;
+        });
+    });
+
+    contenedor.innerHTML = html;
+}
+
+// --- HELPERS UI DE TRANSACCIONES ---
+window.fz_toggleBuscadorTrans = function() {
+    const bar = document.getElementById('fz-trans-search-bar');
+    const oculto = bar.style.display === 'none' || bar.style.display === '';
+    bar.style.display = oculto ? 'flex' : 'none';
+    if (oculto) document.getElementById('fz-trans-search-input')?.focus();
+};
+
+window.fz_toggleTransTipoMenu = function() {
+    document.getElementById('fz-trans-tipo-menu').classList.toggle('visible');
+    document.getElementById('fz-trans-add-menu').classList.remove('visible'); // Cierra el otro
+};
+
+window.fz_toggleAddTransMenu = function() {
+    document.getElementById('fz-trans-add-menu').classList.toggle('visible');
+    document.getElementById('fz-trans-tipo-menu').classList.remove('visible'); // Cierra el otro
+};
+
+window.fz_filtrarTransacciones = function(tipo) {
+    window.fz_filtroTransTipoActual = tipo;
+    const label = document.getElementById('fz-trans-pill-label');
+    const icon = document.getElementById('fz-trans-pill-arrow');
+    
+    if(tipo === 'todos') { label.innerText = 'Todos los movimientos'; icon.className = 'ti ti-filter'; }
+    if(tipo === 'ingreso') { label.innerText = 'Ingresos'; icon.className = 'ti ti-plus'; }
+    if(tipo === 'gasto') { label.innerText = 'Gastos'; icon.className = 'ti ti-minus'; }
+    if(tipo === 'transferencia') { label.innerText = 'Transferencias'; icon.className = 'ti ti-arrows-right-left'; }
+    
+    document.getElementById('fz-trans-tipo-menu').classList.remove('visible');
+    fz_pintarTransacciones();
+};
+// Para que los botones rápidos funcionen
+// Para que los botones rápidos funcionen
+window.abrirModalTransaccion = function(tipo) { window.fz_abrirModalTransaccion(tipo); };
+
+window.fz_abrirModalTransaccion = function(tipo, id = null) {
+    const datos = fz_obtenerDatos();
+    const cuentasActivas = datos.cuentas.filter(c => !c.archivada);
+    
+    if (cuentasActivas.length === 0) {
+        return alert("Debes crear al menos una Cuenta financiera antes de registrar movimientos.");
+    }
+
+    // Configurar Tipo y Títulos Visuales
+    document.getElementById('fz-trans-tipo').value = tipo;
+    document.getElementById('fz-trans-id').value = id || '';
+    
+    const txtTitulo = document.getElementById('fz-modal-trans-titulo');
+    const txtSimbolo = document.getElementById('fz-trans-simbolo-tipo');
+    const containerGastoFijo = document.getElementById('fz-container-gasto-fijo');
+    const containerUnidad = document.getElementById('fz-container-unidad');
+    const containerCantidad = document.getElementById('fz-container-cantidad');
+    
+    if (tipo === 'ingreso') {
+        txtTitulo.innerHTML = id ? `Editar <span style="color: var(--status-ok);">Ingreso</span>` : `Registrar <span style="color: var(--status-ok);">Ingreso</span>`;
+        txtSimbolo.style.color = 'var(--status-ok)';
+        if (containerGastoFijo) {
+            containerGastoFijo.style.visibility = 'visible';
+            const tituloFijo = containerGastoFijo.querySelector('.fz-toggle-titulo');
+            if (tituloFijo) tituloFijo.innerText = 'Ingreso fijo mensual';
+        }
+        if (containerUnidad) containerUnidad.style.display = 'none';
+        if (containerCantidad) containerCantidad.style.display = 'flex';
+        const toggleTitulo = document.getElementById('fz-lbl-toggle-titulo');
+        if (toggleTitulo) toggleTitulo.innerText = 'Recibido';
+    } else {
+        txtTitulo.innerHTML = id ? `Editar <span style="color: var(--status-danger);">Gasto</span>` : `Registrar <span style="color: var(--status-danger);">Gasto</span>`;
+        txtSimbolo.style.color = 'var(--status-danger)';
+        if (containerGastoFijo) {
+            containerGastoFijo.style.visibility = 'visible';
+            const tituloFijo = containerGastoFijo.querySelector('.fz-toggle-titulo');
+            if (tituloFijo) tituloFijo.innerText = 'Gasto fijo mensual';
+        }
+        if (containerUnidad) containerUnidad.style.display = 'flex';
+        if (containerCantidad) containerCantidad.style.display = 'flex';
+        const toggleTitulo = document.getElementById('fz-lbl-toggle-titulo');
+        if (toggleTitulo) toggleTitulo.innerText = 'Estado del pago';
+    }
+
+    // Llenar Cuentas
+    document.getElementById('fz-trans-cuenta').innerHTML = cuentasActivas.map(c => 
+        `<option value="${c.id}">${c.nombre}</option>`
+    ).join('');
+
+    // === MODO EDICIÓN vs MODO CREACIÓN ===
+    if (id) {
+        // Pre-llenar Formulario (Update)
+        const trans = datos.transacciones.find(t => t.id === id);
+        if(trans) {
+            document.getElementById('fz-trans-monto').value = trans.monto;
+            document.getElementById('fz-trans-desc').value = trans.descripcion;
+            document.getElementById('fz-trans-fecha').value = trans.fecha;
+            document.getElementById('fz-trans-cuenta').value = trans.cuenta_id;
+            document.getElementById('fz-trans-categoria').value = trans.categoria_id;
+            
+            const cat = datos.categorias.find(c => c.id == trans.categoria_id);
+            document.getElementById('fz-trans-cat-input').value = cat ? cat.nombre : '';
+            
+            document.getElementById('fz-trans-comercio-input').value = trans.comercio || '';
+            if(document.getElementById('fz-trans-unidad')) document.getElementById('fz-trans-unidad').value = trans.unidad || '';
+            if(document.getElementById('fz-trans-cantidad')) document.getElementById('fz-trans-cantidad').value = trans.cantidad || '';
+            document.getElementById('fz-trans-observacion').value = trans.observacion || '';
+            
+            document.getElementById('fz-trans-pagado').checked = trans.pagado;
+            if(document.getElementById('fz-trans-gasto-fijo')) document.getElementById('fz-trans-gasto-fijo').checked = trans.gasto_fijo;
+            
+            fz_alCambiarFechaManual(); // Limpia los botones "Hoy/Ayer"
+        }
+    } else {
+        // Limpiar Formulario (Create)
+        document.getElementById('fz-trans-monto').value = '';
+        document.getElementById('fz-trans-desc').value = '';
+        if(document.getElementById('fz-trans-unidad')) document.getElementById('fz-trans-unidad').value = '';
+        if(document.getElementById('fz-trans-cantidad')) document.getElementById('fz-trans-cantidad').value = '';
+        document.getElementById('fz-trans-observacion').value = '';
+        document.getElementById('fz-trans-cat-input').value = '';
+        document.getElementById('fz-trans-categoria').value = '';
+        document.getElementById('fz-trans-comercio-input').value = '';
+        document.getElementById('fz-trans-pagado').checked = true;
+        if(document.getElementById('fz-trans-gasto-fijo')) document.getElementById('fz-trans-gasto-fijo').checked = false;
+        
+        fz_establecerFechaRapida('hoy');
+    }
+
+    // Toggle Labels
+    document.getElementById('fz-trans-pagado').onchange = function() {
+        const esIngreso = document.getElementById('fz-trans-tipo').value === 'ingreso';
+        const label = document.getElementById('fz-lbl-toggle-pagado');
+        if (label) {
+            if (esIngreso) {
+                label.innerText = this.checked ? 'Sí' : 'No';
+            } else {
+                label.innerText = this.checked ? 'Marcado como pagado' : 'Pendiente por pagar / Cobrar';
+            }
+        }
+    };
+    document.getElementById('fz-trans-pagado').onchange();
+    
+    // Cerrar Menús
+    document.getElementById('fz-trans-add-menu')?.classList.remove('visible');
+    fz_cerrarTodosLosDropdownsAutoComplete();
+
+    document.getElementById('fz-modal-transaccion').classList.add('visible');
+};
+
+// --- CONTROLADOR DE FECHAS ---
+window.fz_establecerFechaRapida = function(periodo) {
+    const inputFecha = document.getElementById('fz-trans-fecha');
+    const btnHoy = document.getElementById('fz-btn-fecha-hoy');
+    const btnAyer = document.getElementById('fz-btn-fecha-ayer');
+    
+    btnHoy.classList.remove('activa');
+    btnAyer.classList.remove('activa');
+    
+    const d = new Date();
+    if (periodo === 'hoy') {
+        btnHoy.classList.add('activa');
+        inputFecha.value = d.toISOString().split('T')[0];
+    } else if (periodo === 'ayer') {
+        btnAyer.classList.add('activa');
+        d.setDate(d.getDate() - 1);
+        inputFecha.value = d.toISOString().split('T')[0];
+    }
+};
+
+window.fz_alCambiarFechaManual = function() {
+    document.getElementById('fz-btn-fecha-hoy').classList.remove('activa');
+    document.getElementById('fz-btn-fecha-ayer').classList.remove('activa');
+};
+
+// --- CONTROLADOR DE UNIDADES ---
+window.fz_toggleDropdownInline = function(idContainer) {
+    const el = document.getElementById(idContainer);
+    const estaAbierto = el.classList.contains('visible');
+    fz_cerrarTodosLosDropdownsAutoComplete();
+    if(!estaAbierto) el.classList.add('visible');
+};
+
+window.fz_seleccionarUnidad = function(unidad) {
+    document.getElementById('fz-trans-unidad').value = unidad;
+    document.getElementById('fz-drop-unidad').classList.remove('visible');
+};
+
+// --- AUTOCOMPLETADO Y CREACIÓN EXPRÉS ---
+window.fz_filtrarDropdownCategorias = function() {
+    const input    = document.getElementById('fz-trans-cat-input');
+    const query    = input.value.trim().toLowerCase();
+    const dropdown = document.getElementById('fz-drop-categorias');
+    const tipo     = document.getElementById('fz-trans-tipo').value;
+
+    const datos  = fz_obtenerDatos();
+    const todas  = datos.categorias.filter(c => !c.archivada && c.tipo === tipo);
+    const padres = todas.filter(c => !c.parent_id);
+    const hijos  = todas.filter(c =>  c.parent_id);
+
+    dropdown.innerHTML = '';
+    dropdown.classList.add('visible');
+
+    padres.forEach(padre => {
+        const hijosDelPadre = hijos.filter(h => h.parent_id === padre.id);
+        const padreMatch    = padre.nombre.toLowerCase().includes(query);
+        const hijoMatch     = hijosDelPadre.some(h => h.nombre.toLowerCase().includes(query));
+        if (query && !padreMatch && !hijoMatch) return;
+
+        if (padreMatch || !query) {
+            const item = document.createElement('div');
+            item.className = 'fz-autocomplete-option';
+            item.innerHTML = `<span style="font-size:15px">${padre.emoji || '🏷️'}</span> <span style="font-weight:600">${padre.nombre}</span>`;
+            item.onclick = () => {
+                input.value = padre.nombre;
+                document.getElementById('fz-trans-categoria').value = padre.id;
+                dropdown.classList.remove('visible');
+            };
+            dropdown.appendChild(item);
+        }
+
+        hijosDelPadre.forEach(hijo => {
+            if (query && !hijo.nombre.toLowerCase().includes(query) && !padreMatch) return;
+            const item = document.createElement('div');
+            item.className = 'fz-autocomplete-option';
+            item.innerHTML = `<span style="padding-left:18px;color:var(--text-lo);font-size:12px">↳</span> <span>${hijo.nombre}</span>`;
+            item.onclick = () => {
+                input.value = hijo.nombre;
+                document.getElementById('fz-trans-categoria').value = hijo.id;
+                dropdown.classList.remove('visible');
+            };
+            dropdown.appendChild(item);
+        });
+    });
+
+    if (query.length > 0 && !todas.some(c => c.nombre.toLowerCase() === query)) {
+        const itemExpress = document.createElement('div');
+        itemExpress.className = 'fz-autocomplete-option-express';
+        itemExpress.innerHTML = `<i class="ti ti-sparkles"></i> Crear "${input.value}" al vuelo...`;
+        itemExpress.onclick = () => fz_crearExpressCategoria(input.value, tipo);
+        dropdown.appendChild(itemExpress);
+    }
+};
+
+function fz_crearExpressCategoria(nombre, tipo) {
+    const nuevaCat = {
+        id: Date.now(),
+        nombre: nombre.trim(),
+        tipo: tipo,
+        color: tipo === 'ingreso' ? '#2ecc71' : '#e74c3c',
+        emoji: tipo === 'ingreso' ? '💰' : '🏷️',
+        parent_id: null,
+        archivada: false
+    };
+
+    // Guardar nueva categoría y actualizar el input del modal
+    try {
+        fz_guardarCategoria(nuevaCat);
+        const input = document.getElementById('fz-trans-cat-input'); if (input) input.value = nuevaCat.nombre;
+        const hidden = document.getElementById('fz-trans-categoria'); if (hidden) hidden.value = nuevaCat.id;
+        const drop = document.getElementById('fz-drop-categorias'); if (drop) drop.classList.remove('visible');
+    } catch (e) {
+        console.error('Error creando categoría express:', e);
+    }
+
+}
+
+window.fz_filtrarDropdownComercios = function() {
+    const input = document.getElementById('fz-trans-comercio-input');
+    const query = input.value.trim().toLowerCase();
+    const dropdown = document.getElementById('fz-drop-comercios');
+    
+    let datosCerebroGlobal = cargarDatos();
+    if(!datosCerebroGlobal.finanzas_personales.comercios) datosCerebroGlobal.finanzas_personales.comercios = [];
+    const comercios = datosCerebroGlobal.finanzas_personales.comercios;
+    
+    dropdown.innerHTML = '';
+    dropdown.classList.add('visible');
+
+    comercios.forEach(com => {
+        if (com.toLowerCase().includes(query)) {
+            const item = document.createElement('div');
+            item.className = 'fz-autocomplete-option';
+            item.innerHTML = `<i class="ti ti-building-store" style="color:var(--text-lo)"></i> <span>${com}</span>`;
+            item.onclick = () => {
+                input.value = com;
+                dropdown.classList.remove('visible');
+            };
+            dropdown.appendChild(item);
+        }
+    });
+
+    if (query.length > 0 && !comercios.some(c => c.toLowerCase() === query)) {
+        const itemExpress = document.createElement('div');
+        itemExpress.className = 'fz-autocomplete-option-express';
+        itemExpress.innerHTML = `<i class="ti ti-plus"></i> Registrar comercio "${input.value}"...`;
+        itemExpress.onclick = () => {
+            let d = cargarDatos();
+            if(!d.finanzas_personales.comercios) d.finanzas_personales.comercios = [];
+            d.finanzas_personales.comercios.push(input.value.trim());
+            guardarDatos(d);
+            input.value = input.value.trim();
+            dropdown.classList.remove('visible');
+        };
+        dropdown.appendChild(itemExpress);
+    }
+};
+
+// --- AUTOCOMPLETADO DE DESCRIPCIONES (Histórico) ---
+function fz_filtrarDropdownDescripciones() {
+    const input = document.getElementById('fz-trans-desc');
+    const query = input.value.trim().toLowerCase();
+    const dropdown = document.getElementById('fz-drop-descripciones');
+    const datos = fz_obtenerDatos();
+
+    dropdown.innerHTML = '';
+    if (!query) { dropdown.classList.remove('visible'); return; }
+    dropdown.classList.add('visible');
+
+    const all = (datos.transacciones || []).map(t => t.descripcion).filter(Boolean);
+    const uniques = [...new Set(all)];
+    uniques.filter(d => d.toLowerCase().includes(query)).slice(0, 8).forEach(desc => {
+        const item = document.createElement('div');
+        item.className = 'fz-autocomplete-option';
+        item.innerHTML = `<i class="ti ti-file-text" style="color:var(--text-lo)"></i> <span>${desc}</span>`;
+        item.onclick = () => { input.value = desc; dropdown.classList.remove('visible'); };
+        dropdown.appendChild(item);
+    });
+}
+
+function fz_cerrarTodosLosDropdownsAutoComplete() {
+    document.getElementById('fz-drop-unidad').classList.remove('visible');
+    document.getElementById('fz-drop-categorias').classList.remove('visible');
+    document.getElementById('fz-drop-comercios').classList.remove('visible');
+    document.getElementById('fz-drop-descripciones') && document.getElementById('fz-drop-descripciones').classList.remove('visible');
+}
+
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('#fz-trans-unidad') && !e.target.closest('#fz-drop-unidad')) {
+        document.getElementById('fz-drop-unidad').classList.remove('visible');
+    }
+    if (!e.target.closest('#fz-trans-desc') && !e.target.closest('#fz-drop-descripciones')) {
+        const el = document.getElementById('fz-drop-descripciones'); if (el) el.classList.remove('visible');
+    }
+    if (!e.target.closest('#fz-trans-cat-input') && !e.target.closest('#fz-drop-categorias')) {
+        document.getElementById('fz-drop-categorias').classList.remove('visible');
+    }
+    if (!e.target.closest('#fz-trans-comercio-input') && !e.target.closest('#fz-drop-comercios')) {
+        document.getElementById('fz-drop-comercios').classList.remove('visible');
+    }
+    // --- Agregar esto dentro del eventListener del Clic global ---
+    const menuTransTipo = document.getElementById('fz-trans-tipo-menu');
+    const btnTransTipo  = document.getElementById('fz-trans-pill-btn');
+    if (menuTransTipo && menuTransTipo.classList.contains('visible') && btnTransTipo && !btnTransTipo.contains(e.target)) {
+        menuTransTipo.classList.remove('visible');
+    }
+
+    const menuTransAdd = document.getElementById('fz-trans-add-menu');
+    const btnTransAdd  = document.getElementById('fz-btn-add-trans');
+    if (menuTransAdd && menuTransAdd.classList.contains('visible') && btnTransAdd && !btnTransAdd.contains(e.target)) {
+        menuTransAdd.classList.remove('visible');
+    }
+    
+});
+
+// === RECURRANCES: Generador de instancias mensuales ===
+function fz_generarInstanciasRecurrentesHasta(monthsAhead = 12) {
+    try {
+        let datos = cargarDatos();
+        if (!datos.finanzas_personales) return;
+        if (!datos.finanzas_personales.recurrentes) datos.finanzas_personales.recurrentes = [];
+        if (!datos.finanzas_personales.transacciones) datos.finanzas_personales.transacciones = [];
+
+        const recurrentes = datos.finanzas_personales.recurrentes.filter(r => r && r.activo !== false);
+        const today = new Date();
+        const endDate = new Date(today);
+        endDate.setMonth(endDate.getMonth() + monthsAhead);
+
+        recurrentes.forEach(rec => {
+            const start = rec.start_date ? new Date(rec.start_date + 'T00:00:00') : today;
+            const dia = rec.dia || (start.getDate ? start.getDate() : 1);
+
+            // iteramos desde el mes de inicio hasta endDate
+            let iter = new Date(start.getFullYear(), start.getMonth(), 1);
+            while (iter <= endDate) {
+                const year = iter.getFullYear();
+                const month = iter.getMonth();
+                const lastDay = new Date(year, month + 1, 0).getDate();
+                const dayToSet = Math.min(dia, lastDay);
+                const fechaStr = `${year}-${String(month + 1).padStart(2,'0')}-${String(dayToSet).padStart(2,'0')}`;
+
+                const exists = datos.finanzas_personales.transacciones.some(t => t.recurrente_id === rec.id && t.fecha === fechaStr);
+                if (!exists) {
+                    datos.finanzas_personales.transacciones.push({
+                        id: Date.now() + Math.floor(Math.random() * 100000),
+                        tipo: rec.tipo,
+                        monto: rec.monto,
+                        descripcion: rec.descripcion,
+                        fecha: fechaStr,
+                        cuenta_id: rec.cuenta_id,
+                        categoria_id: rec.categoria_id,
+                        comercio: rec.comercio,
+                        unidad: rec.unidad,
+                        cantidad: rec.cantidad,
+                        pagado: !!rec.pagado_por_defecto,
+                        gasto_fijo: true,
+                        observacion: rec.observacion,
+                        archivada: false,
+                        recurrente_id: rec.id
+                    });
+                }
+
+                iter.setMonth(iter.getMonth() + 1);
+            }
+        });
+
+        guardarDatos(datos);
+    } catch (err) {
+        console.error('Error generando instancias recurrentes:', err);
+    }
+}
+
+function fz_generarInstanciasRecurrentesParaMes(targetDate) {
+    try {
+        let datos = cargarDatos();
+        if (!datos.finanzas_personales) return;
+        if (!datos.finanzas_personales.recurrentes) datos.finanzas_personales.recurrentes = [];
+        if (!datos.finanzas_personales.transacciones) datos.finanzas_personales.transacciones = [];
+
+        const recurrentes = datos.finanzas_personales.recurrentes.filter(r => r && r.activo !== false);
+        const t = targetDate instanceof Date ? new Date(targetDate) : new Date(fz_fechaActual);
+        const year = t.getFullYear();
+        const month = t.getMonth();
+
+        recurrentes.forEach(rec => {
+            const start = rec.start_date ? new Date(rec.start_date + 'T00:00:00') : null;
+            // no generar si la plantilla empieza después del mes objetivo
+            if (start && new Date(start.getFullYear(), start.getMonth(), 1) > new Date(year, month, 1)) return;
+
+            const lastDay = new Date(year, month + 1, 0).getDate();
+            const dia = rec.dia || (start ? start.getDate() : 1);
+            const dayToSet = Math.min(dia, lastDay);
+            const fechaStr = `${year}-${String(month + 1).padStart(2,'0')}-${String(dayToSet).padStart(2,'0')}`;
+
+            const exists = datos.finanzas_personales.transacciones.some(t0 => t0.recurrente_id === rec.id && t0.fecha === fechaStr);
+            if (!exists) {
+                datos.finanzas_personales.transacciones.push({
+                    id: Date.now() + Math.floor(Math.random() * 100000),
+                    tipo: rec.tipo,
+                    monto: rec.monto,
+                    descripcion: rec.descripcion,
+                    fecha: fechaStr,
+                    cuenta_id: rec.cuenta_id,
+                    categoria_id: rec.categoria_id,
+                    comercio: rec.comercio,
+                    unidad: rec.unidad,
+                    cantidad: rec.cantidad,
+                    pagado: !!rec.pagado_por_defecto,
+                    gasto_fijo: true,
+                    observacion: rec.observacion,
+                    archivada: false,
+                    recurrente_id: rec.id
+                });
+            }
+        });
+
+        guardarDatos(datos);
+    } catch (err) {
+        console.error('Error generando instancia recurrente para mes:', err);
+    }
+}
+
+// --- GUARDAR FORMULARIO DE TRANSACCIONES ---
+window.fz_guardarFormularioTransaccion = function() {
+    const idInput = document.getElementById('fz-trans-id').value;
+    const tipo = document.getElementById('fz-trans-tipo').value;
+    const monto = parseFloat(document.getElementById('fz-trans-monto').value);
+    const desc = document.getElementById('fz-trans-desc').value.trim();
+    const fecha = document.getElementById('fz-trans-fecha').value;
+    const cuenta_id = parseInt(document.getElementById('fz-trans-cuenta').value);
+    const categoria_id = parseInt(document.getElementById('fz-trans-categoria').value);
+    const comercio = document.getElementById('fz-trans-comercio-input').value.trim();
+    const unidad = document.getElementById('fz-trans-unidad') ? document.getElementById('fz-trans-unidad').value : '';
+    const inputCantidad = document.getElementById('fz-trans-cantidad');
+    const cantidad = (inputCantidad && inputCantidad.value.trim() !== '') ? parseInt(inputCantidad.value.trim()) : null;
+    const pagado = document.getElementById('fz-trans-pagado').checked;
+    const gasto_fijo = document.getElementById('fz-trans-gasto-fijo').checked;
+    const observacion = document.getElementById('fz-trans-observacion').value.trim();
+
+    if (!monto || monto <= 0) return alert("Por favor, introduce un monto válido superior a cero.");
+    if (!desc) return alert("La descripción o concepto es obligatoria.");
+    if (!fecha) return alert("Debes seleccionar una fecha.");
+    if (!categoria_id) return alert("Debes vincular una categoría al movimiento.");
+
+    // Si es fijo y estamos creando (no editando), primero creamos la plantilla recurrente
+    let recurrenteId = null;
+    if (gasto_fijo && !idInput) {
+        try {
+            const start = new Date(fecha + 'T00:00:00');
+            const dia = start.getDate();
+            const recId = Date.now() + Math.floor(Math.random() * 100000);
+            const recurrente = {
+                id: recId,
+                tipo: tipo,
+                monto: monto,
+                descripcion: desc,
+                cuenta_id: cuenta_id,
+                categoria_id: categoria_id,
+                comercio: comercio,
+                unidad: unidad,
+                cantidad: cantidad,
+                observacion: observacion,
+                dia: dia,
+                start_date: fecha,
+                pagado_por_defecto: false,
+                activo: true
+            };
+            if (typeof fz_guardarRecurrente === 'function') fz_guardarRecurrente(recurrente);
+            recurrenteId = recId;
+        } catch (err) {
+            console.error('Error creando plantilla recurrente:', err);
+        }
+    }
+
+    const transObj = {
+        id: idInput ? parseInt(idInput) : Date.now(),
+        tipo: tipo,
+        monto: monto,
+        descripcion: desc,
+        fecha: fecha,
+        cuenta_id: cuenta_id,
+        categoria_id: categoria_id,
+        comercio: comercio,
+        unidad: unidad,
+        cantidad: cantidad,
+        pagado: pagado,
+        gasto_fijo: gasto_fijo,
+        observacion: observacion,
+        archivada: false
+    };
+
+    if (recurrenteId) transObj.recurrente_id = recurrenteId;
+
+    fz_guardarTransaccion(transObj);
+
+    // Si creamos una plantilla recurrente, generamos instancias hasta 12 meses por defecto
+    if (recurrenteId && typeof fz_generarInstanciasRecurrentesHasta === 'function') {
+        try { fz_generarInstanciasRecurrentesHasta(12); } catch(e) { console.error(e); }
+    }
+
+    document.getElementById('fz-modal-transaccion').classList.remove('visible');
+    
+    if (fz_tabActual === 'transacciones') fz_pintarTransacciones();
+    if (fz_tabActual === 'resumen') fz_pintarResumen();
+};
+
+window.fz_archivarTransaccionUI = function(id) {
+    if(confirm("¿Seguro que deseas archivar este movimiento? Desaparecerá de los reportes.")) {
+        fz_archivarTransaccion(id);
+        fz_pintarTransacciones();
+    }
+};
+
+// ==========================================
+// LÓGICA DE CUENTAS
+// ==========================================
+function fz_pintarCuentas() {
+    const contenedor = document.getElementById('fz-lista-cuentas');
+    const datos = fz_obtenerDatos();
+    const cuentasActivas = datos.cuentas.filter(c => !c.archivada);
+
+    if (cuentasActivas.length === 0) {
+        contenedor.innerHTML = `<p style="color: var(--text-lo); grid-column: 1 / -1;">No hay cuentas activas. Crea una para empezar.</p>`;
+        return;
+    }
+
+        contenedor.innerHTML = cuentasActivas.map(c => {
+        const saldoReal = fz_calcularSaldoCuenta(c.id); // ¡Llama a nuestra nueva calculadora!
+        return `
+        <div class="card-surface" style="padding: 16px; position: relative;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+                <h4 style="color: var(--text-hi); font-size: 14px; margin: 0;">${c.nombre}</h4>
+                <div>
+                    <button class="btn-ghost" style="padding: 4px;" onclick="fz_abrirModalCuenta(${c.id})"><i class="ti ti-edit"></i></button>
+                    <button class="btn-borrar" style="padding: 4px;" onclick="fz_archivarCuentaUI(${c.id})"><i class="ti ti-archive"></i></button>
+                </div>
+            </div>
+            <p style="font-size: 11px; color: var(--text-lo);">Saldo Actual</p>
+            <p style="font-size: 18px; font-weight: 700; color: ${saldoReal >= 0 ? 'var(--status-ok)' : 'var(--status-danger)'};">${formatearDinero(saldoReal)}</p>
+        </div>
+        `;
+    }).join('');
+}
+
+// ==========================================
+// LÓGICA DE CUENTAS (ACTUALIZADA)
+// ==========================================
+
+// Acciones asociadas al botón izquierdo dinámico
+window.fz_reajustarSaldoUI = function() {
+    const idInput = document.getElementById('fz-cuenta-id').value;
+    if (idInput) {
+        // Modo Edición: Foco rápido al input gigante de saldo para cambiar el valor
+        const inputSaldo = document.getElementById('fz-cuenta-saldo');
+        inputSaldo.focus();
+        inputSaldo.select();
+    } else {
+        // Modo Creador: Simplemente limpia el formulario
+        document.getElementById('fz-cuenta-saldo').value = '';
+        document.getElementById('fz-cuenta-nombre').value = '';
+        document.getElementById('fz-cuenta-logo-url').value = '';
+        fz_actualizarPreviewLogo();
+    }
+};
+
+// ====================================================
+// CONTROLADOR INTEGRAL DEL MODAL PREMIUM DE CUENTAS
+// ====================================================
+
+window.fz_abrirModalCuenta = function(id = null) {
+    document.getElementById('fz-modal-cuenta-titulo').textContent = id ? 'Editar cuenta' : 'Añadir cuenta';
+    document.getElementById('fz-cuenta-id').value = id || '';
+    
+    // Obtener referencias exactas a los campos
+    const inputSaldo = document.getElementById('fz-cuenta-saldo');
+    const inputNombre = document.getElementById('fz-cuenta-nombre');
+    const selectTipo = document.getElementById('fz-cuenta-tipo-select');
+    const inputLogoUrl = document.getElementById('fz-cuenta-logo-url');
+    const inputToggle = document.getElementById('fz-cuenta-incluir');
+    const btnReajustar = document.getElementById('fz-btn-reajustar');
+    
+    if (id) {
+        const cuenta = fz_obtenerDatos().cuentas.find(c => c.id === id);
+        inputSaldo.value = parseFloat(cuenta.saldo_inicial || 0).toFixed(2);
+        inputNombre.value = cuenta.nombre || '';
+        selectTipo.value = cuenta.tipo || 'debito';
+        inputLogoUrl.value = cuenta.logo || '';
+        inputToggle.checked = cuenta.incluir_dashboard !== false;
+        
+        // Cambiamos el texto del botón izquierdo si está editando
+        btnReajustar.innerHTML = `<i class="ti ti-adjustments"></i> Re-ajustar saldo`;
+        fz_activarColorUI(cuenta.color || '#3498db');
+    } else {
+        inputSaldo.value = '';
+        inputNombre.value = '';
+        selectTipo.value = 'debito';
+        inputLogoUrl.value = '';
+        inputToggle.checked = true;
+        
+        // Si es una cuenta nueva, actúa como botón de limpiar/cancelar
+        btnReajustar.innerHTML = `<i class="ti ti-trash"></i> Limpiar campos`;
+        fz_activarColorUI('#3498db');
+    }
+    
+    fz_actualizarPreviewLogo();
+    document.getElementById('fz-modal-cuenta').classList.add('visible');
+};
+
+window.fz_guardarFormularioCuenta = function() {
+    const idInput = document.getElementById('fz-cuenta-id').value;
+    const saldo = parseFloat(document.getElementById('fz-cuenta-saldo').value) || 0;
+    const nombre = document.getElementById('fz-cuenta-nombre').value.trim();
+    const tipo = document.getElementById('fz-cuenta-tipo-select').value;
+    const logoUrl = document.getElementById('fz-cuenta-logo-url').value.trim();
+    const color = document.getElementById('fz-cuenta-color').value;
+    const incluir = document.getElementById('fz-cuenta-incluir').checked;
+
+    if (!nombre) return alert("Por favor, introduce el nombre de la institución financiera.");
+
+    fz_guardarCuenta({
+        id: idInput ? parseInt(idInput) : Date.now(),
+        nombre: nombre,
+        saldo_inicial: saldo,
+        tipo: tipo,
+        logo: logoUrl,
+        color: color,
+        incluir_dashboard: incluir,
+        archivada: false
+    });
+
+    document.getElementById('fz-modal-cuenta').classList.remove('visible');
+    fz_pintarCuentas();
+    if (typeof fz_pintarResumen === 'function') fz_pintarResumen();
+};
+
+window.fz_archivarCuentaUI = function(id) {
+    if(confirm("¿Seguro que deseas archivar esta cuenta? Las transacciones pasadas se mantendrán seguras.")) {
+        fz_archivarCuenta(id);
+        fz_pintarCuentas();
+    }
+};
+
+// ------------------------------------------
+// Lógica de Interfaz del Modal (Colores y Logo)
+// ------------------------------------------
+// Manejo estricto de UI de la paleta de colores
+window.fz_seleccionarColor = function(elemento, colorHex) {
+    document.getElementById('fz-cuenta-color').value = colorHex;
+    document.querySelectorAll('.fz-circle-exacto').forEach(el => el.classList.remove('activa'));
+    elemento.classList.add('activa');
+};
+
+window.fz_seleccionarColorPersonalizado = function(input) {
+    const colorHex = input.value;
+    const trigger = input.parentElement;
+    fz_seleccionarColor(trigger, colorHex);
+    trigger.style.background = colorHex;
+};
+
+window.fz_activarColorUI = function(colorHex) {
+    document.getElementById('fz-cuenta-color').value = colorHex;
+    const circulos = document.querySelectorAll('.fz-circle-exacto:not(.fz-custom-picker-trigger)');
+    let encontrado = false;
+    
+    circulos.forEach(c => {
+        c.classList.remove('activa');
+        if (c.style.backgroundColor === colorHex || c.style.background.includes(colorHex)) {
+            c.classList.add('activa');
+            encontrado = true;
+        }
+    });
+
+    const triggerCustom = document.querySelector('.fz-custom-picker-trigger');
+    if (!encontrado) {
+        triggerCustom.classList.add('activa');
+        triggerCustom.style.background = colorHex;
+    } else {
+        triggerCustom.style.background = 'conic-gradient(red, yellow, lime, aqua, blue, magenta, red)';
+    }
+};
+
+window.fz_actualizarPreviewLogo = function() {
+    const url = document.getElementById('fz-cuenta-logo-url').value.trim();
+    const icon = document.getElementById('fz-logo-icon');
+    const img = document.getElementById('fz-logo-img');
+
+    if (url) {
+        img.src = url;
+        img.style.display = 'block';
+        icon.style.display = 'none';
+    } else {
+        img.src = '';
+        img.style.display = 'none';
+        icon.style.display = 'block';
+    }
+};
+// ==========================================
+// LÓGICA DE CATEGORÍAS
+// ==========================================
+// ==========================================
+// LÓGICA DE CATEGORÍAS REDISEÑADA
+// ==========================================
+let fz_catTipoActual = 'gasto';
+
+const FZ_EMOJIS = {
+    'Finanzas':        ['💰','💵','💴','💶','💷','💳','🏧','💎','📈','📉','📊','🏦','🏪','🏬','🛒','🛍️','🤑','💸','🪙','💹'],
+    'Comida':          ['🍔','🍕','🍣','🍜','🍱','🥗','🍰','🍩','☕','🍺','🍷','🥤','🥦','🥩','🍞','🍳','🥐','🍦','🍭','🥡'],
+    'Transporte':      ['🚗','🚕','✈️','🚌','🚇','🛵','🚲','⛽','🚦','🛣️','🚁','🛳️','🏎️','🛺','🚐','🚓'],
+    'Hogar':           ['🏠','🏡','🛋️','🛏️','🔧','💡','💧','🔌','📦','🧹','🧺','🪴','🛁','🪑','🖼️','🪞'],
+    'Salud':           ['💊','🏥','🩺','🧘','🏋️','💪','🦷','👓','🩹','🧪','🩻','💉','🧬','🏃','🧴','🪥'],
+    'Entretenimiento': ['🎮','🎬','🎵','🎸','📺','📱','💻','🎯','⚽','🏀','🎭','🎲','🎻','🎹','🎨','📸'],
+    'Educación':       ['📚','📖','✏️','🎓','🏫','📝','🔬','🔭','🗺️','📐','📏','🖊️','📓'],
+    'Personas':        ['👨‍👩‍👧','👤','🤝','❤️','🎁','🎉','🎂','💌','👶','🐾','💍','🌹'],
+    'Naturaleza':      ['🌿','🌱','🌳','🌺','☀️','🌙','⭐','🌊','🌈','🌵','🍀','🌸','🦋','🐝'],
+    'Servicios':       ['📡','🔐','🛡️','⚙️','🔑','📋','🗂️','📁','🗃️','🔒','📮','🖨️'],
+    'Símbolos':        ['✅','❌','⚠️','💯','🔴','🟢','🔵','🟡','⭕','🏷️','📌','📍','🔖','⚡','🔥','💫']
+};
+
+function fz_pintarCategorias() {
+    const contenedor = document.getElementById('fz-lista-categorias-tabla');
+    if (!contenedor) return;
+    const query = (document.getElementById('fz-cat-search-input')?.value || '').toLowerCase();
+
+    const datos = fz_obtenerDatos();
+    const todas = datos.categorias.filter(c => !c.archivada && c.tipo === fz_catTipoActual);
+    const padres = todas.filter(c => !c.parent_id);
+    const hijos  = todas.filter(c =>  c.parent_id);
+
+    let filas = '';
+    const esIngreso = fz_catTipoActual === 'ingreso';
+
+    padres.forEach(padre => {
+        const hijosDelPadre = hijos.filter(h => h.parent_id === padre.id);
+        const padreMatch = padre.nombre.toLowerCase().includes(query);
+        const hijoMatch  = hijosDelPadre.some(h => h.nombre.toLowerCase().includes(query));
+        if (query && !padreMatch && !hijoMatch) return;
+
+        const emoji = padre.emoji || '🏷️';
+        filas += `
+        <div class="fz-cat-row">
+            <div class="fz-cat-col-nombre-cell">
+                <span style="font-weight:600;color:var(--text-hi)">${padre.nombre}</span>
+            </div>
+            <div class="fz-cat-col-icono-cell">
+                <span class="fz-cat-emoji-badge">${emoji}</span>
+            </div>
+            <div class="fz-cat-col-color-cell">
+                <div class="fz-cat-color-dot" style="background:${padre.color || '#888'}"></div>
+            </div>
+            <div class="fz-cat-col-acciones-cell">
+                <button class="fz-cat-action-btn" title="Editar" onclick="fz_abrirModalCategoria(${padre.id})"><i class="ti ti-pencil"></i></button>
+                <button class="fz-cat-action-btn" title="Archivar" onclick="fz_archivarCategoriaUI(${padre.id})"><i class="ti ti-archive"></i></button>
+                <button class="fz-cat-action-btn add-sub${esIngreso ? ' ingreso' : ''}" title="Agregar subcategoría" onclick="fz_abrirModalSubcategoria(${padre.id})">
+                    <i class="ti ti-plus"></i>
+                </button>
+            </div>
+        </div>`;
+
+        hijosDelPadre.forEach(hijo => {
+            if (query && !hijo.nombre.toLowerCase().includes(query) && !padreMatch) return;
+            filas += `
+            <div class="fz-cat-row es-sub">
+                <div class="fz-cat-col-nombre-cell">
+                    <span class="fz-cat-sub-arrow">↳</span>
+                    <span style="color:var(--text-base)">${hijo.nombre}</span>
+                </div>
+                <div class="fz-cat-col-icono-cell"></div>
+                <div class="fz-cat-col-color-cell">
+                    <div class="fz-cat-color-dot" style="background:${hijo.color || padre.color || '#888'}"></div>
+                </div>
+                <div class="fz-cat-col-acciones-cell">
+                    <button class="fz-cat-action-btn" title="Editar" onclick="fz_abrirModalCategoria(${hijo.id})"><i class="ti ti-pencil"></i></button>
+                    <button class="fz-cat-action-btn" title="Archivar" onclick="fz_archivarCategoriaUI(${hijo.id})"><i class="ti ti-archive"></i></button>
+                </div>
+            </div>`;
+        });
+    });
+
+    contenedor.innerHTML = filas || `<div style="padding:30px;text-align:center;color:var(--text-lo)">Sin categorías. Usa el botón + para crear una.</div>`;
+}
+
+window.fz_cambiarTipoCat = function(tipo) {
+    fz_catTipoActual = tipo;
+    const pill   = document.getElementById('fz-cat-pill-btn');
+    const label  = document.getElementById('fz-cat-pill-label');
+    const addBtn = document.querySelector('.fz-cat-add-pill');
+    if (tipo === 'ingreso') {
+        label.textContent = 'Categorías Ingresos';
+        pill.classList.add('ingreso-activo');
+        if (addBtn) addBtn.style.background = 'var(--status-ok)';
+    } else {
+        label.textContent = 'Categorías Gastos';
+        pill.classList.remove('ingreso-activo');
+        if (addBtn) addBtn.style.background = 'var(--status-danger)';
+    }
+    document.getElementById('fz-cat-tipo-menu').classList.remove('visible');
+    const arrow = document.getElementById('fz-cat-pill-arrow');
+    if (arrow) arrow.style.transform = '';
+    fz_pintarCategorias();
+};
+
+window.fz_toggleCatTipoMenu = function() {
+    const menu  = document.getElementById('fz-cat-tipo-menu');
+    const arrow = document.getElementById('fz-cat-pill-arrow');
+    menu.classList.toggle('visible');
+    if (arrow) arrow.style.transform = menu.classList.contains('visible') ? 'rotate(180deg)' : '';
+};
+
+window.fz_toggleBuscadorCat = function() {
+    const bar = document.getElementById('fz-cat-search-bar');
+    const oculto = bar.style.display === 'none' || bar.style.display === '';
+    bar.style.display = oculto ? 'flex' : 'none';
+    if (oculto) document.getElementById('fz-cat-search-input')?.focus();
+};
+
+document.addEventListener('click', function(e) {
+    const menu = document.getElementById('fz-cat-tipo-menu');
+    const btn  = document.getElementById('fz-cat-pill-btn');
+    if (menu && menu.classList.contains('visible') && btn && !btn.contains(e.target)) {
+        menu.classList.remove('visible');
+        const arrow = document.getElementById('fz-cat-pill-arrow');
+        if (arrow) arrow.style.transform = '';
+    }
+});
+
+window.fz_abrirModalCategoria = function(id = null) {
+    document.getElementById('fz-modal-categoria-titulo').textContent = id ? 'Editar Categoría' : 'Nueva Categoría';
+    document.getElementById('fz-categoria-id').value       = id || '';
+    document.getElementById('fz-categoria-parent-id').value = '';
+    document.getElementById('fz-categoria-es-sub').value    = '';
+
+    const emojiGroup = document.getElementById('fz-cat-emoji-group');
+    const tipoGroup  = document.getElementById('fz-cat-tipo-group');
+
+    if (id) {
+        const cat = fz_obtenerDatos().categorias.find(c => c.id === id);
+        document.getElementById('fz-categoria-nombre').value = cat.nombre;
+        document.getElementById('fz-cat-emoji-preview').textContent = cat.emoji || '🏷️';
+        fz_activarColorCat(cat.color || '#e74c3c');
+
+        if (cat.parent_id) {
+            // Es subcategoría: sin emoji ni tipo
+            emojiGroup.style.display = 'none';
+            tipoGroup.style.display  = 'none';
+        } else {
+            emojiGroup.style.display = 'flex';
+            tipoGroup.style.display  = 'flex';
+            document.getElementById('fz-categoria-tipo').value = cat.tipo;
+        }
+    } else {
+        document.getElementById('fz-categoria-nombre').value = '';
+        document.getElementById('fz-cat-emoji-preview').textContent = '🏷️';
+        document.getElementById('fz-categoria-tipo').value = fz_catTipoActual;
+        emojiGroup.style.display = 'flex';
+        tipoGroup.style.display  = 'flex';
+        fz_activarColorCat(fz_catTipoActual === 'ingreso' ? '#2ecc71' : '#e74c3c');
+    }
+
+    document.getElementById('fz-modal-categoria').classList.add('visible');
+};
+
+window.fz_abrirModalSubcategoria = function(parentId) {
+    const padre = fz_obtenerDatos().categorias.find(c => c.id === parentId);
+    document.getElementById('fz-modal-categoria-titulo').textContent = `Subcategoría de "${padre?.nombre || ''}"`;
+    document.getElementById('fz-categoria-id').value        = '';
+    document.getElementById('fz-categoria-parent-id').value = parentId;
+    document.getElementById('fz-categoria-es-sub').value    = '1';
+    document.getElementById('fz-categoria-nombre').value    = '';
+    document.getElementById('fz-cat-emoji-group').style.display = 'none';
+    document.getElementById('fz-cat-tipo-group').style.display  = 'none';
+    fz_activarColorCat(padre?.color || '#e74c3c');
+    document.getElementById('fz-modal-categoria').classList.add('visible');
+};
+
+window.fz_guardarFormularioCategoria = function() {
+    const idInput  = document.getElementById('fz-categoria-id').value;
+    const parentId = document.getElementById('fz-categoria-parent-id').value;
+    const esSub    = document.getElementById('fz-categoria-es-sub').value === '1';
+    const nombre   = document.getElementById('fz-categoria-nombre').value.trim();
+    const color    = document.getElementById('fz-categoria-color').value;
+    if (!nombre) return alert("El nombre es obligatorio");
+
+    let tipo, emoji;
+    if (esSub) {
+        const padre = fz_obtenerDatos().categorias.find(c => c.id === parseInt(parentId));
+        tipo  = padre ? padre.tipo : fz_catTipoActual;
+        emoji = null;
+    } else {
+        tipo  = document.getElementById('fz-categoria-tipo').value;
+        emoji = document.getElementById('fz-cat-emoji-preview').textContent || '🏷️';
+    }
+
+    fz_guardarCategoria({
+        id:        idInput ? parseInt(idInput) : Date.now(),
+        nombre, tipo, color, emoji,
+        parent_id: parentId ? parseInt(parentId) : null,
+        archivada: false
+    });
+
+    document.getElementById('fz-modal-categoria').classList.remove('visible');
+    fz_pintarCategorias();
+};
+
+window.fz_archivarCategoriaUI = function(id) {
+    if (confirm("¿Archivar esta categoría? Sus subcategorías también se archivarán.")) {
+        const datos = fz_obtenerDatos();
+        datos.categorias.filter(c => c.parent_id === id).forEach(h => fz_archivarCategoria(h.id));
+        fz_archivarCategoria(id);
+        fz_pintarCategorias();
+    }
+};
+
+// ==========================================
+// COLORES DEL MODAL DE CATEGORÍA
+// ==========================================
+window.fz_seleccionarColorCat = function(el, color) {
+    document.getElementById('fz-categoria-color').value = color;
+    document.querySelectorAll('.fz-cat-color-circle').forEach(c => c.classList.remove('activa'));
+    el.classList.add('activa');
+};
+
+window.fz_colorCatCustom = function(input) {
+    const color = input.value;
+    document.getElementById('fz-categoria-color').value = color;
+    document.querySelectorAll('.fz-cat-color-circle').forEach(c => c.classList.remove('activa'));
+    const trigger = input.parentElement;
+    trigger.classList.add('activa');
+    trigger.style.background = color;
+};
+
+function fz_activarColorCat(colorHex) {
+    document.getElementById('fz-categoria-color').value = colorHex;
+    let encontrado = false;
+    document.querySelectorAll('.fz-cat-color-circle:not(.fz-cat-color-custom)').forEach(c => {
+        c.classList.remove('activa');
+        if (c.style.background === colorHex) { c.classList.add('activa'); encontrado = true; }
+    });
+    const custom = document.querySelector('.fz-cat-color-custom');
+    if (custom) {
+        if (!encontrado) { custom.classList.add('activa'); custom.style.background = colorHex; }
+        else { custom.classList.remove('activa'); custom.style.background = 'conic-gradient(red,yellow,lime,aqua,blue,magenta,red)'; }
+    }
+}
+
+// ==========================================
+// EMOJI PICKER
+// ==========================================
+window.fz_toggleEmojiPicker = function() {
+    document.getElementById('fz-emoji-search').value = '';
+    fz_renderizarEmojis(FZ_EMOJIS);
+    document.getElementById('fz-modal-emoji').classList.add('visible');
+};
+
+function fz_renderizarEmojis(fuente) {
+    const grid = document.getElementById('fz-emoji-grid');
+    const titulo = document.getElementById('fz-emoji-section-title');
+    if (Array.isArray(fuente)) {
+        titulo.textContent = 'Resultados';
+        grid.innerHTML = fuente.map(e =>
+            `<button class="fz-emoji-btn" onclick="fz_seleccionarEmoji('${e}')">${e}</button>`
+        ).join('');
+    } else {
+        const grupos = Object.keys(fuente);
+        titulo.textContent = grupos[0] || '';
+        grid.innerHTML = grupos.map(g =>
+            fuente[g].map(e => `<button class="fz-emoji-btn" onclick="fz_seleccionarEmoji('${e}')">${e}</button>`).join('')
+        ).join('');
+    }
+}
+
+window.fz_filtrarEmojis = function() {
+    const q = document.getElementById('fz-emoji-search').value.toLowerCase().trim();
+    if (!q) { fz_renderizarEmojis(FZ_EMOJIS); return; }
+    fz_renderizarEmojis(Object.values(FZ_EMOJIS).flat());
+};
+
+window.fz_seleccionarEmoji = function(emoji) {
+    document.getElementById('fz-cat-emoji-preview').textContent = emoji;
+    document.getElementById('fz-modal-emoji').classList.remove('visible');
+};
+
+// ==========================================
+// CEREBRO MATEMÁTICO Y DASHBOARD
+// ==========================================
+
+// 1. Calcula el saldo real actual de una cuenta específica
+// 1. Calcula el saldo real actual de una cuenta específica
+function fz_calcularSaldoCuenta(cuentaId) {
+    const datos = fz_obtenerDatos();
+    const cuenta = datos.cuentas.find(c => c.id === cuentaId);
+    if (!cuenta) return 0;
+
+    const hoy = new Date().toISOString().split('T')[0]; // "2026-05-20"
+    let saldoActual = cuenta.saldo_inicial || 0;
+
+    // Solo cuenta transacciones hasta HOY y que estén marcadas como pagadas
+    const transContables = datos.transacciones.filter(t =>
+        !t.archivada &&
+        t.fecha <= hoy &&
+        t.pagado !== false
+    );
+
+    transContables.forEach(t => {
+        if (t.tipo === 'ingreso' && t.cuenta_id === cuentaId) saldoActual += t.monto;
+        if (t.tipo === 'gasto' && t.cuenta_id === cuentaId) saldoActual -= t.monto;
+        if (t.tipo === 'transferencia') {
+            if (t.cuenta_id === cuentaId) saldoActual -= t.monto;
+            if (t.cuenta_destino_id === cuentaId) saldoActual += t.monto;
+        }
+    });
+
+    return saldoActual;
+}
+
+// 2. Calcula la suma de TODO el dinero en todas las cuentas
+function fz_calcularSaldoTotal() {
+    const datos = fz_obtenerDatos();
+    // 🚨 Filtro: Si incluir_dashboard es exactamente false, lo saltamos.
+    const cuentasActivas = datos.cuentas.filter(c => !c.archivada && c.incluir_dashboard !== false);
+    return cuentasActivas.reduce((total, c) => total + fz_calcularSaldoCuenta(c.id), 0);
+}
+
+// 3. Pinta la pantalla principal (Resumen)
+let fz_graficoInstancia = null; // Guardará el gráfico para destruirlo/crearlo al cambiar de mes
+
+function fz_pintarResumen() {
+    const datos = fz_obtenerDatos();
+    const transActivas = datos.transacciones.filter(t => !t.archivada);
+
+    const year = fz_fechaActual.getFullYear();
+    const month = String(fz_fechaActual.getMonth() + 1).padStart(2, '0');
+    const mesFiltro = `${year}-${month}`;
+
+    // Todas las transacciones del mes seleccionado, sin importar si son futuras o pendientes
+    const transDelMes = transActivas.filter(t => t.fecha.startsWith(mesFiltro));
+
+    let ingresosMes = 0;
+    let gastosMes = 0;
+
+    transDelMes.forEach(t => {
+        if (t.tipo === 'ingreso') ingresosMes += t.monto;
+        if (t.tipo === 'gasto') gastosMes += t.monto;
+    });
+
+    // Saldo General: SIEMPRE el dinero real a hoy, nunca incluye el futuro
+    document.getElementById('fz-saldo-general').textContent = formatearDinero(fz_calcularSaldoTotal());
+
+    // Ingresos y Gastos: muestran el total del mes navegado (proyectado si es futuro)
+    document.getElementById('fz-ingresos-mes').textContent = `+${formatearDinero(ingresosMes)}`;
+    document.getElementById('fz-gastos-mes').textContent = `-${formatearDinero(gastosMes)}`;
+
+    fz_renderizarGraficoGastos(transDelMes, datos.categorias);
+}
+
+// 4. Genera el gráfico de dona de Chart.js
+function fz_renderizarGraficoGastos(transDelMes, categorias) {
+    const canvas = document.getElementById('fz-grafico-gastos');
+    const emptyMsg = document.getElementById('fz-grafico-vacio');
+    
+    const gastos = transDelMes.filter(t => t.tipo === 'gasto');
+    
+    if (gastos.length === 0) {
+        canvas.style.display = 'none';
+        emptyMsg.style.display = 'block';
+        if (fz_graficoInstancia) fz_graficoInstancia.destroy();
+        return;
+    }
+    
+    canvas.style.display = 'block';
+    emptyMsg.style.display = 'none';
+
+    // Agrupar gastos por categoría
+    let totalesCat = {};
+    gastos.forEach(g => {
+        totalesCat[g.categoria_id] = (totalesCat[g.categoria_id] || 0) + g.monto;
+    });
+
+    const labels = [];
+    const data = [];
+    const bgColors = [];
+
+    Object.keys(totalesCat).forEach(catId => {
+        const cat = categorias.find(c => c.id == catId);
+        labels.push(cat ? cat.nombre : 'Sin Categoría');
+        data.push(totalesCat[catId]);
+        bgColors.push(cat ? cat.color : 'var(--text-lo)');
+    });
+
+    if (fz_graficoInstancia) fz_graficoInstancia.destroy();
+
+    const colorTexto = getComputedStyle(document.body).getPropertyValue('--text-lo').trim() || '#888';
+
+    fz_graficoInstancia = new Chart(canvas, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                backgroundColor: bgColors,
+                borderWidth: 0,
+                hoverOffset: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '70%',
+            plugins: {
+                legend: { position: 'right', labels: { color: colorTexto, font: {family: 'Inter, sans-serif'} } }
+            }
+        }
+    });
+}
+
+// Funciones Modal Transferencia
+window.fz_abrirModalTransferencia = function(id = null) {
+    const datos = fz_obtenerDatos();
+    const cuentasActivas = datos.cuentas.filter(c => !c.archivada);
+
+    if (cuentasActivas.length < 2) return alert("Debes crear al menos 2 Cuentas para poder transferir dinero entre ellas.");
+
+    document.getElementById('fz-modal-transf-titulo').innerText = id ? 'Editar Transferencia' : 'Transferir Dinero';
+    
+    const opciones = cuentasActivas.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
+    document.getElementById('fz-transf-origen').innerHTML = opciones;
+    document.getElementById('fz-transf-destino').innerHTML = opciones;
+
+    if (id) {
+        // MODO EDICIÓN
+        const t = datos.transacciones.find(tr => tr.id === id);
+        if(t) {
+            document.getElementById('fz-transf-id').value = t.id;
+            document.getElementById('fz-transf-monto').value = t.monto;
+            document.getElementById('fz-transf-origen').value = t.cuenta_id;
+            document.getElementById('fz-transf-destino').value = t.cuenta_destino_id;
+            document.getElementById('fz-transf-fecha').value = t.fecha;
+        }
+    } else {
+        // MODO CREACIÓN
+        document.getElementById('fz-transf-id').value = '';
+        if(cuentasActivas.length > 1) document.getElementById('fz-transf-destino').selectedIndex = 1;
+        document.getElementById('fz-transf-monto').value = '';
+        document.getElementById('fz-transf-fecha').value = new Date().toISOString().split('T')[0];
+    }
+
+    document.getElementById('fz-trans-add-menu')?.classList.remove('visible');
+    document.getElementById('fz-modal-transferencia').classList.add('visible');
+};
+
+window.fz_guardarFormularioTransferencia = function() {
+    const idInput = document.getElementById('fz-transf-id').value;
+    const monto = parseFloat(document.getElementById('fz-transf-monto').value);
+    const origen = parseInt(document.getElementById('fz-transf-origen').value);
+    const destino = parseInt(document.getElementById('fz-transf-destino').value);
+    const fecha = document.getElementById('fz-transf-fecha').value;
+
+    if (!monto || monto <= 0) return alert("Ingresa un monto válido.");
+    if (origen === destino) return alert("La cuenta de origen y destino no pueden ser la misma.");
+    if (!fecha) return alert("Selecciona una fecha.");
+
+    // ==========================================
+    // 🔒 NUEVO CANDADO DE FONDOS INSUFICIENTES
+    // ==========================================
+    const datos = fz_obtenerDatos();
+    let saldoDisponible = fz_calcularSaldoCuenta(origen);
+
+    // Si estamos editando, devolvemos temporalmente el dinero viejo a la cuenta para que las mates cuadren
+    if (idInput) {
+        const transVieja = datos.transacciones.find(tr => tr.id === parseInt(idInput));
+        if (transVieja) saldoDisponible += transVieja.monto;
+    }
+
+    if (monto > saldoDisponible) {
+        return alert(`FONDOS INSUFICIENTES:\nNo puedes transferir ${formatearDinero(monto)}. La cuenta origen solo dispone de ${formatearDinero(saldoDisponible)}.`);
+    }
+
+    fz_guardarTransaccion({
+        id: idInput ? parseInt(idInput) : Date.now(),
+        tipo: 'transferencia',
+        monto: monto,
+        descripcion: "Transferencia",
+        fecha: fecha,
+        cuenta_id: origen,
+        cuenta_destino_id: destino,
+        categoria_id: null,
+        pagado: true, // Siempre pagado
+        archivada: false
+    });
+
+    document.getElementById('fz-modal-transferencia').classList.remove('visible');
+    fz_pintarTransacciones();
+};
+
+
+
+
+// ====================================================
+// RUTA DEL ARCHIVO: js/core/storage.js
+// ====================================================
+// ==========================================
+// CORE: storage.js (El Almacén de Datos)
+// VERSIÓN: 2.1 — Agrega horaInicio y horaFin al registro de trabajo
+// ==========================================
+
+const VERSION_DATOS = "2.1";
+
+function cargarDatos() {
+    const datos = localStorage.getItem('datos_cerebro');
+    if (datos) {
+        let parseado = JSON.parse(datos);
+        if (!parseado.clientes) parseado.clientes = []; 
+        // 👇 NUEVA ESTRUCTURA PARA FINANZAS PERSONALES
+        if (!parseado.finanzas_personales) {
+            parseado.finanzas_personales = {
+                cuentas: [],
+                categorias: [],
+                transacciones: [],
+                comercios: [],
+                recurrentes: []
+            };
+        } else {
+            if (!parseado.finanzas_personales.comercios) parseado.finanzas_personales.comercios = [];
+            if (!parseado.finanzas_personales.recurrentes) parseado.finanzas_personales.recurrentes = [];
+        }
+        return parseado;
+    }
+    return { 
+        version: VERSION_DATOS,
+        registro_trabajo: [], 
+        habitos: [], 
+        registro_habitos: {},
+        config_habitos: null,
+        clientes: [],
+        // Base de datos virgen para el nuevo módulo
+        finanzas_personales: {
+            cuentas: [],
+            categorias: [],
+            transacciones: [],
+            recurrentes: []
+        }
+    };
+}
+
+function guardarDatos(datos) {
+    datos.version = VERSION_DATOS;
+    localStorage.setItem('datos_cerebro', JSON.stringify(datos));
+}
+
+// ✅ Agrega horaInicio y horaFin — compatibe con registros viejos (quedan con null)
+function guardarSesionTrabajo(fecha, meta, trabajado, descansado, horaInicio = null, horaFin = null) {
+    let datos = cargarDatos();
+    if (!datos.registro_trabajo) datos.registro_trabajo = [];
+
+    // Nos aseguramos de que descansado nunca sea undefined o negativo
+    const descansadoFinal = (typeof descansado === 'number' && descansado >= 0) ? descansado : 0;
+
+    let registroExistente = datos.registro_trabajo.find(r => r.fecha === fecha);
+    if (registroExistente) {
+        registroExistente.meta       = meta;
+        registroExistente.trabajado  = trabajado;
+        registroExistente.descansado = descansadoFinal;   // ✅ usa el valor real
+        // Solo actualiza horaInicio si no tenía una ya
+        if (!registroExistente.horaInicio && horaInicio) registroExistente.horaInicio = horaInicio;
+        registroExistente.horaFin = horaFin;
+    } else {
+        datos.registro_trabajo.push({
+            id:         Date.now(),
+            fecha:      fecha,
+            meta:       meta,
+            trabajado:  trabajado,
+            descansado: descansadoFinal,   // ✅ también aquí
+            horaInicio: horaInicio,
+            horaFin:    horaFin
+        });
+    }
+
+    guardarDatos(datos);
+
+    if (typeof window.actualizarGraficos === 'function') {
+        window.actualizarGraficos();
+    }
+}
+
+function borrarRegistroTrabajo(id) {
+    let datos = cargarDatos();
+    if (datos.registro_trabajo) {
+        datos.registro_trabajo = datos.registro_trabajo.filter(reg => reg.id !== id);
+        guardarDatos(datos);
+    }
+}
+
+function guardarHabitosDefinicion(listaHabitos) {
+    let datos = cargarDatos();
+    datos.habitos = listaHabitos;
+    guardarDatos(datos);
+}
+
+function guardarConfigHabitos(config) {
+    let datos = cargarDatos();
+    datos.config_habitos = config;
+    guardarDatos(datos);
+}
+
+function guardarProgresoHabito(fecha, habitoId, nuevoProgreso) {
+    let datos = cargarDatos();
+    if (!datos.registro_habitos) datos.registro_habitos = {};
+    if (!datos.registro_habitos[fecha]) datos.registro_habitos[fecha] = {};
+    datos.registro_habitos[fecha][habitoId] = nuevoProgreso;
+    guardarDatos(datos);
+}
+
+// ==========================================
+// MÓDULO: FINANZAS PERSONALES - STORAGE
+// ==========================================
+
+// Obtener solo el nodo de finanzas
+function fz_obtenerDatos() {
+    let datos = cargarDatos();
+    return datos.finanzas_personales;
+}
+
+// --- CRUD CUENTAS ---
+function fz_guardarCuenta(cuenta) {
+    let datos = cargarDatos();
+    let index = datos.finanzas_personales.cuentas.findIndex(c => c.id === cuenta.id);
+    if (index > -1) datos.finanzas_personales.cuentas[index] = cuenta; // Editar
+    else datos.finanzas_personales.cuentas.push(cuenta); // Crear nueva
+    guardarDatos(datos);
+}
+
+function fz_archivarCuenta(id) {
+    let datos = cargarDatos();
+    let cuenta = datos.finanzas_personales.cuentas.find(c => c.id === id);
+    if (cuenta) cuenta.archivada = true; // SOFT-DELETE (No se borra, se archiva)
+    guardarDatos(datos);
+}
+
+// --- CRUD CATEGORÍAS ---
+function fz_guardarCategoria(categoria) {
+    let datos = cargarDatos();
+    let index = datos.finanzas_personales.categorias.findIndex(c => c.id === categoria.id);
+    if (index > -1) datos.finanzas_personales.categorias[index] = categoria;
+    else datos.finanzas_personales.categorias.push(categoria);
+    guardarDatos(datos);
+}
+
+function fz_archivarCategoria(id) {
+    let datos = cargarDatos();
+    let categoria = datos.finanzas_personales.categorias.find(c => c.id === id);
+    if (categoria) categoria.archivada = true;
+    guardarDatos(datos);
+}
+
+// --- CRUD RECURRENCIAS ---
+function fz_guardarRecurrente(recurrente) {
+    let datos = cargarDatos();
+    if (!datos.finanzas_personales.recurrentes) datos.finanzas_personales.recurrentes = [];
+    let index = datos.finanzas_personales.recurrentes.findIndex(r => r.id === recurrente.id);
+    if (index > -1) datos.finanzas_personales.recurrentes[index] = recurrente;
+    else datos.finanzas_personales.recurrentes.push(recurrente);
+    guardarDatos(datos);
+}
+
+function fz_archivarRecurrente(id) {
+    let datos = cargarDatos();
+    if (!datos.finanzas_personales.recurrentes) datos.finanzas_personales.recurrentes = [];
+    let r = datos.finanzas_personales.recurrentes.find(x => x.id === id);
+    if (r) r.activo = false;
+    guardarDatos(datos);
+}
+
+// --- CRUD TRANSACCIONES ---
+function fz_guardarTransaccion(transaccion) {
+    let datos = cargarDatos();
+    let index = datos.finanzas_personales.transacciones.findIndex(t => t.id === transaccion.id);
+    if (index > -1) datos.finanzas_personales.transacciones[index] = transaccion;
+    else datos.finanzas_personales.transacciones.push(transaccion);
+    guardarDatos(datos);
+}
+
+function fz_archivarTransaccion(id) {
+    let datos = cargarDatos();
+    let trans = datos.finanzas_personales.transacciones.find(t => t.id === id);
+    if (trans) trans.archivada = true;
+    guardarDatos(datos);
+}
+
+
+
+// ====================================================
+// RUTA DEL ARCHIVO: js/core/app.js
+// ====================================================
+// ==========================================
+// CORE: app.js (El Router / Conserje)
+// FIX: Backup ahora incluye registro_trabajo correctamente
+// ==========================================
+
+const menuItems = document.querySelectorAll('#menu-principal li');
+const contenedorVistas = document.getElementById('contenedor-vistas');
+
+menuItems.forEach(item => {
+    item.addEventListener('click', async (e) => {
+        menuItems.forEach(i => i.classList.remove('activo'));
+        const elementoClickeado = e.currentTarget; 
+        elementoClickeado.classList.add('activo');
+        const nombreVista = elementoClickeado.getAttribute('data-target');
+        await cargarVista(nombreVista);
+    });
+});
+
+async function cargarVista(nombreVista) {
+    if (!nombreVista) {
+        contenedorVistas.innerHTML = `<div style="padding: 40px; text-align: center;"><h2>🚧 Módulo en construcción 🚧</h2></div>`;
+        return;
+    }
+
+    try {
+        const respuesta = await fetch(`vistas/${nombreVista}.html`);
+        if (respuesta.ok) {
+            const html = await respuesta.text();
+            contenedorVistas.innerHTML = html; 
+            
+            if (nombreVista === 'trabajo') {
+                setTimeout(() => {
+                    if (typeof inicializarTemporizador === 'function') inicializarTemporizador();
+                    if (typeof inicializarMetricas === 'function') inicializarMetricas();
+                }, 50);
+            } else if (nombreVista === 'clientes') {
+                setTimeout(() => {
+                    if (typeof inicializarClientes === 'function') inicializarClientes();
+                }, 50);
+            } else if (nombreVista === 'habitos') {
+                setTimeout(() => {
+                if (typeof inicializarHabitos === 'function') inicializarHabitos();
+                }, 50);
+                } else if (nombreVista === 'estadisticas-habitos') {
+                setTimeout(() => {
+                if (typeof inicializarEstadisticasHabitos === 'function') inicializarEstadisticasHabitos();
+                }, 50);
+                } else if (nombreVista === 'finanzas-personales') { // 👇 NUEVO
+                setTimeout(() => {
+                    if (typeof inicializarFinanzasPersonales === 'function') inicializarFinanzasPersonales();
+                }, 50);
+            }
+        } else {
+            contenedorVistas.innerHTML = "<h2>Error 404: Archivo no encontrado.</h2>";
+        }
+    } catch (error) {
+        console.error("Error al cargar la vista:", error);
+    }
+}
+
+// --- FUNCIONES DE BACKUP ---
+// ✅ FIX: Todo vive en 'datos_cerebro', el backup ya incluye hábitos + trabajo + todo
+
+window.exportarDatos = function() {
+    const datos = localStorage.getItem('datos_cerebro');
+    if (!datos) return alert("No hay datos para exportar.");
+
+    const blob = new Blob([datos], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `cerebro_backup_${new Date().toLocaleDateString()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    const statusDiv = document.getElementById('backup-status');
+    if(statusDiv) statusDiv.innerText = "✅ ¡Copia descargada con éxito!";
+};
+
+window.importarDatos = function(event) {
+    const archivo = event.target.files[0];
+    if (!archivo) return;
+
+    const lector = new FileReader();
+    lector.onload = function(e) {
+        try {
+            const contenido = e.target.result;
+            JSON.parse(contenido); // Valida que sea JSON válido
+            localStorage.setItem('datos_cerebro', contenido); // ✅ Restaura en la clave correcta
+            // ✅ FIX: Limpiamos la sesión temporal para que no pise los datos recién restaurados
+            localStorage.removeItem('sesionTrabajoTemporal');
+            localStorage.removeItem('memoria_diaria_trabajo');
+            const statusDiv = document.getElementById('backup-status');
+            if(statusDiv) statusDiv.innerText = "✅ Datos importados. Reiniciando...";
+            setTimeout(() => location.reload(), 1500);
+        } catch (err) {
+            alert("Error: El archivo no es un backup válido.");
+        }
+    };
+    lector.readAsText(archivo);
+    event.target.value = '';
+};
+
+// Iniciar app
+cargarVista('inicio');
+
+
+
+// ====================================================
+// RUTA DEL ARCHIVO: vistas/backup.html
+// ====================================================
+<div class="seccion-titulo">
+    <h2>💾 Copia de Seguridad</h2>
+    <p>Exporta tus datos para guardarlos o impórtalos para restaurar tu progreso.</p>
+</div>
+
+<div class="backup-grid">
+    <div class="backup-card">
+        <div class="backup-icono">📤</div>
+        <h3>Exportar Datos</h3>
+        <p>Genera un archivo JSON con todos tus hábitos, sesiones de trabajo y configuraciones.</p>
+        <button onclick="window.exportarDatos()" class="btn-primario" style="width: 100%;">Descargar Backup</button>
+    </div>
+
+    <div class="backup-card">
+        <div class="backup-icono">📥</div>
+        <h3>Importar Datos</h3>
+        <p>Selecciona un archivo de respaldo previo. <br><strong>Atención:</strong> Esto reemplazará los datos actuales.</p>
+        
+        <label class="btn-secundario" style="display: block; text-align: center; cursor: pointer;">
+            Seleccionar Archivo
+            <input type="file" id="input-import" onchange="window.importarDatos(event)" style="display: none;">
+        </label>
+    </div>
+</div>
+
+<div id="backup-status" style="margin-top: 20px; text-align: center; font-weight: bold; color: #1e8e3e;"></div>
+
+
+
