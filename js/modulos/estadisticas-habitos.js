@@ -1,24 +1,25 @@
 /* ====================================================
    RUTA DEL ARCHIVO: js/modulos/estadisticas-habitos.js
-   VERSIÓN: 1.0 — Módulo independiente de Estadísticas
-   Lee SOLO desde storage.js (cargarDatos).
-   Usa Chart.js (importado desde CDN en index.html).
+   VERSIÓN: 1.1 — Cronómetros incluidos + flechas corregidas
+   ─ _habitosActivos() devuelve todos los hábitos (contador + cronómetro)
+   ─ _pctDia() calcula 1 si el cronómetro lleva corriendo ese día, 0 si no
+   ─ Las 4 funciones de navegación invertidas (barras, líneas, tabla, año)
+     ahora usan -= dir para que ❮ vaya al pasado y ❯ vuelva al presente
+   ─ navegarMesCalendario añade Math.min(0,...) para no saltar al futuro
    ==================================================== */
 
 /* ─── Estado del módulo ────────────────────────────── */
 const _stats = {
-    // Períodos de navegación (en semanas hacia atrás desde hoy)
-    offsetBarras: 0,   // en semanas (cada semana = 7 días)
+    offsetBarras: 0,
     offsetLineas: 0,
-    offsetRecords: 0,  // en meses (0 = últimos 30 días)
-    offsetSemana: 0,   // semanas hacia atrás para la tabla
-    offsetAnio: 0,     // años hacia atrás para el heatmap
-    offsetMes: 0,      // meses hacia atrás para el calendario
+    offsetRecords: 0,
+    offsetSemana: 0,
+    offsetAnio: 0,
+    offsetMes: 0,
 
-    habitosFiltrados: null, // null = todos
-    modoTabla: 'normal',    // 'normal' | 'compacto'
+    habitosFiltrados: null,
+    modoTabla: 'normal',
 
-    // Instancias de Chart.js
     chartBarras: null,
     chartLineas: null,
 };
@@ -33,7 +34,6 @@ window.inicializarEstadisticasHabitos = function () {
     _stats.offsetAnio    = 0;
     _stats.offsetMes     = 0;
 
-    // Destruir charts anteriores si los hay
     if (_stats.chartBarras)  { _stats.chartBarras.destroy();  _stats.chartBarras  = null; }
     if (_stats.chartLineas) { _stats.chartLineas.destroy(); _stats.chartLineas = null; }
 
@@ -55,35 +55,43 @@ function _datos() {
     return cargarDatos() || { habitos: [], registro_habitos: {}, config_habitos: null };
 }
 
+// ── CAMBIO 1: incluye TODOS los hábitos (contador + cronómetro) ──
 function _habitosActivos() {
     const d = _datos();
-    let lista = (d.habitos || []).filter(h => h.tipo === 'contador');
+    let lista = (d.habitos || []);          // ← ya no filtra por tipo
     if (_stats.habitosFiltrados && _stats.habitosFiltrados.length > 0) {
         lista = lista.filter(h => _stats.habitosFiltrados.includes(h.id));
     }
     return lista;
 }
 
-// Devuelve "DD/MM/YYYY" de un Date
 function _fmt(date) {
     return date.toLocaleDateString('es-CO');
 }
 
-// Progreso [0..1] de un día para un hábito
+// ── CAMBIO 2: cronómetro = 1 (completo) si lleva corriendo ese día ──
 function _pctDia(reg, fecha, habito) {
+    if (habito.tipo === 'cronometro') {
+        if (!habito.fechaInicio) return 0;
+        const fIni = new Date(habito.fechaInicio);
+        fIni.setHours(0, 0, 0, 0);
+        // Parsear fecha en formato DD/MM/YYYY (es-CO)
+        const partes = fecha.split('/');
+        const fCheck = new Date(Number(partes[2]), Number(partes[1]) - 1, Number(partes[0]));
+        const hoyMidnight = new Date(); hoyMidnight.setHours(0, 0, 0, 0);
+        return (fCheck >= fIni && fCheck <= hoyMidnight) ? 1 : 0;
+    }
     const r = reg[fecha];
     if (!r) return 0;
     return Math.min((r[habito.id] || 0) / habito.meta, 1);
 }
 
-// Progreso global [0..1] de un día (todos los hábitos activos)
 function _pctDiaGlobal(reg, fecha, habitos) {
     if (!habitos.length) return 0;
     const sum = habitos.reduce((acc, h) => acc + _pctDia(reg, fecha, h), 0);
     return sum / habitos.length;
 }
 
-// Genera array de los últimos N días desde un offset (en días)
 function _rangoFechas(n, offsetDias) {
     const hoy = new Date();
     hoy.setHours(0, 0, 0, 0);
@@ -96,7 +104,6 @@ function _rangoFechas(n, offsetDias) {
     return resultado;
 }
 
-// Nombre corto de día de semana
 const _DIAS_CORTOS = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
 const _MESES_ES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 const _MESES_CORTOS = ['ene.','feb.','mar.','abr.','may.','jun.','jul.','ago.','sept.','oct.','nov.','dic.'];
@@ -116,8 +123,10 @@ function _getChartDefaults() {
 /* ══════════════════════════════════════════════════════
    SECCIÓN 1: Barras de Progreso General
    ══════════════════════════════════════════════════════ */
+
+// ── CAMBIO 3: -= dir (antes += dir) para que ❮ vaya al pasado ──
 window.navegarPeriodoBarras = function (dir) {
-    _stats.offsetBarras = Math.max(0, _stats.offsetBarras + dir);
+    _stats.offsetBarras = Math.max(0, _stats.offsetBarras - dir);
     _renderBarras();
 };
 
@@ -127,14 +136,12 @@ function _renderBarras() {
     const d = _datos();
     const reg = d.registro_habitos || {};
 
-    // 7 días: offsetBarras * 7 días hacia atrás
     const offsetDias = _stats.offsetBarras * 7;
     const fechas = _rangoFechas(7, offsetDias);
 
     const labels = fechas.map(f => _DIAS_CORTOS[f.getDay()]);
     const valores = fechas.map(f => Math.round(_pctDiaGlobal(reg, _fmt(f), habitos) * 100));
 
-    // Etiqueta del período
     const desde = fechas[0];
     const hasta = fechas[6];
     const label = _stats.offsetBarras === 0
@@ -155,7 +162,6 @@ function _renderBarras() {
             labels,
             datasets: [
                 {
-                    // Barras fondo (100%)
                     data: Array(7).fill(100),
                     backgroundColor: 'rgba(255,255,255,0.06)',
                     borderRadius: 8,
@@ -163,7 +169,6 @@ function _renderBarras() {
                     barPercentage: 0.65,
                 },
                 {
-                    // Barras progreso real
                     data: valores,
                     backgroundColor: c.accent + 'CC',
                     borderRadius: 8,
@@ -203,8 +208,10 @@ function _renderBarras() {
 /* ══════════════════════════════════════════════════════
    SECCIÓN 2: Líneas por Hábito Individual
    ══════════════════════════════════════════════════════ */
+
+// ── CAMBIO 4: -= dir (antes += dir) ──
 window.navegarPeriodoLineas = function (dir) {
-    _stats.offsetLineas = Math.max(0, _stats.offsetLineas + dir);
+    _stats.offsetLineas = Math.max(0, _stats.offsetLineas - dir);
     _renderLineas();
 };
 
@@ -224,7 +231,6 @@ function _renderLineas() {
     const el = document.getElementById('label-periodo-lineas');
     if (el) el.textContent = label;
 
-    // Línea roja = 100%
     const datasets = [
         {
             data: Array(7).fill(100),
@@ -288,7 +294,6 @@ function _renderLineas() {
         }
     });
 
-    // Leyenda manual
     const ley = document.getElementById('stats-leyenda-lineas');
     if (ley) {
         ley.innerHTML = habitos.map(h =>
@@ -303,8 +308,12 @@ function _renderLineas() {
 /* ══════════════════════════════════════════════════════
    SECCIÓN 3: Calendario Mensual con Donuts
    ══════════════════════════════════════════════════════ */
+
+// ── CAMBIO 5: añade Math.min(0,...) para no saltar al futuro ──
+// La lógica de dirección ya era correcta aquí (❮→-1→pasado) — solo
+// añadimos el tope para no ir a meses futuros.
 window.navegarMesCalendario = function (dir) {
-    _stats.offsetMes += dir;
+    _stats.offsetMes = Math.min(0, _stats.offsetMes + dir);
     _renderCalendarioMensual();
 };
 
@@ -319,7 +328,6 @@ function _renderCalendarioMensual() {
     const anio = refMes.getFullYear();
     const mes  = refMes.getMonth();
 
-    // Título
     const tit = document.getElementById('stats-cal-titulo');
     if (tit) tit.textContent = `${_MESES_ES[mes]} de ${anio}`;
 
@@ -327,17 +335,14 @@ function _renderCalendarioMensual() {
     if (!grid) return;
     grid.innerHTML = '';
 
-    // Primer día del mes (0=dom, ajustar a lunes=0)
     let primerDia = new Date(anio, mes, 1).getDay();
-    primerDia = (primerDia === 0) ? 6 : primerDia - 1; // lunes=0
+    primerDia = (primerDia === 0) ? 6 : primerDia - 1;
 
     const diasEnMes = new Date(anio, mes + 1, 0).getDate();
 
-    // Celdas vacías antes
     for (let i = 0; i < primerDia; i++) {
         const vacio = document.createElement('div');
         vacio.className = 'cal-dia otro-mes';
-        // Número del mes anterior
         const dPrev = new Date(anio, mes, -primerDia + 1 + i);
         vacio.innerHTML = `<span class="cal-dia-numero">${dPrev.getDate()}</span>`;
         grid.appendChild(vacio);
@@ -357,7 +362,6 @@ function _renderCalendarioMensual() {
         const el = document.createElement('div');
         el.className = `cal-dia${esHoy ? ' hoy-cal' : ''}`;
 
-        // SVG donut
         const size = 36;
         const sw   = 3;
         const r    = (size - sw) / 2;
@@ -378,7 +382,6 @@ function _renderCalendarioMensual() {
         grid.appendChild(el);
     }
 
-    // Celdas vacías finales
     const totalCeldas = primerDia + diasEnMes;
     const filasCompletas = Math.ceil(totalCeldas / 7);
     const celdasFin = filasCompletas * 7 - totalCeldas;
@@ -431,7 +434,6 @@ function _renderRecords() {
 
         if (i === 0 || pct > 0) diasConDatos++;
 
-        // Contar completados: días con 100%
         if (pct >= 1) {
             completadosTotal++;
             if (contandoRacha) {
@@ -459,8 +461,10 @@ function _renderRecords() {
 /* ══════════════════════════════════════════════════════
    SECCIÓN 5: Tabla Semanal (Hábitos × Días)
    ══════════════════════════════════════════════════════ */
+
+// ── CAMBIO 6: -= dir (antes += dir) ──
 window.navegarSemanaTabla = function (dir) {
-    _stats.offsetSemana = Math.max(0, _stats.offsetSemana + dir);
+    _stats.offsetSemana = Math.max(0, _stats.offsetSemana - dir);
     _renderTablaSemanal();
 };
 
@@ -473,8 +477,7 @@ function _renderTablaSemanal() {
     const hoy = new Date();
     hoy.setHours(0, 0, 0, 0);
 
-    // Inicio de la semana (lunes)
-    const diaSemana = hoy.getDay(); // 0=dom
+    const diaSemana = hoy.getDay();
     const diasDesdeL = (diaSemana === 0) ? 6 : diaSemana - 1;
     const inicioSemana = new Date(hoy);
     inicioSemana.setDate(hoy.getDate() - diasDesdeL - _stats.offsetSemana * 7);
@@ -486,7 +489,6 @@ function _renderTablaSemanal() {
         dias7.push(d);
     }
 
-    // Label
     const desde = dias7[0];
     const hasta = dias7[6];
     const labelEl = document.getElementById('label-semana-tabla');
@@ -498,7 +500,6 @@ function _renderTablaSemanal() {
     const reg = d.registro_habitos || {};
     const habitos = _habitosActivos();
 
-    // Header
     const header = document.getElementById('tabla-semanal-header');
     if (header) {
         const letrasDias = ['L','M','M','J','V','S','D'];
@@ -508,7 +509,6 @@ function _renderTablaSemanal() {
         ).join('');
     }
 
-    // Body
     const body = document.getElementById('tabla-semanal-body');
     if (!body) return;
     body.innerHTML = '';
@@ -517,17 +517,14 @@ function _renderTablaSemanal() {
         const fila = document.createElement('div');
         fila.className = 'tabla-fila-habito';
 
-        // Nombre
         const nombre = document.createElement('div');
         nombre.className = 'tabla-fila-nombre';
         nombre.innerHTML = `<span class="t-icono">${h.icono}</span><span class="t-nombre">${h.nombre}</span>`;
         fila.appendChild(nombre);
 
-        // Días
         dias7.forEach(f => {
             const fFmt = _fmt(f);
-            const val  = (reg[fFmt] && reg[fFmt][h.id]) || 0;
-            const pct  = Math.min(val / h.meta, 1);
+            const pct  = _pctDia(reg, fFmt, h);
             const esHoy = f.toDateString() === hoy.toDateString();
             const esFut = f > hoy;
 
@@ -551,12 +548,10 @@ function _renderTablaSemanal() {
             circulo.className = clase;
             circulo.style.setProperty('--color-habito', h.color);
 
-            // Border color siempre del hábito (salvo futuro)
             if (!esFut) {
                 circulo.style.borderColor = pct >= 1 ? h.color : (pct > 0 ? h.color : '');
             }
 
-            // Si es parcial, mini-donut SVG
             if (pct > 0 && pct < 1) {
                 const s = 24, sw = 2.5;
                 const r2 = (s - sw) / 2;
@@ -587,8 +582,10 @@ function _renderTablaSemanal() {
 /* ══════════════════════════════════════════════════════
    SECCIÓN 6: Heatmap Anual
    ══════════════════════════════════════════════════════ */
+
+// ── CAMBIO 7: -= dir (antes += dir) ──
 window.navegarAnioHeatmap = function (dir) {
-    _stats.offsetAnio = Math.max(0, _stats.offsetAnio + dir);
+    _stats.offsetAnio = Math.max(0, _stats.offsetAnio - dir);
     _renderHeatmapAnual();
 };
 
@@ -604,7 +601,6 @@ function _renderHeatmapAnual() {
     const habitos = _habitosActivos();
 
     const inicio = new Date(anio, 0, 1);
-    // Ajustar al lunes de esa semana
     const diaSemana = inicio.getDay();
     const ajuste = (diaSemana === 0) ? 6 : diaSemana - 1;
     const primerLunes = new Date(inicio);
@@ -612,7 +608,6 @@ function _renderHeatmapAnual() {
 
     const fin = new Date(anio, 11, 31);
 
-    // Construir semanas
     const semanas = [];
     let cursor = new Date(primerLunes);
     while (cursor <= fin || semanas.length < 53) {
@@ -625,10 +620,8 @@ function _renderHeatmapAnual() {
         if (cursor.getFullYear() > anio && semanas.length >= 52) break;
     }
 
-    // Etiquetas de meses
     const mesesLabel = document.getElementById('heatmap-meses-label');
     if (mesesLabel) {
-        // Una etiqueta por cada semana donde empieza el mes
         let html = '';
         let mesActual = -1;
         semanas.forEach(semana => {
@@ -698,12 +691,19 @@ window.toggleFiltroHabitos = function () {
     const modal = document.getElementById('modal-filtro-habitos-stats');
     if (!modal) return;
 
-    const habitos = (_datos().habitos || []).filter(h => h.tipo === 'contador');
+    // ── CAMBIO 8: el modal de filtro también muestra todos los tipos ──
+    const habitos = (_datos().habitos || []);
     _selFiltroTemp = _stats.habitosFiltrados ? [..._stats.habitosFiltrados] : habitos.map(h => h.id);
 
     const lista = document.getElementById('lista-filtro-habitos-stats');
     if (lista) {
-        lista.innerHTML = habitos.map(h => `
+        lista.innerHTML = `
+            <button onclick="window.deseleccionarTodosFiltro()" 
+                style="width:100%; padding:8px; margin-bottom:10px; border:1px dashed var(--border-card); border-radius:8px; background:none; color:var(--text-lo); font-size:12px; cursor:pointer; transition:color 0.15s;"
+                onmouseover="this.style.color='var(--status-danger)'" onmouseout="this.style.color='var(--text-lo)'">
+                ✕ Deseleccionar todos
+            </button>` +
+            habitos.map(h => `
             <div class="filtro-habito-item ${_selFiltroTemp.includes(h.id) ? 'seleccionado' : ''}"
                  onclick="window._toggleHabitoFiltro(${h.id}, this)">
                 <div class="filtro-habito-check">${_selFiltroTemp.includes(h.id) ? '✓' : ''}</div>
@@ -713,6 +713,17 @@ window.toggleFiltroHabitos = function () {
         ).join('');
     }
     modal.style.display = 'flex';
+};
+
+window.deseleccionarTodosFiltro = function () {
+    _selFiltroTemp = [];
+    const lista = document.getElementById('lista-filtro-habitos-stats');
+    if (lista) {
+        lista.querySelectorAll('.filtro-habito-item').forEach(el => {
+            el.classList.remove('seleccionado');
+            el.querySelector('.filtro-habito-check').textContent = '';
+        });
+    }
 };
 
 window._toggleHabitoFiltro = function (id, el) {
@@ -734,8 +745,7 @@ window.cerrarFiltroHabitos = function () {
 };
 
 window.aplicarFiltroHabitos = function () {
-    const habitos = (_datos().habitos || []).filter(h => h.tipo === 'contador');
-    // Si están todos seleccionados, null = todos
+    const habitos = (_datos().habitos || []);
     _stats.habitosFiltrados = (_selFiltroTemp.length === habitos.length) ? null : [..._selFiltroTemp];
     window.cerrarFiltroHabitos();
     _renderTodo();
@@ -743,7 +753,6 @@ window.aplicarFiltroHabitos = function () {
 
 /* ─── Navegación: volver al módulo de hábitos ─────── */
 window.volverAHabitos = function () {
-    // app.js router
     if (typeof cargarVista === 'function') {
         cargarVista('habitos');
     }

@@ -222,44 +222,53 @@ function renderizarCalendario() {
     const slider = document.getElementById('calendario-habitos');
     if (!slider) return;
     slider.innerHTML = '';
-
+ 
     const hoy = new Date();
     const dias = ['DOM', 'LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB'];
     const d = obtenerDatosHabitosSeguros();
-
+ 
     for (let i = -3 + offsetDias; i <= 3 + offsetDias; i++) {
         const f = new Date(hoy);
         f.setDate(hoy.getDate() + i);
         const txt = f.toLocaleDateString('es-CO');
         const activo = txt === fechaSeleccionada;
         const fCirc = new Date(f.getFullYear(), f.getMonth(), f.getDate());
-
+ 
         const reg = (d.registro_habitos && d.registro_habitos[txt]) || {};
         let totalPct = 0, cuenta = 0;
         d.habitos.forEach(h => {
             const fCrea = h.fechaCreacion ? new Date(h.fechaCreacion + 'T00:00:00') : new Date(2000, 0, 1);
-            if (h.tipo === 'contador' && fCirc >= fCrea) {
+            // ← CAMBIO: quitamos el filtro "h.tipo === 'contador'"
+            if (fCirc >= fCrea) {
                 cuenta++;
-                const val = reg[h.id] || 0;
-                totalPct += Math.min(val / h.meta, 1);
+                if (h.tipo === 'cronometro') {
+                    if (h.fechaInicio) {
+                        const fIni = new Date(h.fechaInicio);
+                        fIni.setHours(0, 0, 0, 0);
+                        if (fCirc >= fIni && fCirc <= hoy) totalPct += 1;
+                    }
+                } else {
+                    const val = reg[h.id] || 0;
+                    totalPct += Math.min(val / h.meta, 1);
+                }
             }
         });
         const pct = cuenta > 0 ? totalPct / cuenta : 0;
-
+ 
         const rootStyle   = getComputedStyle(document.documentElement);
         const accentColor = rootStyle.getPropertyValue('--accent').trim() || '#1A73E8';
         const pctRounded  = Math.round(pct * 100);
-
+ 
         const item = document.createElement('div');
         item.className = `dia-circulo ${activo ? 'activo' : ''}`;
         item.style.background = `conic-gradient(from -90deg, ${accentColor} ${pctRounded}%, var(--border-card) ${pctRounded}%)`;
-
+ 
         item.innerHTML = `
             <div class="inner-circulo">
                 <span class="dia-nombre">${dias[f.getDay()]}</span>
                 <span class="dia-numero">${f.getDate()}</span>
             </div>`;
-
+ 
         item.onclick = () => {
             fechaSeleccionada = txt;
             renderizarCalendario();
@@ -300,8 +309,16 @@ function renderizarListaHabitos() {
     for (const [nombre, data] of Object.entries(gruposMap)) {
         let totalG = 0, doneG = 0;
         data.habitos.forEach(h => {
-            if (h.tipo === 'contador') {
-                totalG++;
+            totalG++;
+            if (h.tipo === 'cronometro') {
+                // El cronómetro cuenta como completo si lleva corriendo ese día
+                if (h.fechaInicio) {
+                    const fIni = new Date(h.fechaInicio);
+                    fIni.setHours(0, 0, 0, 0);
+                    const hoyMidnight = new Date(); hoyMidnight.setHours(0, 0, 0, 0);
+                    if (fVista >= fIni && fVista <= hoyMidnight) doneG++;
+                }
+            } else {
                 if ((reg[h.id] || 0) >= h.meta) doneG++;
             }
         });
