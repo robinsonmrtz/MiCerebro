@@ -1,12 +1,15 @@
 <div class="ini-header">
     <div class="seccion-titulo">
-        <p id="ini-fecha-hoy" style="font-size:12px; color: var(--text-mutado, #888); margin: 0 0 4px 0; font-weight: 500;"></p>
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
+        <p id="ini-fecha-hoy" style="font-size:12px; color: var(--text-mutado, #888); margin: 0; font-weight: 500;"></p>
+        <span id="ini-dolar-pill">Cargando...</span>
+    </div>
         <h2 id="ini-saludo" style="margin: 0;">👋 Hola</h2>
         <p style="margin-top: 4px;">El centro de mandos de tu vida, trabajo y finanzas.</p>
     </div>
 
-    <div class="ini-controls-wrapper">
-        <div class="ini-switch-container">
+        <div class="ini-controls-wrapper">      
+            <div class="ini-switch-container">
             <button class="ini-btn-switch activo" data-periodo="semana" onclick="fz_cambiarPeriodoDashboard('semana')">Semana</button>
             <button class="ini-btn-switch" data-periodo="mes" onclick="fz_cambiarPeriodoDashboard('mes')">Mes</button>
             <button class="ini-btn-switch" data-periodo="ano" onclick="fz_cambiarPeriodoDashboard('ano')">Año</button>

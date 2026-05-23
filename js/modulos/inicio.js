@@ -10,6 +10,7 @@ let fz_graficaProductividadInstancia = null;
 function inicializarDashboard() {
     console.log("🧠 Inicializando Dashboard Principal...");
     fz_renderizarSaludo();
+    fz_cargarTipoCambio();
     
     // Si volvemos y estaba en rango, inicializar los inputs por defecto con el mes actual
     if (fz_periodoActualDashboard === "rango") {
@@ -52,6 +53,18 @@ function fz_renderizarSaludo() {
     if (fechaEl)  fechaEl.innerText  = fechaStr.charAt(0).toUpperCase() + fechaStr.slice(1);
 }
 
+async function fz_cargarTipoCambio() {
+    const el = document.getElementById('ini-dolar-pill');
+    if (!el) return;
+    try {
+        const res  = await fetch('https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json');
+        const data = await res.json();
+        const cop  = data.usd.cop;
+        el.innerText = `$1 USD = $${Math.round(cop).toLocaleString('es-CO')} COP`;
+    } catch (e) {
+        el.innerText = 'Sin conexión';
+    }
+}
 
 /**
  * Renderiza el dinero disponible y calcula tendencias según el período

@@ -1,4 +1,5 @@
 /* --- ENCABEZADO Y CONTROLES --- */
+
 .ini-header {
     display: flex;
     justify-content: space-between;
@@ -14,6 +15,26 @@
     gap: 12px;
     flex-wrap: wrap;
 }
+
+
+#ini-dolar-pill {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-mutado, #888);
+    border: 1px solid rgba(0,0,0,0.08);
+    border-radius: 5px;
+    padding: 2px 7px;
+}
+
+[data-theme="dark"] .ini-dolar-pill {
+    color: var(--text-mutado, #777);
+    border-color: rgba(255,255,255,0.08);
+}
+
+.ini-dolar-flag {
+    font-size: 14px;
+}
+
 
 /* Switcher Tipo iOS / SaaS Moderno */
 .ini-switch-container {
@@ -201,3 +222,4 @@
     from { opacity: 0; transform: translateX(8px); }
     to { opacity: 1; transform: translateX(0); }
 }
+
