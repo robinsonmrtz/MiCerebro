@@ -135,6 +135,15 @@ const mapaModulos = {
         'js/core/storage.js',
         'js/core/app.js',
         'vistas/backup.html'
+    ],
+    'inicio': [
+        'vistas/inicio.html',
+        'css/inicio.css',
+        'js/modulos/inicio.js',
+        'vistas/backup.html',
+        'js/core/storage.js',
+        'js/core/app.js',
+        'vistas/backup.html'
     ]
 
 };

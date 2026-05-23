@@ -1,0 +1,203 @@
+/* --- ENCABEZADO Y CONTROLES --- */
+.ini-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.ini-controls-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+/* Switcher Tipo iOS / SaaS Moderno */
+.ini-switch-container {
+    display: flex;
+    background: rgba(0, 0, 0, 0.05);
+    padding: 4px;
+    border-radius: 10px;
+    border: 1px solid rgba(0, 0, 0, 0.03);
+}
+
+[data-theme="dark"] .ini-switch-container {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.04);
+}
+
+.ini-btn-switch {
+    background: transparent;
+    border: none;
+    padding: 6px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-mutado, #666);
+    cursor: pointer;
+    border-radius: 7px;
+    transition: all 0.2s ease;
+}
+
+.ini-btn-switch.activo {
+    background: #ffffff;
+    color: #111111;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="dark"] .ini-btn-switch.activo {
+    background: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+    box-shadow: none;
+}
+
+/* Selector de Rango Personalizado */
+.ini-rango-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    animation: iniFadeIn 0.25s ease forwards;
+}
+
+.ini-rango-container input[type="date"] {
+    background: var(--bg-card, #ffffff);
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    padding: 5px 10px;
+    border-radius: 8px;
+    font-size: 13px;
+    color: var(--text-base, #111111);
+    outline: none;
+}
+
+[data-theme="dark"] .ini-rango-container input[type="date"] {
+    border-color: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.ini-rango-container span {
+    font-size: 13px;
+    color: var(--text-mutado, #777);
+}
+
+/* --- GRID DEL DASHBOARD --- */
+.ini-dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 20px;
+}
+
+/* TARJETAS MINIMALISTAS */
+.ini-card {
+    background: var(--bg-card, #ffffff);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 16px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ini-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.04);
+}
+
+.ini-card-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.ini-card-icon {
+    font-size: 18px;
+}
+
+.ini-card-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-mutado, #666);
+}
+
+.ini-card-body {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.ini-card-body h3 {
+    font-size: 26px;
+    font-weight: 700;
+    margin: 0;
+    letter-spacing: -0.5px;
+}
+
+.ini-card-sub {
+    font-size: 12px;
+    color: var(--text-mutado, #888);
+}
+
+/* BADGES DE TENDENCIA */
+.ini-badge {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+}
+
+.ini-badge.sube {
+    background: rgba(16, 185, 129, 0.12);
+    color: #10b981;
+}
+
+.ini-badge.baja {
+    background: rgba(239, 68, 68, 0.12);
+    color: #ef4444;
+}
+
+.ini-badge.neutro {
+    background: rgba(128, 128, 128, 0.12);
+    color: #888888;
+}
+
+/* SPARKLINE CONTAINER */
+.ini-sparkline-container {
+    width: calc(100% + 40px);
+    margin-left: -20px;
+    margin-bottom: -21px;
+    height: 55px;
+    position: relative;
+}
+
+.ini-placeholder-bar {
+    width: 100%;
+    height: 6px;
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-top: 8px;
+}
+[data-theme="dark"] .ini-placeholder-bar {
+    background: rgba(255, 255, 255, 0.08);
+}
+.ini-bar-fill {
+    height: 100%;
+    background: #10b981;
+    border-radius: 3px;
+}
+
+@keyframes iniFadeIn {
+    from { opacity: 0; transform: translateX(8px); }
+    to { opacity: 1; transform: translateX(0); }
+}

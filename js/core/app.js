@@ -33,6 +33,10 @@ async function cargarVista(nombreVista) {
                     if (typeof inicializarTemporizador === 'function') inicializarTemporizador();
                     if (typeof inicializarMetricas === 'function') inicializarMetricas();
                 }, 50);
+                } else if (nombreVista === 'inicio') { // 👇 NUEVO: Conector para el Dashboard Principal
+                setTimeout(() => {
+                    if (typeof inicializarDashboard === 'function') inicializarDashboard();
+                }, 50);
             } else if (nombreVista === 'clientes') {
                 setTimeout(() => {
                     if (typeof inicializarClientes === 'function') inicializarClientes();

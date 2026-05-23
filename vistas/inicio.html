@@ -1,10 +1,72 @@
-<div class="seccion-titulo">
-    <h2>🏠 Resumen de tu Cerebro</h2>
-    <p>Bienvenido de nuevo. Aquí está tu estado actual.</p>
+<div class="ini-header">
+    <div class="seccion-titulo">
+        <h2>🏠 Mi Segundo Cerebro</h2>
+        <p>El centro de mandos de tu vida, trabajo y finanzas.</p>
+    </div>
+    
+    <div class="ini-controls-wrapper">
+        <div class="ini-switch-container">
+            <button class="ini-btn-switch activo" data-periodo="semana" onclick="fz_cambiarPeriodoDashboard('semana')">Semana</button>
+            <button class="ini-btn-switch" data-periodo="mes" onclick="fz_cambiarPeriodoDashboard('mes')">Mes</button>
+            <button class="ini-btn-switch" data-periodo="ano" onclick="fz_cambiarPeriodoDashboard('ano')">Año</button>
+            <button class="ini-btn-switch" data-periodo="rango" onclick="fz_cambiarPeriodoDashboard('rango')">Rango</button>
+        </div>
+
+        <div id="ini-rango-picker-container" class="ini-rango-container" style="display: none;">
+            <input type="date" id="ini-fecha-inicio" onchange="fz_procesarRangoPersonalizado()">
+            <span>a</span>
+            <input type="date" id="ini-fecha-fin" onchange="fz_procesarRangoPersonalizado()">
+        </div>
+    </div>
 </div>
-<div class="dashboard-grid">
-    <div class="widget"><h4>🔥 Racha de Trabajo</h4><p>5 Días seguidos</p></div>
-    <div class="widget"><h4>💰 Balance Total</h4><p>$1,250.00</p></div>
-    <div class="widget"><h4>🏋️ Gym</h4><p>Hoy toca Pierna</p></div>
-    <div class="widget"><h4>📚 Universidad</h4><p>2 Tareas pendientes</p></div>
+
+<div class="ini-dashboard-grid">
+    <div class="ini-card ini-card-finanzas">
+        <div class="ini-card-header">
+            <div class="ini-card-icon">💰</div>
+            <span class="ini-card-title">Dinero</span>
+        </div>
+        <div class="ini-card-body">
+            <h3 id="ini-finanzas-monto">$0.00</h3>
+            <span id="ini-finanzas-badge" class="ini-badge">--</span>
+        </div>
+        <div class="ini-sparkline-container">
+            <canvas id="ini-chart-finanzas"></canvas>
+        </div>
+    </div>
+
+    <div class="ini-card">
+        <div class="ini-card-header">
+            <div class="ini-card-icon">🔥</div>
+            <span class="ini-card-title">Productividad</span>
+        </div>
+        <div class="ini-card-body">
+            <h3 id="ini-trabajo-horas">0.0h</h3>
+            <span class="ini-card-sub">Horas enfocadas</span>
+        </div>
+        <div class="ini-placeholder-bar"><div class="ini-bar-fill" style="width: 65%;"></div></div>
+    </div>
+
+    <div class="ini-card">
+        <div class="ini-card-header">
+            <div class="ini-card-icon">⚡</div>
+            <span class="ini-card-title">Consistencia</span>
+        </div>
+        <div class="ini-card-body">
+            <h3 id="ini-habitos-porcentaje">0%</h3>
+            <span class="ini-card-sub">Hábitos completados</span>
+        </div>
+        <div class="ini-placeholder-bar"><div class="ini-bar-fill" style="width: 80%; background: var(--accent, #6366f1);"></div></div>
+    </div>
+
+    <div class="ini-card">
+        <div class="ini-card-header">
+            <div class="ini-card-icon">💼</div>
+            <span class="ini-card-title">Proyectos Activos</span>
+        </div>
+        <div class="ini-card-body">
+            <h3 id="ini-clientes-count">0</h3>
+            <span class="ini-card-sub">Clientes atendidos</span>
+        </div>
+    </div>
 </div>
