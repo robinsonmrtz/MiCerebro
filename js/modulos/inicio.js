@@ -4,10 +4,12 @@
 // ====================================================
 
 let fz_periodoActualDashboard = "semana"; 
-let fz_graficaSparklineInstancia = null; 
+let fz_graficaSparklineInstancia = null;
+let fz_graficaProductividadInstancia = null;
 
 function inicializarDashboard() {
     console.log("🧠 Inicializando Dashboard Principal...");
+    fz_renderizarSaludo();
     
     // Si volvemos y estaba en rango, inicializar los inputs por defecto con el mes actual
     if (fz_periodoActualDashboard === "rango") {
@@ -19,13 +21,37 @@ function inicializarDashboard() {
             if(document.getElementById('ini-fecha-inicio')) document.getElementById('ini-fecha-inicio').value = primero;
             if(document.getElementById('ini-fecha-fin')) document.getElementById('ini-fecha-fin').value = ultimo;
             fz_renderizarFinanzasDashboard();
+            fz_renderizarProductividadDashboard();
         }, 50);
     } else {
         fz_renderizarFinanzasDashboard();
+        fz_renderizarProductividadDashboard();
     }
     
     fz_renderizarPlaceholdersExtras();
 }
+
+
+function fz_renderizarSaludo() {
+    const nombre = "Robinson"; // 👈 cambia tu nombre aquí
+    const hora = new Date().getHours();
+
+    let saludo;
+    if (hora >= 5 && hora < 12)       saludo = "☀️ Buenos días";
+    else if (hora >= 12 && hora < 19) saludo = "🌤️ Buenas tardes";
+    else                               saludo = "🌙 Buenas noches";
+
+    const fechaStr = new Date().toLocaleDateString('es-CO', {
+        weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+    });
+
+    const saludoEl = document.getElementById('ini-saludo');
+    const fechaEl  = document.getElementById('ini-fecha-hoy');
+
+    if (saludoEl) saludoEl.innerText = `${saludo}, ${nombre}`;
+    if (fechaEl)  fechaEl.innerText  = fechaStr.charAt(0).toUpperCase() + fechaStr.slice(1);
+}
+
 
 /**
  * Renderiza el dinero disponible y calcula tendencias según el período
@@ -86,6 +112,149 @@ function fz_renderizarFinanzasDashboard() {
 
     // 9. Dibujar la Gráfica Sparkline con fluidez
     fz_dibujarSparklineDashboard(analitica.puntosGrafica, analitica.clase === "sube");
+}
+
+function fz_parsearFechaRegistro(fechaStr) {
+    if (!fechaStr) return null;
+    if (fechaStr.includes('-')) return new Date(fechaStr + 'T00:00:00');
+    const p = fechaStr.split('/');
+    if (p.length === 3) return new Date(parseInt(p[2]), parseInt(p[1]) - 1, parseInt(p[0]));
+    return null;
+}
+
+function fz_renderizarProductividadDashboard() {
+    const datos = cargarDatos();
+    const registroTrabajo = datos.registro_trabajo || [];
+    const intervalos = fz_obtenerLimitesFechas(fz_periodoActualDashboard);
+    if (!intervalos) return;
+
+    function enRango(fechaStr, inicio, fin) {
+        const f = fz_parsearFechaRegistro(fechaStr);
+        if (!f) return false;
+        f.setHours(12, 0, 0, 0);
+        return f >= inicio && f <= fin;
+    }
+
+    const registrosActuales   = registroTrabajo.filter(r => enRango(r.fecha, intervalos.inicioAct, intervalos.finAct));
+    const registrosAnteriores = registroTrabajo.filter(r => enRango(r.fecha, intervalos.inicioAnt, intervalos.finAnt));
+    const totalSegsActual     = registrosActuales.reduce((sum, r) => sum + (r.trabajado || 0), 0);
+    const totalSegsAnterior   = registrosAnteriores.reduce((sum, r) => sum + (r.trabajado || 0), 0);
+
+    const horasElement = document.getElementById('ini-trabajo-horas');
+    if (horasElement) horasElement.innerText = fz_formatearTiempoProductividad(totalSegsActual);
+
+    const deltaSegs  = totalSegsActual - totalSegsAnterior;
+    const deltaHoras = deltaSegs / 3600;
+    let porcentaje   = totalSegsAnterior > 0 ? Math.round((deltaSegs / totalSegsAnterior) * 100) : 0;
+    let clase = "neutro";
+    if (deltaSegs >  60) clase = "sube";
+    if (deltaSegs < -60) clase = "baja";
+
+    const badge = document.getElementById('ini-trabajo-badge');
+    if (badge) {
+        badge.className = "ini-badge " + clase;
+        const signo = deltaHoras >= 0 ? "+" : "";
+        badge.innerText = `${signo}${fz_formatearTiempoProductividad(deltaSegs)} (${signo}${porcentaje}%) ${intervalos.leyenda}`;
+    }
+
+    const mapaFechas = {};
+    registroTrabajo.forEach(r => {
+        const f = fz_parsearFechaRegistro(r.fecha);
+        if (!f) return;
+        const key = f.toISOString().split('T')[0];
+        mapaFechas[key] = (mapaFechas[key] || 0) + (r.trabajado || 0);
+    });
+
+    let puntosGrafica = [];
+
+    if (fz_periodoActualDashboard === "ano") {
+        const año = intervalos.inicioAct.getFullYear();
+        for (let m = 0; m < 12; m++) {
+            const inicioMes = new Date(año, m, 1);
+            const finMes    = new Date(año, m + 1, 0);
+            let segsMes = 0;
+            let cursor  = new Date(inicioMes);
+            while (cursor <= finMes) {
+                segsMes += mapaFechas[cursor.toISOString().split('T')[0]] || 0;
+                cursor.setDate(cursor.getDate() + 1);
+            }
+            puntosGrafica.push(Math.round(segsMes / 3600 * 10) / 10);
+        }
+    } else {
+        let cursor = new Date(intervalos.inicioAct);
+        const hoy  = new Date(); hoy.setHours(23, 59, 59, 999);
+        while (cursor <= intervalos.finAct && cursor <= hoy) {
+            const key = cursor.toISOString().split('T')[0];
+            puntosGrafica.push(Math.round(((mapaFechas[key] || 0) / 3600) * 100) / 100);
+            cursor.setDate(cursor.getDate() + 1);
+        }
+        if (puntosGrafica.length === 0) puntosGrafica.push(0);
+        while (puntosGrafica.length < (fz_periodoActualDashboard === "semana" ? 7 : 2)) puntosGrafica.push(0);
+    }
+
+    fz_dibujarSparklineProductividad(puntosGrafica, clase !== "baja");
+}
+
+function fz_dibujarSparklineProductividad(puntos, esPositivo) {
+    const canvasElement = document.getElementById('ini-chart-productividad');
+    if (!canvasElement) {
+        console.warn("❌ Canvas ini-chart-productividad no encontrado");
+        return;
+    }
+
+    console.log("📊 Productividad - puntos gráfica:", puntos);
+
+    const ctx = canvasElement.getContext('2d');
+    if (fz_graficaProductividadInstancia) {
+        try { fz_graficaProductividadInstancia.destroy(); } catch(e) {}
+    }
+
+    const colorLinea = esPositivo ? '#f59e0b' : '#ef4444';
+    const gradienteFondo = ctx.createLinearGradient(0, 0, 0, 55);
+    gradienteFondo.addColorStop(0, esPositivo ? 'rgba(245,158,11,0.25)' : 'rgba(239,68,68,0.25)');
+    gradienteFondo.addColorStop(1, 'rgba(0,0,0,0)');
+
+    try {
+        fz_graficaProductividadInstancia = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: Array(puntos.length).fill(''),
+                datasets: [{
+                    data: puntos,
+                    borderColor: colorLinea,
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    pointHoverRadius: 4,
+                    fill: true,
+                    backgroundColor: gradienteFondo,
+                    tension: 0.35
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        enabled: true,
+                        intersect: false,
+                        callbacks: { label: c => ` ${fz_formatearTiempoProductividad(c.parsed.y * 3600)}` }
+                    }
+                },
+                scales: {
+                    x: { display: false },
+                    y: {
+                        display: false,
+                        min: 0,
+                        suggestedMax: Math.max(...puntos) > 0 ? undefined : 1
+                    }
+                }
+            }
+        });
+        console.log("✅ Gráfica productividad creada OK");
+    } catch(e) {
+        console.error("❌ Error al crear gráfica productividad:", e);
+    }
 }
 
 /**
@@ -248,6 +417,7 @@ function fz_dibujarSparklineDashboard(puntos, esPositivo) {
     const ctx = canvasElement.getContext('2d');
 
     if (fz_graficaSparklineInstancia) {
+        let fz_graficaProductividadInstancia = null;
         fz_graficaSparklineInstancia.destroy();
     }
 
@@ -324,6 +494,7 @@ function fz_cambiarPeriodoDashboard(periodo) {
     }
 
     fz_renderizarFinanzasDashboard();
+    fz_renderizarProductividadDashboard();
 }
 
 /**
@@ -332,6 +503,7 @@ function fz_cambiarPeriodoDashboard(periodo) {
 function fz_procesarRangoPersonalizado() {
     if (fz_periodoActualDashboard === "rango") {
         fz_renderizarFinanzasDashboard();
+        fz_renderizarProductividadDashboard();
     }
 }
 
@@ -340,12 +512,15 @@ function fz_formatearMonedaDashboard(valor) {
     return signo + '$' + Math.abs(valor).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+function fz_formatearTiempoProductividad(segundos) {
+    const h = Math.floor(Math.abs(segundos) / 3600);
+    const m = Math.floor((Math.abs(segundos) % 3600) / 60);
+    if (h === 0) return `${m}m`;
+    return `${h}h ${String(m).padStart(2, '0')}m`;
+}
+
 function fz_renderizarPlaceholdersExtras() {
     const datos = cargarDatos();
-    if (datos.registro_trabajo && datos.registro_trabajo.length > 0) {
-        const totalMinutos = datos.registro_trabajo.reduce((sum, reg) => sum + (reg.trabajado || 0), 0);
-        document.getElementById('ini-trabajo-horas').innerText = `${(totalMinutos / 60).toFixed(1)}h`;
-    }
     if (datos.clientes) {
         document.getElementById('ini-clientes-count').innerText = datos.clientes.filter(c => !c.archivado).length;
     }
