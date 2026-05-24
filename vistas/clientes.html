@@ -5,34 +5,50 @@
             <h2>Clientes</h2>
             <p>Gestiona tu portafolio, ingresos y entregas activas.</p>
         </div>
-        <button onclick="window.abrirModalNuevoCliente()" class="btn-primario">
-            <i class="ti ti-plus" aria-hidden="true"></i> Nuevo cliente
-        </button>
+        <div class="header-acciones" style="display:flex; gap:12px; align-items:center;">
+            <select id="filtro-global-clientes" onchange="window.cambiarFiltroGlobal(this.value)" class="input-minimalista" style="margin:0; padding: 7px 12px; font-weight:600; width:auto; border-color:var(--accent); color:var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent);">
+            </select>
+            <button onclick="window.abrirModalNuevoCliente()" class="btn-primario">
+                <i class="ti ti-plus" aria-hidden="true"></i> Nuevo cliente
+            </button>
+        </div>
+    </div>
+
+    <div class="clientes-charts-row">
+        <div class="chart-card">
+            <div class="chart-card-title"><i class="ti ti-trending-up" aria-hidden="true"></i> Ingresos Diarios</div>
+            <div class="chart-container"><canvas id="chart-clientes-ingresos"></canvas></div>
+        </div>
+        <div class="chart-card">
+            <div class="chart-card-title"><i class="ti ti-video" aria-hidden="true"></i> Videos Entregados</div>
+            <div class="chart-container"><canvas id="chart-clientes-videos"></canvas></div>
+        </div>
+        <div class="chart-card">
+            <div class="chart-card-title"><i class="ti ti-chart-pie" aria-hidden="true"></i> Ingresos por Cliente</div>
+            <div class="chart-container"><canvas id="chart-clientes-pastel"></canvas></div>
+        </div>
     </div>
 
     <div class="kpi-strip-4">
         <div class="kpi-card">
-            <div class="kpi-card-sub" style="display:flex; justify-content:space-between; align-items:center;">
-                <span>Ingresos</span>
-                <select id="filtro-mes-global" onchange="window.cambiarMesGlobal(this.value)" class="select-mes-kpi"></select>
-            </div>
+            <div class="kpi-card-sub">Ingresos</div>
             <div class="kpi-card-val" id="kpi-global-ingresos">$0.00</div>
-            <div class="kpi-card-vs" id="kpi-global-ingresos-vs">— vs mes anterior</div>
+            <div class="kpi-card-vs" id="kpi-global-ingresos-vs">— vs anterior</div>
         </div>
         <div class="kpi-card">
             <div class="kpi-card-sub">Videos entregados</div>
             <div class="kpi-card-val" id="kpi-global-entregados">0</div>
-            <div class="kpi-card-vs" id="kpi-global-entregados-vs">— vs mes anterior</div>
+            <div class="kpi-card-vs" id="kpi-global-entregados-vs">— vs anterior</div>
         </div>
         <div class="kpi-card">
             <div class="kpi-card-sub">Trabajos pendientes</div>
             <div class="kpi-card-val" id="kpi-global-pendientes">0</div>
-            <div class="kpi-card-vs" id="kpi-global-pendientes-clientes">en 0 clientes</div>
+            <div class="kpi-card-vs" id="kpi-global-pendientes-clientes">Estado actual</div>
         </div>
         <div class="kpi-card">
             <div class="kpi-card-sub">Clientes activos</div>
             <div class="kpi-card-val" id="kpi-global-activos">0</div>
-            <div class="kpi-card-vs" id="kpi-global-activos-total">de 0 en total</div>
+            <div class="kpi-card-vs" id="kpi-global-activos-total">En el periodo</div>
         </div>
     </div>
 

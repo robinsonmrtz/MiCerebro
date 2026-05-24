@@ -560,22 +560,31 @@ function fz_cerrarTodosLosDropdownsAutoComplete() {
 }
 
 document.addEventListener('click', function(e) {
+    // 1. Dropdown Unidad
     if (!e.target.closest('#fz-trans-unidad') && !e.target.closest('#fz-drop-unidad')) {
-        document.getElementById('fz-drop-unidad').classList.remove('visible');
+        document.getElementById('fz-drop-unidad')?.classList.remove('visible');
     }
+    
+    // 2. Dropdown Descripciones
     if (!e.target.closest('#fz-trans-desc') && !e.target.closest('#fz-drop-descripciones')) {
-        const el = document.getElementById('fz-drop-descripciones'); if (el) el.classList.remove('visible');
+        document.getElementById('fz-drop-descripciones')?.classList.remove('visible');
     }
+    
+    // 3. Dropdown Categorías
     if (!e.target.closest('#fz-trans-cat-input') && !e.target.closest('#fz-drop-categorias')) {
-        document.getElementById('fz-drop-categorias').classList.remove('visible');
+        document.getElementById('fz-drop-categorias')?.classList.remove('visible');
     }
+    
+    // 4. Dropdown Comercios
     if (!e.target.closest('#fz-trans-comercio-input') && !e.target.closest('#fz-drop-comercios')) {
-        document.getElementById('fz-drop-comercios').classList.remove('visible');
+        document.getElementById('fz-drop-comercios')?.classList.remove('visible');
     }
+
     const menuMasCat = document.getElementById('fz-menu-mas-categorias');
     if (menuMasCat && menuMasCat.classList.contains('visible') && !e.target.closest('#fz-menu-mas-categorias') && !e.target.closest('button[onclick*="fz_toggleMenuMasCategorias"]')) {
         menuMasCat.classList.remove('visible');
     }
+
     // --- Agregar esto dentro del eventListener del Clic global ---
     const menuTransTipo = document.getElementById('fz-trans-tipo-menu');
     const btnTransTipo  = document.getElementById('fz-trans-pill-btn');
@@ -588,7 +597,6 @@ document.addEventListener('click', function(e) {
     if (menuTransAdd && menuTransAdd.classList.contains('visible') && btnTransAdd && !btnTransAdd.contains(e.target)) {
         menuTransAdd.classList.remove('visible');
     }
-    
 });
 
 // === RECURRANCES: Generador de instancias mensuales ===

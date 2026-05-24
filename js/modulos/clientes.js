@@ -1,6 +1,6 @@
 // =========================================================================
 // MÓDULO CLIENTES — clientes.js
-// Foco: Flujo de caja real. Balance invertido. Palabras dinámicas.
+// Dashboard analítico, filtros temporales, gráficos y control de caja.
 // =========================================================================
 
 let clienteActualId = null;
@@ -11,18 +11,23 @@ let filtroVideoEstado = 'todos';
 let ordenVideoColumna = 'numero';
 let ordenVideoDireccion = 'asc';
 
-// Variables para los filtros de meses
-let mesSeleccionadoGlobal = null;
+// Variables para los filtros temporales
+let filtroGlobalClientes = null;
 let mesSeleccionadoCliente = null;
+
+// Variables para destruir los gráficos previos y no saturar memoria
+let chartIngresosCli = null;
+let chartVideosCli = null;
+let chartPastelCli = null;
 
 // ─── Inicialización ────────────────────────────────────────────────────
 window.inicializarClientes = function () {
     document.getElementById('vista-lista-clientes').style.display = 'block';
     document.getElementById('vista-panel-cliente').style.display  = 'none';
     
-    if (!mesSeleccionadoGlobal) {
+    if (!filtroGlobalClientes) {
         const hoy = new Date();
-        mesSeleccionadoGlobal = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`;
+        filtroGlobalClientes = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`;
     }
 
     renderizarListaClientes();
@@ -57,6 +62,8 @@ function obtenerMesesDisponibles(clienteId = null) {
 }
 
 function formatearMes(yyyy_mm) {
+    if (yyyy_mm === 'all') return 'Todo el histórico';
+    if (!yyyy_mm.includes('-')) return `Año ${yyyy_mm}`;
     const [y, m] = yyyy_mm.split('-');
     const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
     return `${meses[parseInt(m, 10) - 1]} ${y}`;
@@ -101,61 +108,130 @@ function inicialesToAvatar(nombre, size = 44, fontSize = 16) {
     return `style="width:${size}px;height:${size}px;font-size:${fontSize}px;background:${bg};color:${color}" data-iniciales="${iniciales}"`;
 }
 
-// ─── Selectores de Cambio de Mes ────────────────────────────────────────
-window.cambiarMesGlobal = function(mes) { mesSeleccionadoGlobal = mes; renderizarListaClientes(); };
-window.cambiarMesCliente = function(mes) { mesSeleccionadoCliente = mes; renderizarKpisCliente(); };
 
-// ─── Cálculo de métricas Globales ───────────────────────────────────────
+// ─── Lógica del Filtro Temporal ────────────────────────────────────────
+window.cambiarFiltroGlobal = function(valor) { 
+    filtroGlobalClientes = valor; 
+    renderizarListaClientes(); 
+};
+window.cambiarMesCliente = function(mes) { 
+    mesSeleccionadoCliente = mes; 
+    renderizarKpisCliente(); 
+};
+
+function construirOpcionesFiltroGlobal() {
+    const datos = cargarDatos();
+    const clientes = datos.clientes || [];
+    const meses = new Set();
+    const anos = new Set();
+    const hoy = new Date();
+    
+    meses.add(`${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`);
+    anos.add(`${hoy.getFullYear()}`);
+
+    clientes.forEach(c => {
+        (c.pagos || []).forEach(p => {
+            if (p.fecha) {
+                const d = new Date(p.fecha + 'T00:00:00');
+                if (!isNaN(d)) {
+                    meses.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+                    anos.add(`${d.getFullYear()}`);
+                }
+            }
+        });
+        (c.videos || []).forEach(v => {
+            const fStr = v.fecha_entrega || v.fecha_pago || v.fecha_recibido || (v.ultima_edicion ? v.ultima_edicion.split('T')[0] : null);
+            if (fStr) {
+                const d = new Date(fStr + 'T00:00:00');
+                if (!isNaN(d)) {
+                    meses.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+                    anos.add(`${d.getFullYear()}`);
+                }
+            }
+        });
+    });
+
+    let html = `<option value="all" ${filtroGlobalClientes === 'all' ? 'selected' : ''}>🌍 Todo el histórico</option>`;
+    
+    // Agrupar Años
+    Array.from(anos).sort((a,b) => b - a).forEach(a => {
+        html += `<option value="${a}" ${filtroGlobalClientes === a ? 'selected' : ''}>📅 Año ${a}</option>`;
+    });
+
+    html += `<option disabled>──────────</option>`;
+
+    // Agrupar Meses
+    Array.from(meses).sort((a,b) => b.localeCompare(a)).forEach(m => {
+        html += `<option value="${m}" ${filtroGlobalClientes === m ? 'selected' : ''}>${formatearMes(m)}</option>`;
+    });
+
+    return html;
+}
+
+// ─── Cálculo de métricas Globales y Gráficos ────────────────────────────
 function calcularMetricasGlobales() {
     const datos    = cargarDatos();
     const clientes = datos.clientes || [];
     
-    if (!mesSeleccionadoGlobal) {
-        const hoy = new Date();
-        mesSeleccionadoGlobal = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`;
+    // Funciones dinámicas para evaluar si una fecha cae en el filtro actual o el anterior
+    let matchActual = () => false;
+    let matchAnterior = () => false;
+    let textoComparativo = '';
+
+    if (filtroGlobalClientes === 'all') {
+        matchActual = () => true;
+        matchAnterior = () => false;
+        textoComparativo = '';
+    } else if (filtroGlobalClientes.length === 4) {
+        // Filtro por AÑO
+        const y = parseInt(filtroGlobalClientes, 10);
+        matchActual = (f) => f.getFullYear() === y;
+        matchAnterior = (f) => f.getFullYear() === y - 1;
+        textoComparativo = 'vs año ant.';
+    } else {
+        // Filtro por MES (YYYY-MM)
+        const [yStr, mStr] = filtroGlobalClientes.split('-');
+        const y = parseInt(yStr, 10);
+        const m = parseInt(mStr, 10) - 1;
+        matchActual = (f) => f.getFullYear() === y && f.getMonth() === m;
+        
+        let prevM = m === 0 ? 11 : m - 1;
+        let prevY = m === 0 ? y - 1 : y;
+        matchAnterior = (f) => f.getFullYear() === prevY && f.getMonth() === prevM;
+        textoComparativo = 'vs mes ant.';
     }
-    
-    const [ySel, mSel] = mesSeleccionadoGlobal.split('-');
-    const mesAct   = parseInt(mSel, 10) - 1;
-    const anoAct   = parseInt(ySel, 10);
-    const mesAnt   = mesAct === 0 ? 11 : mesAct - 1;
-    const anoAnt   = mesAct === 0 ? anoAct - 1 : anoAct;
 
-    const hoyReal = new Date();
-    const esMesActual = (mesAct === hoyReal.getMonth() && anoAct === hoyReal.getFullYear());
-    const diaAct = hoyReal.getDate();
-
-    let ingresosMesAct = 0, ingresosMesAntHasta = 0;
-    let entregadosMesAct = 0, entregadosMesAntHasta = 0;
+    let ingresosAct = 0, ingresosAnt = 0;
+    let entregadosAct = 0, entregadosAnt = 0;
     let totalPendientes = 0, totalActivos = 0;
     const clientesConPend = new Set();
+    const clientesActivosPeriodo = new Set();
+
+    // Estructuras de datos para los gráficos
+    let dataIngresosDiarios = {};
+    let dataVideosDiarios = {};
+    let dataPastelClientes = {};
 
     const stats = clientes.map(cliente => {
-        let ingMesAct = 0, ingMesAntTotal = 0;
+        let ingMesAct = 0, ingMesAnt = 0;
         let pendientes = 0, sinEmpezar = 0, enCurso = 0;
         let totalPagado = 0, totalConsumido = 0;
+        let tuvoActividadEnPeriodo = false;
         
-        // --- LOGICA DE CLIENTE INACTIVO ---
-        // Rastreamos la última vez que pasó ALGO con este cliente
         let ultimaFecha = new Date(cliente.fecha_creacion || 0).getTime();
 
-        // Entradas: Los Pagos (La Bolsa)
+        // 1. Evaluar Pagos (AHORA SOLO SIRVEN PARA EL BALANCE Y LA ÚLTIMA ACTIVIDAD)
         (cliente.pagos || []).forEach(p => {
             const monto = parseFloat(p.monto) || 0;
             totalPagado += monto;
             const f = new Date(p.fecha + 'T00:00:00');
             if (!isNaN(f)) {
-                if (f.getTime() > ultimaFecha) ultimaFecha = f.getTime(); // Registra fecha del pago
-                if (f.getMonth() === mesAct && f.getFullYear() === anoAct) {
-                    ingresosMesAct += monto; ingMesAct += monto; 
-                } else if (f.getMonth() === mesAnt && f.getFullYear() === anoAnt) {
-                    ingMesAntTotal += monto;
-                    if (!esMesActual || f.getDate() <= diaAct) ingresosMesAntHasta += monto;
-                }
+                if (f.getTime() > ultimaFecha) ultimaFecha = f.getTime();
+                if (matchActual(f)) tuvoActividadEnPeriodo = true;
             }
         });
 
-        // Salidas: El Trabajo Ejecutado
+        // 2. Evaluar Videos (TRABAJO E INGRESOS DEVENGADOS)
         (cliente.videos || []).forEach(v => {
             const cobrado = (v.finanzas?.inversion || 0) + (v.finanzas?.bono || 0);
 
@@ -163,67 +239,206 @@ function calcularMetricasGlobales() {
             else if (v.estado === 'en_curso') { enCurso++; pendientes++; totalPendientes++; clientesConPend.add(cliente.id); }
             else if (v.estado === 'listo') { totalConsumido += cobrado; }
 
-            // Registra la fecha más reciente de cualquier actividad de este video
-            const fechasVideo = [v.fecha_recibido, v.fecha_entrega, v.fecha_subido, v.fecha_pago].filter(Boolean);
-            fechasVideo.forEach(fv => {
-                const df = new Date(fv + 'T00:00:00').getTime();
-                if (!isNaN(df) && df > ultimaFecha) ultimaFecha = df;
-            });
-            if (v.ultima_edicion) {
-                const due = new Date(v.ultima_edicion).getTime();
-                if (!isNaN(due) && due > ultimaFecha) ultimaFecha = due;
-            }
-
             const strFecha = v.fecha_entrega || v.fecha_pago || v.fecha_recibido || (v.ultima_edicion ? v.ultima_edicion.split('T')[0] : null);
-            if (strFecha && v.estado === 'listo') {
+            if (strFecha) {
                 const f = new Date(strFecha + 'T00:00:00');
-                if (!isNaN(f)) {
-                    if (f.getMonth() === mesAct && f.getFullYear() === anoAct) { entregadosMesAct++; }
-                    else if (f.getMonth() === mesAnt && f.getFullYear() === anoAnt) {
-                        if (!esMesActual || f.getDate() <= diaAct) entregadosMesAntHasta++;
+                if (!isNaN(f) && f.getTime() > ultimaFecha) ultimaFecha = f.getTime();
+
+                // Sumamos a ingresos SOLAMENTE si el video está LISTO
+                if (v.estado === 'listo') {
+                    if (matchActual(f)) {
+                        entregadosAct++;
+                        ingresosAct += cobrado;
+                        ingMesAct += cobrado;
+                        tuvoActividadEnPeriodo = true;
+                        
+                        // Guardar para gráficos diarios (ahora toma los ingresos de los videos)
+                        dataVideosDiarios[strFecha] = (dataVideosDiarios[strFecha] || 0) + 1;
+                        dataIngresosDiarios[strFecha] = (dataIngresosDiarios[strFecha] || 0) + cobrado;
+                    } else if (matchAnterior(f)) {
+                        entregadosAnt++;
+                        ingresosAnt += cobrado;
+                        ingMesAnt += cobrado;
                     }
                 }
             }
         });
 
-        // Cálculo de Inactividad (> 30 días sin nada de actividad y sin pendientes)
         const diffDias = (Date.now() - ultimaFecha) / (1000 * 60 * 60 * 24);
         const inactivo = (pendientes === 0 && diffDias > 30);
+        
+        if (tuvoActividadEnPeriodo || !inactivo) {
+            totalActivos++;
+        }
 
-        if (!inactivo) totalActivos++;
+        // Guardar para gráfico de pastel
+        if (ingMesAct > 0) {
+            dataPastelClientes[cliente.nombre] = ingMesAct;
+        }
 
+        // Tendencias individuales para la tarjeta del cliente
         let tendenciaClase = '', tendenciaTexto = '— Igual';
-        if (ingMesAntTotal === 0 && ingMesAct > 0) { tendenciaClase = 'sube'; tendenciaTexto = '↑ Nuevo'; }
-        else if (ingMesAct > ingMesAntTotal) { tendenciaClase = 'sube'; tendenciaTexto = `↑ +${(((ingMesAct - ingMesAntTotal) / ingMesAntTotal) * 100).toFixed(0)}%`; }
-        else if (ingMesAct < ingMesAntTotal) { tendenciaClase = 'baja'; tendenciaTexto = `↓ −${(((ingMesAntTotal - ingMesAct) / ingMesAntTotal) * 100).toFixed(0)}%`; }
+        if (ingMesAnt === 0 && ingMesAct > 0) { tendenciaClase = 'sube'; tendenciaTexto = '↑ Nuevo'; }
+        else if (ingMesAct > ingMesAnt) { tendenciaClase = 'sube'; tendenciaTexto = `↑ +${(((ingMesAct - ingMesAnt) / ingMesAnt) * 100).toFixed(0)}%`; }
+        else if (ingMesAct < ingMesAnt) { tendenciaClase = 'baja'; tendenciaTexto = `↓ −${(((ingMesAnt - ingMesAct) / ingMesAnt) * 100).toFixed(0)}%`; }
 
         return {
             id: cliente.id, nombre: cliente.nombre, proyecto: cliente.proyecto, foto: cliente.foto, pais: cliente.pais,
-            totalVideos: (cliente.videos || []).length, pendientes, sinEmpezar, enCurso, ingMesAct, tendenciaClase, tendenciaTexto,
+            totalVideos: (cliente.videos || []).length, pendientes, sinEmpezar, enCurso, 
+            ingMesAct, tendenciaClase, tendenciaTexto, textoComparativo,
             balance: totalPagado - totalConsumido, inactivo
         };
     });
 
-    const pctIng = ingresosMesAntHasta > 0 ? (((ingresosMesAct - ingresosMesAntHasta) / ingresosMesAntHasta) * 100).toFixed(0) : null;
-    const pctEnt = entregadosMesAntHasta > 0 ? (((entregadosMesAct - entregadosMesAntHasta) / entregadosMesAntHasta) * 100).toFixed(0) : null;
+    // Calcular porcentajes globales
+    const pctIng = ingresosAnt > 0 ? (((ingresosAct - ingresosAnt) / ingresosAnt) * 100).toFixed(0) : null;
+    const pctEnt = entregadosAnt > 0 ? (((entregadosAct - entregadosAnt) / entregadosAnt) * 100).toFixed(0) : null;
 
     const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
     const setClass = (id, cls) => { const el = document.getElementById(id); if (el) el.className = 'kpi-card-vs ' + cls; };
 
-    set('kpi-global-ingresos', `$${ingresosMesAct.toFixed(2)}`);
-    set('kpi-global-ingresos-vs', pctIng !== null ? `${pctIng >= 0 ? '↑ +' : '↓ '}${Math.abs(pctIng)}% vs mes ant.` : 'Sin datos mes ant.');
+    set('kpi-global-ingresos', `$${ingresosAct.toFixed(2)}`);
+    set('kpi-global-ingresos-vs', pctIng !== null ? `${pctIng >= 0 ? '↑ +' : '↓ '}${Math.abs(pctIng)}% ${textoComparativo}` : (textoComparativo ? 'Sin datos ant.' : 'Acumulado total'));
     setClass('kpi-global-ingresos-vs', pctIng === null ? '' : pctIng >= 0 ? 'sube' : 'baja');
 
-    set('kpi-global-entregados', entregadosMesAct);
-    set('kpi-global-entregados-vs', pctEnt !== null ? `${pctEnt >= 0 ? '↑ +' : '↓ '}${Math.abs(pctEnt)}% vs mes ant.` : 'Sin datos mes ant.');
+    set('kpi-global-entregados', entregadosAct);
+    set('kpi-global-entregados-vs', pctEnt !== null ? `${pctEnt >= 0 ? '↑ +' : '↓ '}${Math.abs(pctEnt)}% ${textoComparativo}` : (textoComparativo ? 'Sin datos ant.' : 'Acumulado total'));
     setClass('kpi-global-entregados-vs', pctEnt === null ? '' : pctEnt >= 0 ? 'sube' : 'baja');
 
     set('kpi-global-pendientes', totalPendientes);
     set('kpi-global-pendientes-clientes', `en ${clientesConPend.size} cliente${clientesConPend.size !== 1 ? 's' : ''}`);
     set('kpi-global-activos', totalActivos);
-    set('kpi-global-activos-total', `de ${clientes.length} en total`);
+    
+    renderizarGraficosDashboard(dataIngresosDiarios, dataVideosDiarios, dataPastelClientes);
 
-    return stats;
+    return stats.sort((a, b) => b.ingMesAct - a.ingMesAct);
+}
+
+// ─── Generación de los Gráficos (Chart.js) ──────────────────────────────
+// ─── Generación de los Gráficos (Chart.js) ──────────────────────────────
+function renderizarGraficosDashboard(ingresosMap, videosMap, pastelMap) {
+    if (typeof Chart === 'undefined') return;
+
+    const colAccent = '#a78bfa'; 
+    const colOk = '#34d399'; 
+    const bgAccent = 'rgba(167, 139, 250, 0.15)'; 
+    const colText = '#9ca3af'; 
+    const colGrid = 'rgba(255,255,255,0.05)';
+
+    let fechasRaw = Array.from(new Set([...Object.keys(ingresosMap), ...Object.keys(videosMap)])).sort();
+    
+    if (fechasRaw.length === 0) {
+        fechasRaw.push(new Date().toISOString().split('T')[0]);
+    } else {
+        // --- 🚀 NUEVA LÓGICA: Rellenar días vacíos para no saltarlos ---
+        let minDateStr = fechasRaw[0];
+        let maxDateStr = fechasRaw[fechasRaw.length - 1];
+
+        // Si hay un filtro específico de mes (ej. "2023-10"), ajustamos al mes completo
+        if (filtroGlobalClientes && filtroGlobalClientes.length === 7 && filtroGlobalClientes.includes('-')) {
+            const [y, m] = filtroGlobalClientes.split('-');
+            minDateStr = `${y}-${m}-01`; // Día 1 del mes
+            
+            const lastDay = new Date(y, m, 0).getDate();
+            const hoy = new Date();
+            const esMesActual = hoy.getFullYear() === parseInt(y) && (hoy.getMonth() + 1) === parseInt(m);
+            
+            // Si es el mes en curso, cortamos en el día actual para no mostrar el futuro en ceros
+            const diaFin = esMesActual ? hoy.getDate() : lastDay;
+            maxDateStr = `${y}-${m}-${String(diaFin).padStart(2, '0')}`;
+        }
+
+        const minDate = new Date(minDateStr + 'T00:00:00');
+        const maxDate = new Date(maxDateStr + 'T00:00:00');
+        
+        if (!isNaN(minDate) && !isNaN(maxDate)) {
+            const diffDias = Math.floor((maxDate - minDate) / (1000 * 60 * 60 * 24));
+            
+            // Si la diferencia de tiempo es manejable rellenamos día a día
+            if (diffDias >= 0 && diffDias <= 730) {
+                const fechasCompletas = [];
+                let currentDate = new Date(minDate);
+                
+                while (currentDate <= maxDate) {
+                    const yyyy = currentDate.getFullYear();
+                    const mm = String(currentDate.getMonth() + 1).padStart(2, '0');
+                    const dd = String(currentDate.getDate()).padStart(2, '0');
+                    fechasCompletas.push(`${yyyy}-${mm}-${dd}`);
+                    currentDate.setDate(currentDate.getDate() + 1);
+                }
+                fechasRaw = fechasCompletas; // Reemplazamos las fechas salteadas por la línea continua
+            }
+        }
+        // ------------------------------------------------------------------
+    }
+
+    const labelsFechas = fechasRaw.map(f => { const p = f.split('-'); return `${p[2]}/${p[1]}`; });
+    const dataIngresos = fechasRaw.map(f => ingresosMap[f] || 0); // Asigna $0 a los días sin ingresos
+    const dataVideos   = fechasRaw.map(f => videosMap[f] || 0);   // Asigna 0 a los días sin entregas
+
+    const pastelLabels = Object.keys(pastelMap);
+    const pastelData = Object.values(pastelMap);
+    const pastelColors = ['#a78bfa', '#34d399', '#f87171', '#60a5fa', '#fbbf24', '#f472b6', '#2dd4bf', '#a3e635', '#22d3ee'];
+
+    const opcionesBaseAxis = {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+            x: { grid: { display: false }, ticks: { font: { size: 10 }, color: colText } },
+            y: { border: { dash: [4, 4] }, grid: { color: colGrid }, ticks: { font: { size: 10 }, color: colText }, beginAtZero: true }
+        }
+    };
+
+    if (window.chartIngresosCli) window.chartIngresosCli.destroy();
+    const ctxIng = document.getElementById('chart-clientes-ingresos');
+    if (ctxIng) {
+        window.chartIngresosCli = new Chart(ctxIng, {
+            type: 'line',
+            data: { labels: labelsFechas, datasets: [{ label: 'Ingresos por Videos ($)', data: dataIngresos, borderColor: colAccent, backgroundColor: bgAccent, borderWidth: 2, tension: 0.4, fill: true, pointRadius: 3, pointBackgroundColor: colAccent }] },
+            options: opcionesBaseAxis
+        });
+    }
+
+    if (window.chartVideosCli) window.chartVideosCli.destroy();
+    const ctxVid = document.getElementById('chart-clientes-videos');
+    if (ctxVid) {
+        window.chartVideosCli = new Chart(ctxVid, {
+            type: 'bar',
+            data: { labels: labelsFechas, datasets: [{ label: 'Videos Entregados', data: dataVideos, backgroundColor: colOk, borderRadius: 4, barPercentage: 0.5 }] },
+            options: { ...opcionesBaseAxis, scales: { ...opcionesBaseAxis.scales, y: { ...opcionesBaseAxis.scales.y, ticks: { stepSize: 1, font: { size: 10 }, color: colText } } } }
+        });
+    }
+
+if (window.chartPastelCli) window.chartPastelCli.destroy();
+    const ctxPas = document.getElementById('chart-clientes-pastel');
+    if (ctxPas) {
+        // --- 🚀 NUEVO: Seguro anti-desborde para el contenedor ---
+        ctxPas.parentElement.style.position = 'relative';
+        ctxPas.parentElement.style.minHeight = '180px'; 
+        ctxPas.parentElement.style.maxHeight = '230px'; 
+        ctxPas.parentElement.style.width = '100%';
+        // ---------------------------------------------------------
+
+        window.chartPastelCli = new Chart(ctxPas, {
+            type: 'doughnut',
+            data: { labels: pastelLabels.length > 0 ? pastelLabels : ['Sin datos'], datasets: [{ data: pastelData.length > 0 ? pastelData : [1], backgroundColor: pastelData.length > 0 ? pastelColors : ['#374151'], borderWidth: 0, hoverOffset: 4 }] },
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false, 
+                cutout: '70%', // Aro un poquito más grueso para que luzca mejor
+                layout: {
+                    padding: 10 // Le da "aire" para que no toque los bordes de la tarjeta
+                },
+                plugins: { 
+                    legend: { 
+                        position: 'bottom', // <--- LA CLAVE: Abajo no aplasta el gráfico
+                        labels: { color: colText, font: { size: 10 }, boxWidth: 10, padding: 10 } 
+                    }, 
+                    tooltip: { enabled: pastelData.length > 0 } 
+                } 
+            }
+        });
+    }
 }
 
 // ─── Render: lista de clientes ──────────────────────────────────────────
@@ -231,13 +446,12 @@ function renderizarListaClientes() {
     const contenedor = document.getElementById('lista-clientes-grid');
     if (!contenedor) return;
 
-    const stats = calcularMetricasGlobales();
-    const selectMesGlobal = document.getElementById('filtro-mes-global');
-    if (selectMesGlobal) {
-        const meses = obtenerMesesDisponibles();
-        if (!meses.includes(mesSeleccionadoGlobal)) meses.unshift(mesSeleccionadoGlobal);
-        selectMesGlobal.innerHTML = meses.map(m => `<option value="${m}" ${m === mesSeleccionadoGlobal ? 'selected' : ''}>${formatearMes(m)}</option>`).join('');
+    const selectFiltro = document.getElementById('filtro-global-clientes');
+    if (selectFiltro) {
+        selectFiltro.innerHTML = construirOpcionesFiltroGlobal();
     }
+
+    const stats = calcularMetricasGlobales();
 
     if (stats.length === 0) {
         contenedor.innerHTML = `<div class="estado-vacio"><i class="ti ti-users" aria-hidden="true"></i> No tienes clientes aún. Haz clic en <strong>Nuevo cliente</strong> para empezar.</div>`;
@@ -264,7 +478,6 @@ function renderizarListaClientes() {
             badgeTxt = detalles.join(', ');
         }
 
-        // Etiqueta inteligente de Balance Invertida
         let badgeBalance;
         if (c.balance > 0) badgeBalance = `<div style="font-size:10px; color:var(--status-danger); font-weight:700; margin-top:4px">Consignación: $${c.balance.toFixed(2)}</div>`;
         else if (c.balance < 0) badgeBalance = `<div style="font-size:10px; color:var(--status-ok); font-weight:700; margin-top:4px">Por cobrar: $${Math.abs(c.balance).toFixed(2)}</div>`;
@@ -278,13 +491,13 @@ function renderizarListaClientes() {
                 <div class="cliente-proyecto">${c.proyecto || 'Edición de videos'}</div>
             </div>
             <div class="cliente-col-dinero">
-                <div class="cliente-monto" title="Ingresos del mes (Adelantos)">$${c.ingMesAct.toFixed(2)}</div>
-                <div class="cliente-metrica ${c.tendenciaClase}">${c.tendenciaTexto} vs mes ant.</div>
+                <div class="cliente-monto" title="Ingresos en el periodo (Videos entregados)">$${c.ingMesAct.toFixed(2)}</div>
+                <div class="cliente-metrica ${c.tendenciaClase}">${c.tendenciaTexto} ${c.textoComparativo}</div>
                 ${badgeBalance}
             </div>
             <div class="cliente-col-videos">
                 <div class="videos-num">${c.totalVideos}</div>
-                <div class="videos-lbl">videos</div>
+                <div class="videos-lbl">videos totales</div>
             </div>
             <div class="cliente-col-estado">
                 <span class="badge-estado ${badgeClase}">${badgeTxt}</span>
@@ -355,18 +568,31 @@ window.renderizarKpisCliente = function() {
 
     let ingMes = 0, totalPagado = 0, totalConsumido = 0, entregados = 0, pendientes = 0;
 
+    // Solo sumar pagos para el balance
     (cliente.pagos || []).forEach(p => {
         const monto = parseFloat(p.monto) || 0;
         totalPagado += monto;
-        if (p.fecha) {
-            const f = new Date(p.fecha + 'T00:00:00');
-            if (!isNaN(f) && f.getMonth() === mesAct && f.getFullYear() === anoAct) ingMes += monto;
-        }
     });
 
+    // Sumar ingresos desde los videos "listos"
     (cliente.videos || []).forEach(v => {
         const cobrado = (v.finanzas?.inversion || 0) + (v.finanzas?.bono || 0);
-        if (v.estado === 'listo') { entregados++; totalConsumido += cobrado; } else { pendientes++; }
+        
+        if (v.estado === 'listo') { 
+            entregados++; 
+            totalConsumido += cobrado; 
+            
+            // Si el video está listo en este mes, suma a las ganancias del mes
+            const strFecha = v.fecha_entrega || v.fecha_pago || v.fecha_recibido || (v.ultima_edicion ? v.ultima_edicion.split('T')[0] : null);
+            if (strFecha) {
+                const f = new Date(strFecha + 'T00:00:00');
+                if (!isNaN(f) && f.getMonth() === mesAct && f.getFullYear() === anoAct) {
+                    ingMes += cobrado;
+                }
+            }
+        } else { 
+            pendientes++; 
+        }
     });
     
     const balance = totalPagado - totalConsumido;
@@ -457,7 +683,7 @@ window.verHistorialPagos = function() {
 window.cerrarHistorialPagos = function() { document.getElementById('modal-historial-pagos').style.display = 'none'; };
 
 window.borrarPago = function(idPago) {
-    if(!confirm('¿Eliminar este registro de pago? Esto afectará tu balance y tus ingresos reportados.')) return;
+    if(!confirm('¿Eliminar este registro de pago? Esto afectará tu balance de deuda/favor.')) return;
     const datos = cargarDatos();
     const cliente = datos.clientes.find(c => c.id === clienteActualId);
     if (!cliente) return;
@@ -473,7 +699,6 @@ window.filtrarVideosPorEstado = function (estado) { filtroVideoEstado = estado; 
 function actualizarPills() { ['todos', 'sin_empezar', 'en_curso', 'listo'].forEach(p => { const el = document.getElementById(`pill-${p}`); if (el) el.classList.toggle('active', p === filtroVideoEstado); }); }
 window.cambiarOrdenVideos = function (col) { if (ordenVideoColumna === col) { ordenVideoDireccion = ordenVideoDireccion === 'asc' ? 'desc' : 'asc'; } else { ordenVideoColumna = col; ordenVideoDireccion = 'asc'; } renderizarTablaVideos(); };
 
-// Función inteligente para convertir "4h 30m" o "4.5" a número (horas)
 function parsearHoras(tiempoStr) {
     if (!tiempoStr) return 0;
     let hrs = 0;
@@ -523,37 +748,32 @@ function renderizarTablaVideos() {
 
     actualizarIndicadoresOrden();
     
-    // Obtenemos el promedio de palabras o asumimos 3000 por defecto
     const promedioPal = cliente.promedio_palabras || 3000;
 
     cuerpo.innerHTML = lista.map(v => {
         const cobrado = (v.finanzas?.inversion || 0) + (v.finanzas?.bono || 0);
-        
-        // Cálculo dinámico de barra de palabras basado en el promedio de cada cliente
         const palabras = v.palabras_guion || 0; 
         const pctPal = Math.min(100, (palabras / promedioPal) * 100);
         
-        // --- CÁLCULO 1: RENTABILIDAD POR HORA ---
         const horasTrabajadas = parsearHoras(v.tiempo_trabajo);
         let rentabilidadHtml = '';
         if (horasTrabajadas > 0 && cobrado > 0) {
             rentabilidadHtml = `<div style="font-size:10px; color:var(--text-lo); font-weight:600; margin-top:3px" title="Rentabilidad">$${(cobrado/horasTrabajadas).toFixed(1)}/hr</div>`;
         }
 
-        // --- CÁLCULO 2: SEMÁFORO DE ENTREGA ---
         let colorEntrega = 'var(--text-hi)';
         if (v.fecha_entrega) {
             if (v.estado === 'listo') {
-                colorEntrega = 'var(--text-lo)'; // Gris (Desactivado si ya se entregó)
+                colorEntrega = 'var(--text-lo)';
             } else {
                 const hoy = new Date(); hoy.setHours(0,0,0,0);
                 const [y, m, d] = v.fecha_entrega.split('-');
                 const fEntrega = new Date(y, m - 1, d);
                 const diffDays = Math.ceil((fEntrega - hoy) / (1000 * 60 * 60 * 24));
                 
-                if (diffDays <= 0) colorEntrega = 'var(--status-danger)'; // Hoy o vencido (Rojo)
-                else if (diffDays <= 3) colorEntrega = 'var(--status-warn)'; // 1 a 3 días (Amarillo)
-                else colorEntrega = 'var(--status-ok)'; // Más de 3 días (Verde)
+                if (diffDays <= 0) colorEntrega = 'var(--status-danger)'; 
+                else if (diffDays <= 3) colorEntrega = 'var(--status-warn)'; 
+                else colorEntrega = 'var(--status-ok)';
             }
         }
 
@@ -616,7 +836,7 @@ window.actualizarCampoTabla = function (idVideo, campo, valor) {
     const datos = cargarDatos(); const cliente = datos.clientes.find(c => c.id === clienteActualId); if (!cliente) return;
     const v = cliente.videos.find(vid => vid.id_video === idVideo); if (!v) return;
     v[campo] = valor; v.ultima_edicion = new Date().toISOString(); guardarDatos(datos);
-    renderizarKpisCliente(); // Solo repinta la barra superior (el balance mágico) sin recargar la página entera
+    renderizarKpisCliente();
 };
 
 // ─── CRUD Cliente ───────────────────────────────────────
@@ -625,7 +845,7 @@ window.abrirModalNuevoCliente = function () { window.abrirModalEdicion(); };
 window.abrirModalEdicion = function (id = null) {
     const modal = document.getElementById('modal-cliente'); document.getElementById('modal-cliente-titulo').textContent = id ? 'Editar cliente' : 'Nuevo cliente';
     document.getElementById('cliente-id').value = ''; document.getElementById('cliente-nombre').value = ''; document.getElementById('cliente-proyecto').value = ''; document.getElementById('cliente-pais').value = ''; document.getElementById('cliente-foto').value = '';
-    document.getElementById('cliente-promedio-palabras').value = '3000'; // Default
+    document.getElementById('cliente-promedio-palabras').value = '3000'; 
     if (id) { const datos = cargarDatos(); const cliente = datos.clientes.find(c => c.id === id); if (cliente) { document.getElementById('cliente-id').value = cliente.id; document.getElementById('cliente-nombre').value = cliente.nombre || ''; document.getElementById('cliente-proyecto').value = cliente.proyecto || ''; document.getElementById('cliente-pais').value = cliente.pais || ''; document.getElementById('cliente-foto').value = cliente.foto || ''; document.getElementById('cliente-promedio-palabras').value = cliente.promedio_palabras || 3000; } }
     window.actualizarAvatarPreview(); modal.style.display = 'flex';
 };
