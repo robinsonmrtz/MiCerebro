@@ -741,11 +741,29 @@ window.resetearProgreso = function() {
     renderizarCalendario();
 };
 
-window.reiniciarCronometroConfirmado = function() {
-    if (!habitoAccionActual) return;
-    if (confirm(`⚠️ ¿Reiniciar la racha de "${habitoAccionActual.nombre}"?`)) {
-        window.iniciarCronometro(habitoAccionActual.id);
-        window.cerrarModalAccion();
+window.reiniciarCronometroConfirmado = function(id) {
+    let datos = cargarDatos(); // o la función que uses para leer
+    let habito = datos.habitos.find(h => h.id == id);
+    
+    if (habito) {
+        // 1️⃣ --- AÑADE ESTE BLOQUE EXACTAMENTE AQUÍ ---
+        if (habito.fechaInicio) {
+            if (!habito.historial) habito.historial = [];
+            habito.historial.push({
+                inicio: habito.fechaInicio,
+                fin: Date.now(),
+                duracionMs: Date.now() - new Date(habito.fechaInicio).getTime()
+            });
+        }
+        // ----------------------------------------------
+
+        // 2️⃣ Luego, el comportamiento que ya tenías:
+        habito.fechaInicio = Date.now();
+        guardarHabitosDefinicion(datos.habitos);
+        
+        // ... (tus funciones para cerrar el modal y renderizar)
+        renderizarListaHabitos();
+        renderizarCalendario();
     }
 };
 

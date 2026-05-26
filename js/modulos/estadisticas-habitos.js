@@ -1,11 +1,6 @@
 /* ====================================================
    RUTA DEL ARCHIVO: js/modulos/estadisticas-habitos.js
-   VERSIÓN: 1.1 — Cronómetros incluidos + flechas corregidas
-   ─ _habitosActivos() devuelve todos los hábitos (contador + cronómetro)
-   ─ _pctDia() calcula 1 si el cronómetro lleva corriendo ese día, 0 si no
-   ─ Las 4 funciones de navegación invertidas (barras, líneas, tabla, año)
-     ahora usan -= dir para que ❮ vaya al pasado y ❯ vuelva al presente
-   ─ navegarMesCalendario añade Math.min(0,...) para no saltar al futuro
+   VERSIÓN: 2.0 — Historial de Cronómetros + Días y Horas + Regla 24h
    ==================================================== */
 
 /* ─── Estado del módulo ────────────────────────────── */
@@ -55,10 +50,9 @@ function _datos() {
     return cargarDatos() || { habitos: [], registro_habitos: {}, config_habitos: null };
 }
 
-// ── CAMBIO 1: incluye TODOS los hábitos (contador + cronómetro) ──
 function _habitosActivos() {
     const d = _datos();
-    let lista = (d.habitos || []);          // ← ya no filtra por tipo
+    let lista = (d.habitos || []);
     if (_stats.habitosFiltrados && _stats.habitosFiltrados.length > 0) {
         lista = lista.filter(h => _stats.habitosFiltrados.includes(h.id));
     }
@@ -69,18 +63,51 @@ function _fmt(date) {
     return date.toLocaleDateString('es-CO');
 }
 
-// ── CAMBIO 2: cronómetro = 1 (completo) si lleva corriendo ese día ──
+// ── CAMBIO VITAL: Lee el historial, y requiere 24 horas para darte 1 día completado ──
 function _pctDia(reg, fecha, habito) {
     if (habito.tipo === 'cronometro') {
-        if (!habito.fechaInicio) return 0;
-        const fIni = new Date(habito.fechaInicio);
-        fIni.setHours(0, 0, 0, 0);
-        // Parsear fecha en formato DD/MM/YYYY (es-CO)
         const partes = fecha.split('/');
         const fCheck = new Date(Number(partes[2]), Number(partes[1]) - 1, Number(partes[0]));
-        const hoyMidnight = new Date(); hoyMidnight.setHours(0, 0, 0, 0);
-        return (fCheck >= fIni && fCheck <= hoyMidnight) ? 1 : 0;
+        
+        let cuentaComoRacha = false;
+
+        // Función estricta: Revisa si en este día exacto llevabas al menos 24h
+        const validarRango = (inicioMs, finMs) => {
+            const msEnDia = 86400000; // 24 horas en milisegundos
+            const tiempoMinimoParaContar = inicioMs + msEnDia; 
+            
+            if (finMs < tiempoMinimoParaContar) return false;
+
+            const fechaMinima = new Date(tiempoMinimoParaContar);
+            fechaMinima.setHours(0, 0, 0, 0); // Normalizar a medianoche
+            
+            const fechaFin = new Date(finMs);
+            fechaFin.setHours(23, 59, 59, 999);
+            
+            return (fCheck.getTime() >= fechaMinima.getTime() && fCheck.getTime() <= fechaFin.getTime());
+        };
+
+        // 1. Revisar si la fecha cae dentro de un historial (rachas reiniciadas pasadas)
+        if (habito.historial && habito.historial.length > 0) {
+            for (let rec of habito.historial) {
+                if (validarRango(new Date(rec.inicio).getTime(), new Date(rec.fin).getTime())) {
+                    cuentaComoRacha = true; 
+                    break;
+                }
+            }
+        }
+
+        // 2. Revisar en la racha actual en curso
+        if (!cuentaComoRacha && habito.fechaInicio) {
+            if (validarRango(new Date(habito.fechaInicio).getTime(), Date.now())) {
+                cuentaComoRacha = true;
+            }
+        }
+
+        return cuentaComoRacha ? 1 : 0;
     }
+    
+    // Hábitos normales se quedan intactos
     const r = reg[fecha];
     if (!r) return 0;
     return Math.min((r[habito.id] || 0) / habito.meta, 1);
@@ -108,7 +135,6 @@ const _DIAS_CORTOS = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
 const _MESES_ES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 const _MESES_CORTOS = ['ene.','feb.','mar.','abr.','may.','jun.','jul.','ago.','sept.','oct.','nov.','dic.'];
 
-/* ─── Opciones globales Chart.js ────────────────────── */
 function _getChartDefaults() {
     const style = getComputedStyle(document.documentElement);
     return {
@@ -124,7 +150,6 @@ function _getChartDefaults() {
    SECCIÓN 1: Barras de Progreso General
    ══════════════════════════════════════════════════════ */
 
-// ── CAMBIO 3: -= dir (antes += dir) para que ❮ vaya al pasado ──
 window.navegarPeriodoBarras = function (dir) {
     _stats.offsetBarras = Math.max(0, _stats.offsetBarras - dir);
     _renderBarras();
@@ -209,7 +234,6 @@ function _renderBarras() {
    SECCIÓN 2: Líneas por Hábito Individual
    ══════════════════════════════════════════════════════ */
 
-// ── CAMBIO 4: -= dir (antes += dir) ──
 window.navegarPeriodoLineas = function (dir) {
     _stats.offsetLineas = Math.max(0, _stats.offsetLineas - dir);
     _renderLineas();
@@ -309,9 +333,6 @@ function _renderLineas() {
    SECCIÓN 3: Calendario Mensual con Donuts
    ══════════════════════════════════════════════════════ */
 
-// ── CAMBIO 5: añade Math.min(0,...) para no saltar al futuro ──
-// La lógica de dirección ya era correcta aquí (❮→-1→pasado) — solo
-// añadimos el tope para no ir a meses futuros.
 window.navegarMesCalendario = function (dir) {
     _stats.offsetMes = Math.min(0, _stats.offsetMes + dir);
     _renderCalendarioMensual();
@@ -394,7 +415,7 @@ function _renderCalendarioMensual() {
 }
 
 /* ══════════════════════════════════════════════════════
-   SECCIÓN 4: Récords y KPIs
+   SECCIÓN 4: Récords y KPIs (AHORA SOPORTA HORAS)
    ══════════════════════════════════════════════════════ */
 const _PERIODOS_RECORDS = [30, 60, 90, 180, 365];
 
@@ -416,6 +437,58 @@ function _renderRecords() {
     const reg = d.registro_habitos || {};
     const habitos = _habitosActivos();
 
+    const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+    const labelEl = (id, texto) => {
+        const e = document.getElementById(id);
+        if (e && e.previousElementSibling) e.previousElementSibling.textContent = texto;
+    };
+
+    // ── LÓGICA ESPECIAL: Si filtras por 1 cronómetro, muestra métricas en "Días y Horas" ──
+    const esUnicoCronometro = habitos.length === 1 && habitos[0].tipo === 'cronometro';
+
+    if (esUnicoCronometro) {
+        const h = habitos[0];
+        const msActual = h.fechaInicio ? (Date.now() - new Date(h.fechaInicio).getTime()) : 0;
+        
+        let msMejor = msActual;
+        let msUltimo = 0;
+
+        if (h.historial && h.historial.length > 0) {
+            h.historial.forEach(r => {
+                if (r.duracionMs > msMejor) msMejor = r.duracionMs;
+            });
+            msUltimo = h.historial[h.historial.length - 1].duracionMs;
+        }
+
+        const formatMs = (ms) => {
+            if (ms < 3600000 && ms > 0) return '< 1h';
+            const dd = Math.floor(ms / 86400000);
+            const hh = Math.floor((ms % 86400000) / 3600000);
+            if (dd === 0 && hh === 0) return 'Recién inic.';
+            return `${dd}d ${hh}h`;
+        };
+
+        set('rec-racha-actual', formatMs(msActual));
+        set('rec-mejor-racha', formatMs(msMejor));
+        set('rec-completados', formatMs(msUltimo));
+        set('rec-tasa-exito', '-');
+
+        // Renombrar etiquetas visualmente para darle contexto de reloj
+        labelEl('rec-racha-actual', '🔥');
+        labelEl('rec-mejor-racha', '🏅');
+        labelEl('rec-completados', '✅');
+        labelEl('rec-tasa-exito', '🏁');
+
+        return; // Detenemos la función, el cronómetro ya llenó los KPI
+    } else {
+        // Restaurar textos originales para hábitos estándar
+        labelEl('rec-racha-actual', '🔥');
+        labelEl('rec-mejor-racha', '🏅');
+        labelEl('rec-completados', '✅');
+        labelEl('rec-tasa-exito', '🏁');
+    }
+
+    // ── LÓGICA NORMAL PARA HÁBITOS ESTÁNDAR ──
     const hoy = new Date();
     hoy.setHours(0, 0, 0, 0);
 
@@ -451,7 +524,6 @@ function _renderRecords() {
         ? Math.round((completadosTotal / dias) * 100)
         : 0;
 
-    const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
     set('rec-racha-actual', rachaActual);
     set('rec-mejor-racha', mejorRacha);
     set('rec-completados', completadosTotal);
@@ -462,7 +534,6 @@ function _renderRecords() {
    SECCIÓN 5: Tabla Semanal (Hábitos × Días)
    ══════════════════════════════════════════════════════ */
 
-// ── CAMBIO 6: -= dir (antes += dir) ──
 window.navegarSemanaTabla = function (dir) {
     _stats.offsetSemana = Math.max(0, _stats.offsetSemana - dir);
     _renderTablaSemanal();
@@ -583,7 +654,6 @@ function _renderTablaSemanal() {
    SECCIÓN 6: Heatmap Anual
    ══════════════════════════════════════════════════════ */
 
-// ── CAMBIO 7: -= dir (antes += dir) ──
 window.navegarAnioHeatmap = function (dir) {
     _stats.offsetAnio = Math.max(0, _stats.offsetAnio - dir);
     _renderHeatmapAnual();
@@ -691,7 +761,6 @@ window.toggleFiltroHabitos = function () {
     const modal = document.getElementById('modal-filtro-habitos-stats');
     if (!modal) return;
 
-    // ── CAMBIO 8: el modal de filtro también muestra todos los tipos ──
     const habitos = (_datos().habitos || []);
     _selFiltroTemp = _stats.habitosFiltrados ? [..._stats.habitosFiltrados] : habitos.map(h => h.id);
 
@@ -751,7 +820,6 @@ window.aplicarFiltroHabitos = function () {
     _renderTodo();
 };
 
-/* ─── Navegación: volver al módulo de hábitos ─────── */
 window.volverAHabitos = function () {
     if (typeof cargarVista === 'function') {
         cargarVista('habitos');
