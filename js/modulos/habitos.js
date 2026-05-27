@@ -649,12 +649,15 @@ window.guardarHabito = function() {
 
     let d = obtenerDatosHabitosSeguros();
     if (id) {
-        const old = d.habitos.find(x => x.id == id);
-        // Respetamos el inicio del cronómetro si existe
-        obj.fechaInicio   = old.fechaInicio; 
-        d.habitos = d.habitos.map(x => x.id == id ? obj : x);
+    const old = d.habitos.find(x => x.id == id);
+    obj.fechaInicio = old.fechaInicio;
+    obj.historial   = old.historial || [];   // ← preservar historial
+    d.habitos = d.habitos.map(x => x.id == id ? obj : x);
     } else {
-        if (obj.tipo === 'cronometro') obj.fechaInicio = null;
+        if (obj.tipo === 'cronometro') {
+            obj.fechaInicio = null;
+            obj.historial   = [];   // ← inicializar vacío, nunca undefined
+        }
         d.habitos.push(obj);
     }
     
@@ -741,30 +744,33 @@ window.resetearProgreso = function() {
     renderizarCalendario();
 };
 
-window.reiniciarCronometroConfirmado = function(id) {
-    let datos = cargarDatos(); // o la función que uses para leer
-    let habito = datos.habitos.find(h => h.id == id);
-    
-    if (habito) {
-        // 1️⃣ --- AÑADE ESTE BLOQUE EXACTAMENTE AQUÍ ---
-        if (habito.fechaInicio) {
-            if (!habito.historial) habito.historial = [];
-            habito.historial.push({
-                inicio: habito.fechaInicio,
-                fin: Date.now(),
-                duracionMs: Date.now() - new Date(habito.fechaInicio).getTime()
-            });
-        }
-        // ----------------------------------------------
+window.reiniciarCronometroConfirmado = function(habitoId) {
+    let datos = cargarDatos();
+    let habito = datos.habitos.find(h => h.id == habitoId);
 
-        // 2️⃣ Luego, el comportamiento que ya tenías:
-        habito.fechaInicio = Date.now();
-        guardarHabitosDefinicion(datos.habitos);
-        
-        // ... (tus funciones para cerrar el modal y renderizar)
-        renderizarListaHabitos();
-        renderizarCalendario();
+    if (!habito) return;
+
+    // Guardar el período actual en historial antes de reiniciar
+    if (habito.fechaInicio) {
+        if (!habito.historial) habito.historial = [];
+        habito.historial.push({
+            inicio:     typeof habito.fechaInicio === 'number'
+                            ? new Date(habito.fechaInicio).toISOString()
+                            : habito.fechaInicio,
+            fin:        new Date().toISOString(),
+            duracionMs: Date.now() - new Date(habito.fechaInicio).getTime()
+        });
     }
+
+    // Reiniciar con ISO string consistente
+    habito.fechaInicio = new Date().toISOString();
+    guardarHabitosDefinicion(datos.habitos);
+
+    // Cerrar solo el modal de acción, no el de borrar
+    window.cerrarModalAccion();
+
+    renderizarListaHabitos();
+    renderizarCalendario();
 };
 
 window.actualizarCronometrosVivos = function() {
