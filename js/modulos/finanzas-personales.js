@@ -1555,7 +1555,9 @@ function fz_renderizarGraficoGastos(transDelMes, categorias) {
     // Agrupar gastos por categoría
     let totalesCat = {};
     gastos.forEach(g => {
-        totalesCat[g.categoria_id] = (totalesCat[g.categoria_id] || 0) + g.monto;
+        const cat = categorias.find(c => c.id == g.categoria_id);
+        const idAgrupador = (cat && cat.parent_id) ? cat.parent_id : g.categoria_id;
+        totalesCat[idAgrupador] = (totalesCat[idAgrupador] || 0) + g.monto;
     });
 
     const labels = [];
