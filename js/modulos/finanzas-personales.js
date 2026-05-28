@@ -1319,17 +1319,26 @@ window.fz_abrirModalCategoria = function(id = null) {
         fz_activarColorCat(cat.color || '#e74c3c');
 
     if (cat.parent_id) {
-        emojiGroup.style.display = 'none';
-        tipoGroup.style.display  = 'none';
-        document.getElementById('fz-cat-color-group').style.display = 'none'; // ← nueva
-        document.getElementById('fz-categoria-parent-id').value = cat.parent_id;
-        document.getElementById('fz-categoria-es-sub').value = '1';
-    } else {
-        emojiGroup.style.display = 'flex';
-        tipoGroup.style.display  = 'flex';
-        document.getElementById('fz-cat-color-group').style.display = 'flex'; // ← nueva
-        document.getElementById('fz-categoria-tipo').value = cat.tipo;
-    }
+            emojiGroup.style.display = 'none';
+            tipoGroup.style.display  = 'none';
+            document.getElementById('fz-cat-color-group').style.display = 'none';
+            document.getElementById('fz-categoria-parent-id').value = cat.parent_id;
+            document.getElementById('fz-categoria-es-sub').value = '1';
+
+            const padreGroup  = document.getElementById('fz-cat-padre-group');
+            const padreSelect = document.getElementById('fz-cat-padre-select');
+            padreGroup.style.display = 'flex';
+            const padresDisponibles = fz_obtenerDatos().categorias.filter(c => !c.parent_id && !c.archivada && c.tipo === cat.tipo);
+            padreSelect.innerHTML = padresDisponibles.map(p =>
+                `<option value="${p.id}" ${p.id === cat.parent_id ? 'selected' : ''}>${p.emoji || '🏷️'} ${p.nombre}</option>`
+            ).join('');
+        } else {
+            emojiGroup.style.display = 'flex';
+            tipoGroup.style.display  = 'flex';
+            document.getElementById('fz-cat-color-group').style.display = 'flex';
+            document.getElementById('fz-cat-padre-group').style.display = 'none';
+            document.getElementById('fz-categoria-tipo').value = cat.tipo;
+        }
     } else {
         document.getElementById('fz-categoria-nombre').value = '';
         document.getElementById('fz-cat-emoji-preview').textContent = '🏷️';
@@ -1351,25 +1360,33 @@ window.fz_abrirModalSubcategoria = function(parentId) {
     document.getElementById('fz-categoria-nombre').value    = '';
     document.getElementById('fz-cat-emoji-group').style.display  = 'none';
     document.getElementById('fz-cat-tipo-group').style.display   = 'none';
-    document.getElementById('fz-cat-color-group').style.display  = 'none'; // ← nuevo
+    document.getElementById('fz-cat-color-group').style.display  = 'none';
+    document.getElementById('fz-cat-padre-group').style.display  = 'none';
     document.getElementById('fz-modal-categoria').classList.add('visible');
 };
 
 window.fz_guardarFormularioCategoria = function() {
-    const idInput  = document.getElementById('fz-categoria-id').value;
-    const parentId = document.getElementById('fz-categoria-parent-id').value;
-    const esSub    = document.getElementById('fz-categoria-es-sub').value === '1';
-    const nombre   = document.getElementById('fz-categoria-nombre').value.trim();
-    const color    = document.getElementById('fz-categoria-color').value;
+    const idInput = document.getElementById('fz-categoria-id').value;
+    let parentId  = document.getElementById('fz-categoria-parent-id').value;
+    const esSub   = document.getElementById('fz-categoria-es-sub').value === '1';
+    const nombre  = document.getElementById('fz-categoria-nombre').value.trim();
     if (!nombre) return alert("El nombre es obligatorio");
 
-    let tipo, emoji;
+    let tipo, emoji, color;
+
     if (esSub) {
-        const padre = fz_obtenerDatos().categorias.find(c => c.id === parseInt(parentId));
-        tipo  = padre ? padre.tipo : fz_catTipoActual;
-        emoji = null;
+        const selectPadre = document.getElementById('fz-cat-padre-select');
+        const nuevoParentId = (selectPadre && selectPadre.offsetParent !== null && selectPadre.value)
+            ? parseInt(selectPadre.value)
+            : parseInt(parentId);
+        const padre = fz_obtenerDatos().categorias.find(c => c.id === nuevoParentId);
+        tipo     = padre ? padre.tipo            : fz_catTipoActual;
+        color    = padre ? padre.color           : '#e74c3c';
+        emoji    = padre ? (padre.emoji || '🏷️') : '🏷️';
+        parentId = nuevoParentId;
     } else {
         tipo  = document.getElementById('fz-categoria-tipo').value;
+        color = document.getElementById('fz-categoria-color').value;
         emoji = document.getElementById('fz-cat-emoji-preview').textContent || '🏷️';
     }
 
