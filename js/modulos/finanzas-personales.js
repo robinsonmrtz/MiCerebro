@@ -14,6 +14,7 @@ const formatearDinero = (monto) => {
 // 1. INICIALIZACIÓN (Llamada por app.js)
 window.inicializarFinanzasPersonales = function() {
     console.log("Módulo de Finanzas Personales iniciado.");
+    fz_migrarColoresSubcategorias();
     actualizarEtiquetaMes();
     configurarSubMenu();
     // Asegurar que existan instancias de recurrentes para los próximos meses
@@ -1317,18 +1318,18 @@ window.fz_abrirModalCategoria = function(id = null) {
         document.getElementById('fz-cat-emoji-preview').textContent = cat.emoji || '🏷️';
         fz_activarColorCat(cat.color || '#e74c3c');
 
-        if (cat.parent_id) {
-            // Es subcategoría: sin emoji ni tipo
-            emojiGroup.style.display = 'none';
-            tipoGroup.style.display  = 'none';
-            // Mantener la jerarquía al editar para que no se convierta en categoría padre
-            document.getElementById('fz-categoria-parent-id').value = cat.parent_id;
-            document.getElementById('fz-categoria-es-sub').value = '1';
-        } else {
-            emojiGroup.style.display = 'flex';
-            tipoGroup.style.display  = 'flex';
-            document.getElementById('fz-categoria-tipo').value = cat.tipo;
-        }
+    if (cat.parent_id) {
+        emojiGroup.style.display = 'none';
+        tipoGroup.style.display  = 'none';
+        document.getElementById('fz-cat-color-group').style.display = 'none'; // ← nueva
+        document.getElementById('fz-categoria-parent-id').value = cat.parent_id;
+        document.getElementById('fz-categoria-es-sub').value = '1';
+    } else {
+        emojiGroup.style.display = 'flex';
+        tipoGroup.style.display  = 'flex';
+        document.getElementById('fz-cat-color-group').style.display = 'flex'; // ← nueva
+        document.getElementById('fz-categoria-tipo').value = cat.tipo;
+    }
     } else {
         document.getElementById('fz-categoria-nombre').value = '';
         document.getElementById('fz-cat-emoji-preview').textContent = '🏷️';
@@ -1348,9 +1349,9 @@ window.fz_abrirModalSubcategoria = function(parentId) {
     document.getElementById('fz-categoria-parent-id').value = parentId;
     document.getElementById('fz-categoria-es-sub').value    = '1';
     document.getElementById('fz-categoria-nombre').value    = '';
-    document.getElementById('fz-cat-emoji-group').style.display = 'none';
-    document.getElementById('fz-cat-tipo-group').style.display  = 'none';
-    fz_activarColorCat(padre?.color || '#e74c3c');
+    document.getElementById('fz-cat-emoji-group').style.display  = 'none';
+    document.getElementById('fz-cat-tipo-group').style.display   = 'none';
+    document.getElementById('fz-cat-color-group').style.display  = 'none'; // ← nuevo
     document.getElementById('fz-modal-categoria').classList.add('visible');
 };
 
@@ -1914,3 +1915,26 @@ fz_filtrarDropdownCategorias = function() {
         });
     }
 };
+
+function fz_migrarColoresSubcategorias() {
+    let datos = cargarDatos();
+    const categorias = datos.finanzas_personales.categorias;
+    let huboCambios = false;
+
+    categorias.forEach(cat => {
+        if (cat.parent_id) {
+            const padre = categorias.find(p => p.id === cat.parent_id);
+            if (padre) {
+                const colorCorrecto = padre.color || '#e74c3c';
+                const emojiCorrecto = padre.emoji || '🏷️';
+                if (cat.color !== colorCorrecto || cat.emoji !== emojiCorrecto) {
+                    cat.color = colorCorrecto;
+                    cat.emoji = emojiCorrecto;
+                    huboCambios = true;
+                }
+            }
+        }
+    });
+
+    if (huboCambios) guardarDatos(datos);
+}
