@@ -417,10 +417,12 @@
                     </div>
                 </div>
             </div>
-
             <div class="fz-group-exacto">
                 <label class="fz-label-exacto">Descripción / Concepto básico</label>
-                <input type="text" id="fz-trans-desc" class="fz-input-exacto" placeholder="Ej: Compra de insumos, Pago mensual..." autocomplete="off">
+                <div style="position: relative;">
+                    <input type="text" id="fz-trans-desc" class="fz-input-exacto" placeholder="Ej: Compra de insumos, Pago mensual..." autocomplete="off" oninput="fz_filtrarDropdownDescripciones()" onfocus="fz_filtrarDropdownDescripciones()">
+                    <div class="fz-floating-autocomplete-menu" id="fz-drop-descripciones"></div>
+                </div>
             </div>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">

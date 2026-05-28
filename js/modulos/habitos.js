@@ -140,21 +140,18 @@ function obtenerDatosHabitosSeguros() {
                 let nombreModificado = h.nombre;
                 let emojiRescatado = null;
 
-                // Buscamos si tiene alguno de los clásicos o cualquier emoji de tu sistema
                 const emojisBuscados = ['☕', '⚡', '🌙', ...(typeof EMOJIS_SISTEMA !== 'undefined' ? EMOJIS_SISTEMA : [])];
                 
                 emojisBuscados.forEach(emoji => {
                     if (nombreModificado.includes(emoji)) {
-                        if (!emojiRescatado) emojiRescatado = emoji; // Rescatamos el primero que encontremos
-                        nombreModificado = nombreModificado.replace(emoji, ''); // Lo borramos del texto
+                        if (!emojiRescatado) emojiRescatado = emoji;
+                        nombreModificado = nombreModificado.replace(emoji, '');
                     }
                 });
 
                 nombreModificado = nombreModificado.replace(/[\uFE0F\u200B]/g, '').trim();
 
-                // Si el nombre cambió (es decir, le quitamos basura)
                 if (h.nombre !== nombreModificado) {
-                    // Si el hábito tiene la estrellita por defecto o no tiene icono, le ponemos el rescatado
                     if (!h.icono || h.icono === '✨') {
                         h.icono = emojiRescatado || '✨';
                     }
@@ -162,6 +159,16 @@ function obtenerDatosHabitosSeguros() {
                     requiereGuardar = true;
                 }
             }
+
+            // 👇 NUEVO: MODO AUTOSANACIÓN - Elimina registros de historial con el virus NaN
+            if (h.tipo === 'cronometro' && Array.isArray(h.historial)) {
+                const historialLimpio = h.historial.filter(r => r.duracionMs != null && !isNaN(r.duracionMs));
+                if (historialLimpio.length !== h.historial.length) {
+                    h.historial = historialLimpio;
+                    requiereGuardar = true;
+                }
+            }
+
             return h;
         });
     }
@@ -745,30 +752,43 @@ window.resetearProgreso = function() {
 };
 
 window.reiniciarCronometroConfirmado = function(habitoId) {
+    // 🛡️ ESCUDO 3: Por si el botón en HTML no envía correctamente el ID
+    if ((!habitoId || typeof habitoId !== 'number') && window.habitoAccionActual) {
+        habitoId = window.habitoAccionActual.id;
+    }
+
     let datos = cargarDatos();
     let habito = datos.habitos.find(h => h.id == habitoId);
 
     if (!habito) return;
 
-    // Guardar el período actual en historial antes de reiniciar
+    // Guardar el período actual en historial de forma segura
     if (habito.fechaInicio) {
         if (!habito.historial) habito.historial = [];
-        habito.historial.push({
-            inicio:     typeof habito.fechaInicio === 'number'
-                            ? new Date(habito.fechaInicio).toISOString()
-                            : habito.fechaInicio,
-            fin:        new Date().toISOString(),
-            duracionMs: Date.now() - new Date(habito.fechaInicio).getTime()
-        });
+        
+        const inicioMs = new Date(habito.fechaInicio).getTime();
+        
+        // 🛡️ ESCUDO 4: Solo se guarda en historial si el tiempo fue válido (evita el virus NaN)
+        if (!isNaN(inicioMs)) {
+            habito.historial.push({
+                inicio: new Date(inicioMs).toISOString(),
+                fin:    new Date().toISOString(),
+                duracionMs: Date.now() - inicioMs
+            });
+        }
     }
 
-    // Reiniciar con ISO string consistente
+    // Reiniciar con ISO string consistente y limpio
     habito.fechaInicio = new Date().toISOString();
+    
+    // Sincronizar el modal actual por si sigue abierto
+    if (window.habitoAccionActual && window.habitoAccionActual.id == habito.id) {
+        window.habitoAccionActual.fechaInicio = habito.fechaInicio;
+    }
+
     guardarHabitosDefinicion(datos.habitos);
 
-    // Cerrar solo el modal de acción, no el de borrar
     window.cerrarModalAccion();
-
     renderizarListaHabitos();
     renderizarCalendario();
 };
@@ -787,11 +807,24 @@ window.actualizarCronometrosVivos = function() {
 };
 
 window.calcularTiempoLimpio = function(iso) {
-    const dif = Math.max(0, new Date().getTime() - new Date(iso).getTime());
+    // 🛡️ ESCUDO 1: Si el texto está corrupto, vacío o es nulo, mostramos 0
+    if (!iso || iso === 'undefined' || iso === 'null') {
+        return '0d 00h 00m 00s';
+    }
+    
+    const timeMs = new Date(iso).getTime();
+    
+    // 🛡️ ESCUDO 2: Si la fecha es inválida matemáticamente, mostramos 0
+    if (isNaN(timeMs)) {
+        return '0d 00h 00m 00s';
+    }
+
+    const dif = Math.max(0, Date.now() - timeMs);
     const dd = Math.floor(dif / 86400000);
     const hh = Math.floor((dif % 86400000) / 3600000);
     const mm = Math.floor((dif % 3600000) / 60000);
     const ss = Math.floor((dif % 60000) / 1000);
+    
     return `${dd}d ${String(hh).padStart(2,'0')}h ${String(mm).padStart(2,'0')}m ${String(ss).padStart(2,'0')}s`;
 };
 

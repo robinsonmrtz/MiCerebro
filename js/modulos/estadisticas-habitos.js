@@ -444,43 +444,54 @@ function _renderRecords() {
     };
 
     // ── LÓGICA ESPECIAL: Si filtras por 1 cronómetro, muestra métricas en "Días y Horas" ──
-    const esUnicoCronometro = habitos.length === 1 && habitos[0].tipo === 'cronometro';
+// ── LÓGICA ESPECIAL: Si filtras por 1 cronómetro, muestra métricas en "Días y Horas" ──
+    const esUnicoCronometro = habitos.length === 1 && habitos[0].tipo === 'cronometro';
 
-    if (esUnicoCronometro) {
-        const h = habitos[0];
-        const msActual = h.fechaInicio ? (Date.now() - new Date(h.fechaInicio).getTime()) : 0;
-        
-        let msMejor = msActual;
-        let msUltimo = 0;
+    if (esUnicoCronometro) {
+        const h = habitos[0];
+        
+        // 🛡️ PRIMER ESCUDO ANTI-NaN: Validamos que la fechaInicio sea real y calculable
+        let msActual = 0;
+        if (h.fechaInicio) {
+            const tiempoInicio = new Date(h.fechaInicio).getTime();
+            if (!isNaN(tiempoInicio)) {
+                msActual = Math.max(0, Date.now() - tiempoInicio);
+            }
+        }
+        
+        let msMejor = msActual;
+        let msUltimo = 0;
 
-        if (h.historial && h.historial.length > 0) {
-            h.historial.forEach(r => {
-                if (r.duracionMs > msMejor) msMejor = r.duracionMs;
-            });
-            msUltimo = h.historial[h.historial.length - 1].duracionMs;
-        }
+        if (h.historial && h.historial.length > 0) {
+            h.historial.forEach(r => {
+                const dur = r.duracionMs || 0;
+                if (dur > msMejor) msMejor = dur;
+            });
+            msUltimo = h.historial[h.historial.length - 1].duracionMs || 0;
+        }
 
-        const formatMs = (ms) => {
-            if (ms < 3600000 && ms > 0) return '< 1h';
-            const dd = Math.floor(ms / 86400000);
-            const hh = Math.floor((ms % 86400000) / 3600000);
-            if (dd === 0 && hh === 0) return 'Recién inic.';
-            return `${dd}d ${hh}h`;
-        };
+        const formatMs = (ms) => {
+            // 🛡️ SEGUNDO ESCUDO: Si por alguna razón llega un NaN o negativo, resetea a 0
+            if (isNaN(ms) || ms <= 0) return '0d 0h';
+            if (ms < 3600000) return '< 1h';
+            const dd = Math.floor(ms / 86400000);
+            const hh = Math.floor((ms % 86400000) / 3600000);
+            return `${dd}d ${hh}h`;
+        };
 
-        set('rec-racha-actual', formatMs(msActual));
-        set('rec-mejor-racha', formatMs(msMejor));
-        set('rec-completados', formatMs(msUltimo));
-        set('rec-tasa-exito', '-');
+        set('rec-racha-actual', formatMs(msActual));
+        set('rec-mejor-racha', formatMs(msMejor));
+        set('rec-completados', formatMs(msUltimo));
+        set('rec-tasa-exito', '-');
 
-        // Renombrar etiquetas visualmente para darle contexto de reloj
-        labelEl('rec-racha-actual', '🔥');
-        labelEl('rec-mejor-racha', '🏅');
-        labelEl('rec-completados', '✅');
-        labelEl('rec-tasa-exito', '🏁');
+        // Renombrar etiquetas visualmente para darle contexto de reloj
+        labelEl('rec-racha-actual', '🔥');
+        labelEl('rec-mejor-racha', '🏅');
+        labelEl('rec-completados', '✅');
+        labelEl('rec-tasa-exito', '🏁');
 
-        return; // Detenemos la función, el cronómetro ya llenó los KPI
-    } else {
+        return; // Detenemos la función, el cronómetro ya llenó los KPI
+    } else {
         // Restaurar textos originales para hábitos estándar
         labelEl('rec-racha-actual', '🔥');
         labelEl('rec-mejor-racha', '🏅');

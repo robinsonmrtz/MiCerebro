@@ -531,7 +531,7 @@ window.fz_filtrarDropdownComercios = function() {
 };
 
 // --- AUTOCOMPLETADO DE DESCRIPCIONES (Histórico) ---
-function fz_filtrarDropdownDescripciones() {
+window.fz_filtrarDropdownDescripciones = function() {
     const input = document.getElementById('fz-trans-desc');
     const query = input.value.trim().toLowerCase();
     const dropdown = document.getElementById('fz-drop-descripciones');
@@ -550,7 +550,7 @@ function fz_filtrarDropdownDescripciones() {
         item.onclick = () => { input.value = desc; dropdown.classList.remove('visible'); };
         dropdown.appendChild(item);
     });
-}
+};
 
 function fz_cerrarTodosLosDropdownsAutoComplete() {
     document.getElementById('fz-drop-unidad').classList.remove('visible');
