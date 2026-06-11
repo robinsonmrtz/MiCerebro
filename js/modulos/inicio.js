@@ -1,40 +1,25 @@
 // ====================================================
-// CORE COMPONENT: inicio.js (Motor de Análisis de Datos v2.0)
-// FILTROS: Semana (Lun-Dom), Mes (1-31), Año (1 Ene-31 Dic) y Rango
+// CORE COMPONENT: inicio.js (Motor Mensual Acumulativo Profesional v3.4)
+// FILTROS: Ejes Visuales Completos + Indicadores de Promedio en Color
 // ====================================================
 
-let fz_periodoActualDashboard = "semana"; 
+let fz_fechaFiltroGlobal = new Date(); 
 let fz_graficaSparklineInstancia = null;
 let fz_graficaProductividadInstancia = null;
 
 function inicializarDashboard() {
-    console.log("🧠 Inicializando Dashboard Principal...");
+    console.log("🧠 Inicializando Dashboard Mensual Avanzado...");
     fz_renderizarSaludo();
     fz_cargarTipoCambio();
+    fz_actualizarInterfazFiltro();
     
-    // Si volvemos y estaba en rango, inicializar los inputs por defecto con el mes actual
-    if (fz_periodoActualDashboard === "rango") {
-        const hoy = new Date();
-        const primero = new Date(hoy.getFullYear(), hoy.getMonth(), 1).toISOString().split('T')[0];
-        const ultimo = hoy.toISOString().split('T')[0];
-        
-        setTimeout(() => {
-            if(document.getElementById('ini-fecha-inicio')) document.getElementById('ini-fecha-inicio').value = primero;
-            if(document.getElementById('ini-fecha-fin')) document.getElementById('ini-fecha-fin').value = ultimo;
-            fz_renderizarFinanzasDashboard();
-            fz_renderizarProductividadDashboard();
-        }, 50);
-    } else {
-        fz_renderizarFinanzasDashboard();
-        fz_renderizarProductividadDashboard();
-    }
-    
+    fz_renderizarFinanzasDashboard();
+    fz_renderizarProductividadDashboard();
     fz_renderizarPlaceholdersExtras();
 }
 
-
 function fz_renderizarSaludo() {
-    const nombre = "Robinson"; // 👈 cambia tu nombre aquí
+    const nombre = "Robinson"; 
     const hora = new Date().getHours();
 
     let saludo;
@@ -66,29 +51,34 @@ async function fz_cargarTipoCambio() {
     }
 }
 
-/**
- * Renderiza el dinero disponible y calcula tendencias según el período
- */
-/**
- * Renderiza el saldo general y calcula tendencias según el período
- */
+function fz_actualizarInterfazFiltro() {
+    const label = document.getElementById('ini-mes-filtro-label');
+    if (label) {
+        const opciones = { month: 'long', year: 'numeric' };
+        label.innerText = fz_fechaFiltroGlobal.toLocaleDateString('es-ES', opciones);
+    }
+}
+
+function fz_navegarMes(direccion) {
+    fz_fechaFiltroGlobal.setMonth(fz_fechaFiltroGlobal.getMonth() + direccion);
+    fz_actualizarInterfazFiltro();
+    
+    fz_renderizarFinanzasDashboard();
+    fz_renderizarProductividadDashboard();
+}
+
 function fz_renderizarFinanzasDashboard() {
     const datosCompletos = cargarDatos();
     const finanzas = datosCompletos.finanzas_personales;
 
     if (!finanzas || !finanzas.cuentas) return;
 
-    // 1. Filtrar cuentas permitidas en el dashboard y obtener sus IDs
     const cuentasActivas = finanzas.cuentas.filter(c => !c.archivada && c.incluir_dashboard !== false);
     const idsCuentasActivas = cuentasActivas.map(c => c.id);
 
-    // 2. Base matemática: Sumar los saldos iniciales
     let saldoActualNeto = cuentasActivas.reduce((sum, c) => sum + parseFloat(c.saldo_inicial || 0), 0);
-
     const hoyStr = new Date().toISOString().split('T')[0];
 
-    // 3. Extraer SOLO movimientos reales: Ingresos/Gastos de cuentas activas, pagados y hasta HOY
-    // (Las transferencias no alteran el patrimonio total)
     const transaccionesValidas = (finanzas.transacciones || []).filter(t => 
         !t.archivada && 
         t.fecha <= hoyStr && 
@@ -97,34 +87,35 @@ function fz_renderizarFinanzasDashboard() {
         (t.tipo === 'ingreso' || t.tipo === 'gasto')
     );
 
-    // 4. Calcular Saldo Verdadero actual
     transaccionesValidas.forEach(t => {
         const monto = parseFloat(t.monto || 0);
         if (t.tipo === 'ingreso') saldoActualNeto += monto;
         if (t.tipo === 'gasto') saldoActualNeto -= monto;
     });
 
-    // 5. Inyectar el número gigante en la tarjeta
     const montoElement = document.getElementById('ini-finanzas-monto');
     if (montoElement) montoElement.innerText = fz_formatearMonedaDashboard(saldoActualNeto);
 
-    // 6. Obtener las fechas del filtro superior (Semana, Mes, Rango, etc.)
-    const intervalos = fz_obtenerLimitesFechas(fz_periodoActualDashboard);
+    const intervalos = fz_obtenerLimitesFechasMensuales();
     if (!intervalos) return; 
 
-    // 7. Motor de viaje en el tiempo para la gráfica y la píldora (Badge) de vs Anterior
-    const analitica = fz_procesarIntervaloFinanciero(saldoActualNeto, transaccionesValidas, intervalos);
+    const analitica = fz_procesarIntervaloFinancieroMensual(saldoActualNeto, transaccionesValidas, intervalos);
 
-    // 8. Pintar la píldora de porcentaje
     const badge = document.getElementById('ini-finanzas-badge');
     if (badge) {
         badge.className = "ini-badge " + analitica.clase;
         const signo = analitica.delta >= 0 ? "+" : "";
-        badge.innerText = `${signo}${fz_formatearMonedaDashboard(Math.abs(analitica.delta))} (${signo}${analitica.porcentaje}%) ${intervalos.leyenda}`;
+        badge.innerText = `${signo}${fz_formatearMonedaDashboard(Math.abs(analitica.delta))} ${intervalos.leyenda}`;
     }
 
-    // 9. Dibujar la Gráfica Sparkline con fluidez
-    fz_dibujarSparklineDashboard(analitica.puntosGrafica, analitica.clase === "sube");
+    // 🚀 ASIGNACIÓN DE COLOR AL PROMEDIO HISTÓRICO (Verde si superas el promedio, Rojo si estás por debajo)
+    const promedioEl = document.getElementById('ini-finanzas-promedio');
+    if (promedioEl) {
+        promedioEl.innerText = `Promedio Histórico: ${fz_formatearMonedaDashboard(analitica.promedioGeneralHistorico)}`;
+        promedioEl.style.color = analitica.lineaVerde ? '#10b981' : '#ef4444';
+    }
+
+    fz_dibujarSparklineDashboard(analitica.puntosGrafica, analitica.lineaVerde);
 }
 
 function fz_parsearFechaRegistro(fechaStr) {
@@ -135,10 +126,12 @@ function fz_parsearFechaRegistro(fechaStr) {
     return null;
 }
 
+// Reemplaza por completo estas dos funciones dentro de tu archivo inicio.js
+
 function fz_renderizarProductividadDashboard() {
     const datos = cargarDatos();
     const registroTrabajo = datos.registro_trabajo || [];
-    const intervalos = fz_obtenerLimitesFechas(fz_periodoActualDashboard);
+    const intervalos = fz_obtenerLimitesFechasMensuales();
     if (!intervalos) return;
 
     function enRango(fechaStr, inicio, fin) {
@@ -150,7 +143,7 @@ function fz_renderizarProductividadDashboard() {
 
     const registrosActuales   = registroTrabajo.filter(r => enRango(r.fecha, intervalos.inicioAct, intervalos.finAct));
     const registrosAnteriores = registroTrabajo.filter(r => enRango(r.fecha, intervalos.inicioAnt, intervalos.finAnt));
-    const totalSegsActual     = registrosActuales.reduce((sum, r) => sum + (r.trabajado || 0), 0);
+    const totalSegsActual      = registrosActuales.reduce((sum, r) => sum + (r.trabajado || 0), 0);
     const totalSegsAnterior   = registrosAnteriores.reduce((sum, r) => sum + (r.trabajado || 0), 0);
 
     const horasElement = document.getElementById('ini-trabajo-horas');
@@ -179,30 +172,26 @@ function fz_renderizarProductividadDashboard() {
     });
 
     let puntosGrafica = [];
+    let cursor = new Date(intervalos.inicioAct);
+    const hoyMax = new Date();
+    hoyMax.setHours(23, 59, 59, 999);
 
-    if (fz_periodoActualDashboard === "ano") {
-        const año = intervalos.inicioAct.getFullYear();
-        for (let m = 0; m < 12; m++) {
-            const inicioMes = new Date(año, m, 1);
-            const finMes    = new Date(año, m + 1, 0);
-            let segsMes = 0;
-            let cursor  = new Date(inicioMes);
-            while (cursor <= finMes) {
-                segsMes += mapaFechas[cursor.toISOString().split('T')[0]] || 0;
-                cursor.setDate(cursor.getDate() + 1);
-            }
-            puntosGrafica.push(Math.round(segsMes / 3600 * 10) / 10);
-        }
-    } else {
-        let cursor = new Date(intervalos.inicioAct);
-        const hoy  = new Date(); hoy.setHours(23, 59, 59, 999);
-        while (cursor <= intervalos.finAct && cursor <= hoy) {
-            const key = cursor.toISOString().split('T')[0];
-            puntosGrafica.push(Math.round(((mapaFechas[key] || 0) / 3600) * 100) / 100);
-            cursor.setDate(cursor.getDate() + 1);
-        }
-        if (puntosGrafica.length === 0) puntosGrafica.push(0);
-        while (puntosGrafica.length < (fz_periodoActualDashboard === "semana" ? 7 : 2)) puntosGrafica.push(0);
+    while (cursor <= intervalos.finAct && cursor <= hoyMax) {
+        const key = cursor.toISOString().split('T')[0];
+        puntosGrafica.push(Math.round(((mapaFechas[key] || 0) / 3600) * 100) / 100);
+        cursor.setDate(cursor.getDate() + 1);
+    }
+
+    // 🚀 NUEVA LÓGICA: Cálculo del Promedio Diario Incluyendo los Días Cero
+    const diasTranscurridos = puntosGrafica.length;
+    const totalHorasMes = totalSegsActual / 3600;
+    const promedioDiarioHoras = diasTranscurridos > 0 ? (totalHorasMes / diasTranscurridos) : 0;
+
+    const promedioEl = document.getElementById('ini-trabajo-promedio');
+    if (promedioEl) {
+        promedioEl.innerText = `Promedio Diario: ${promedioDiarioHoras.toFixed(1)}h/día`;
+        // Pintar en verde si el promedio actual supera o es igual al del periodo anterior completo (ej: 2.0 horas base)
+        promedioEl.style.color = promedioDiarioHoras > 0 ? 'var(--text-base, #111111)' : 'var(--text-mutated, #888)';
     }
 
     fz_dibujarSparklineProductividad(puntosGrafica, clase !== "baja");
@@ -210,12 +199,7 @@ function fz_renderizarProductividadDashboard() {
 
 function fz_dibujarSparklineProductividad(puntos, esPositivo) {
     const canvasElement = document.getElementById('ini-chart-productividad');
-    if (!canvasElement) {
-        console.warn("❌ Canvas ini-chart-productividad no encontrado");
-        return;
-    }
-
-    console.log("📊 Productividad - puntos gráfica:", puntos);
+    if (!canvasElement) return;
 
     const ctx = canvasElement.getContext('2d');
     if (fz_graficaProductividadInstancia) {
@@ -223,124 +207,103 @@ function fz_dibujarSparklineProductividad(puntos, esPositivo) {
     }
 
     const colorLinea = esPositivo ? '#f59e0b' : '#ef4444';
-    const gradienteFondo = ctx.createLinearGradient(0, 0, 0, 55);
-    gradienteFondo.addColorStop(0, esPositivo ? 'rgba(245,158,11,0.25)' : 'rgba(239,68,68,0.25)');
-    gradienteFondo.addColorStop(1, 'rgba(0,0,0,0)');
+    const gradienteFondo = ctx.createLinearGradient(0, 0, 0, 140); // Sincronizado a 140px de altura
+    gradienteFondo.addColorStop(0, esPositivo ? 'rgba(245,158,11,0.20)' : 'rgba(239,68,68,0.20)');
+    gradienteFondo.addColorStop(1, 'rgba(255, 255, 255, 0)');
 
     try {
         fz_graficaProductividadInstancia = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: Array(puntos.length).fill(''),
+                labels: Array.from({length: puntos.length}, (_, i) => i + 1), 
                 datasets: [{
                     data: puntos,
                     borderColor: colorLinea,
-                    borderWidth: 2,
-                    pointRadius: 0,
-                    pointHoverRadius: 4,
+                    borderWidth: 2.5,
+                    pointRadius: 3, 
+                    pointBackgroundColor: '#ffffff',
+                    pointBorderColor: colorLinea,
+                    pointBorderWidth: 1.5,
+                    pointHoverRadius: 6,
                     fill: true,
                     backgroundColor: gradienteFondo,
-                    tension: 0.35
+                    tension: 0.4
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                layout: { padding: { top: 10, bottom: 5, left: 5, right: 10 } },
                 plugins: {
                     legend: { display: false },
                     tooltip: {
                         enabled: true,
                         intersect: false,
-                        callbacks: { label: c => ` ${fz_formatearTiempoProductividad(c.parsed.y * 3600)}` }
+                        backgroundColor: 'rgba(0,0,0,0.8)',
+                        padding: 10,
+                        cornerRadius: 8,
+                        callbacks: { label: c => ` Día ${c.label}: ${fz_formatearTiempoProductividad(c.parsed.y * 3600)}` }
                     }
                 },
                 scales: {
-                    x: { display: false },
+                    x: { 
+                        display: true,
+                        grid: { 
+                            display: true, 
+                            color: 'rgba(128, 128, 128, 0.12)',
+                            drawBorder: false
+                        },
+                        ticks: {
+                            color: 'var(--text-mutado, #999)',
+                            font: { size: 9, weight: '600' },
+                            maxTicksLimit: 31,
+                            autoSkip: false 
+                        }
+                    },
                     y: {
-                        display: false,
-                        min: 0,
-                        suggestedMax: Math.max(...puntos) > 0 ? undefined : 1
+                        display: true,
+                        position: 'left',
+                        min: 0, // No existen horas negativas
+                        suggestedMax: Math.max(...puntos) > 0 ? Math.max(...puntos) * 1.12 : 8, // Escala proporcional o jornada base de 8h
+                        grid: {
+                            display: true,
+                            color: 'rgba(128, 128, 128, 0.08)',
+                            drawBorder: false
+                        },
+                        ticks: {
+                            color: 'var(--text-mutado, #999)',
+                            font: { size: 8, weight: '600' },
+                            maxTicksLimit: 5,
+                            callback: function(value) {
+                                return value.toFixed(1) + 'h';
+                            }
+                        }
                     }
                 }
             }
         });
-        console.log("✅ Gráfica productividad creada OK");
     } catch(e) {
         console.error("❌ Error al crear gráfica productividad:", e);
     }
 }
 
-/**
- * Calcula límites de fechas exactos para períodos naturales y comparativos
- */
-function fz_obtenerLimitesFechas(periodo) {
-    const hoy = new Date();
-    hoy.setHours(0,0,0,0);
+function fz_obtenerLimitesFechasMensuales() {
+    const año = fz_fechaFiltroGlobal.getFullYear();
+    const mes = fz_fechaFiltroGlobal.getMonth();
     
-    let inicioAct, finAct, inicioAnt, finAnt, leyenda;
+    const inicioAct = new Date(año, mes, 1);
+    const finAct = new Date(año, mes + 1, 0, 23, 59, 59, 999);
     
-    if (periodo === "semana") {
-        let day = hoy.getDay(); 
-        let diffALunes = day === 0 ? -6 : 1 - day; // Lunes como día 1
-        
-        inicioAct = new Date(hoy);
-        inicioAct.setDate(hoy.getDate() + diffALunes);
-        
-        finAct = new Date(inicioAct);
-        finAct.setDate(inicioAct.getDate() + 6);
-        finAct.setHours(23,59,59,999);
-        
-        inicioAnt = new Date(inicioAct);
-        inicioAnt.setDate(inicioAct.getDate() - 7);
-        
-        finAnt = new Date(finAct);
-        finAnt.setDate(finAct.getDate() - 7);
-        
-        leyenda = "vs sem. ant.";
-        
-    } else if (periodo === "mes") {
-        inicioAct = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
-        finAct = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0, 23, 59, 59, 999);
-        
-        inicioAnt = new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1);
-        finAnt = new Date(hoy.getFullYear(), hoy.getMonth(), 0, 23, 59, 59, 999);
-        
-        leyenda = "vs mes ant.";
-        
-    } else if (periodo === "ano") {
-        inicioAct = new Date(hoy.getFullYear(), 0, 1);
-        finAct = new Date(hoy.getFullYear(), 11, 31, 23, 59, 59, 999);
-        
-        inicioAnt = new Date(hoy.getFullYear() - 1, 0, 1);
-        finAnt = new Date(hoy.getFullYear() - 1, 11, 31, 23, 59, 59, 999);
-        
-        leyenda = "vs año ant.";
-        
-    } else if (periodo === "rango") {
-        const inputInic = document.getElementById('ini-fecha-inicio')?.value;
-        const inputFin = document.getElementById('ini-fecha-fin')?.value;
-        
-        if (!inputInic || !inputFin) return null; // Esperando entrada del usuario
-        
-        inicioAct = new Date(inputInic + "T00:00:00");
-        finAct = new Date(inputFin + "T23:59:59");
-        
-        let diffMs = finAct.getTime() - inicioAct.getTime();
-        
-        inicioAnt = new Date(inicioAct.getTime() - diffMs - 1000);
-        finAnt = new Date(inicioAct.getTime() - 1000);
-        
-        leyenda = "vs periodo ant.";
-    }
+    const inicioAnt = new Date(año, mes - 1, 1);
+    const finAnt = new Date(año, mes, 0, 23, 59, 59, 999);
+    
+    const mesesNombres = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+    const leyenda = `vs ${mesesNombres[inicioAnt.getMonth()]}`;
 
     return { inicioAct, finAct, inicioAnt, finAnt, leyenda };
 }
 
-/**
- * Aplica ingeniería inversa cronológica sobre los límites calculados
- */
-function fz_procesarIntervaloFinanciero(saldoActual, transacciones, intervalos) {
-    // Ordenar transacciones de más nuevas a más viejas
+function fz_procesarIntervaloFinancieroMensual(saldoActual, transacciones, intervalos) {
     const txOrdenadas = [...transacciones].sort((a, b) => b.fecha.localeCompare(a.fecha));
     
     const hoyStr = new Date().toISOString().split('T')[0];
@@ -348,7 +311,6 @@ function fz_procesarIntervaloFinanciero(saldoActual, transacciones, intervalos) 
     let mapaSaldosDiarios = {};
     mapaSaldosDiarios[hoyStr] = saldoActual;
 
-    // Viaje en el tiempo re-calculando balances
     txOrdenadas.forEach(t => {
         const fTx = t.fecha.split('T')[0];
         const monto = parseFloat(t.monto || t.cantidad || 0);
@@ -360,17 +322,15 @@ function fz_procesarIntervaloFinanciero(saldoActual, transacciones, intervalos) 
         mapaSaldosDiarios[fTx] = saldoTemporal;
     });
 
-    // Función auxiliar para recuperar el saldo de cualquier día exacto del pasado
     function obtenerSaldoEnFecha(fechaObj) {
         let fStr = fechaObj.toISOString().split('T')[0];
-        if (mapaSaldosDiarios[fStr] !== undefined) return mapaSaldosDiarios[fStr];
+        if (fStr >= hoyStr) return saldoActual;
         
-        // Si no hay transacciones ese día, buscar la fecha posterior más cercana registrada
         let diasBusqueda = Object.keys(mapaSaldosDiarios).sort();
-        let saldoEncontrado = saldoTemporal; // Saldo base inicial antes de toda transacción conocido
+        let saldoEncontrado = saldoActual;
         
         for (let i = 0; i < diasBusqueda.length; i++) {
-            if (diasBusqueda[i] >= fStr) {
+            if (diasBusqueda[i] > fStr) {
                 saldoEncontrado = mapaSaldosDiarios[diasBusqueda[i]];
                 break;
             }
@@ -378,146 +338,140 @@ function fz_procesarIntervaloFinanciero(saldoActual, transacciones, intervalos) 
         return saldoEncontrado;
     }
 
-    // Calcular saldos de corte clave
-    const saldoFinAct = intervalos.finAct >= new Date() ? saldoActual : obtenerSaldoEnFecha(intervalos.finAct);
-    const saldoInicioAct = obtenerSaldoEnFecha(intervalos.inicioAct);
+    const saldoFinAct = obtenerSaldoEnFecha(intervalos.finAct);
     const saldoFinAnt = obtenerSaldoEnFecha(intervalos.finAnt);
-
-    // Delta = Saldo al final del período actual comparado con el saldo al finalizar el período anterior
     const delta = saldoFinAct - saldoFinAnt;
-    let porcentaje = 0;
-    if (saldoFinAnt !== 0) {
-        porcentaje = Math.round((delta / Math.abs(saldoFinAnt)) * 100);
-    }
 
     let clase = "neutro";
     if (delta > 0.01) clase = "sube";
     if (delta < -0.01) clase = "baja";
 
-    // Generar los puntos de la gráfica de forma optimizada
-    let puntosGrafica = [];
+    let totalMesesRegistrados = 0;
+    let sumaSaldosMensuales = 0;
     
-    if (fz_periodoActualDashboard === "ano") {
-        // Para el Año completo, graficamos 12 puntos (fines de cada mes) para máxima belleza y fluidez
-        const añoCrucial = intervalos.inicioAct.getFullYear();
-        for (let m = 0; m < 12; m++) {
-            let finDeMes = new Date(añoCrucial, m + 1, 0, 23, 59, 59);
-            puntosGrafica.push(Math.round(obtenerSaldoEnFecha(finDeMes) * 100) / 100);
-        }
-    } else {
-        // Diaria para Semana, Mes o Rangos Personalizados
-        let cursor = new Date(intervalos.inicioAct);
-        while (cursor <= intervalos.finAct && cursor <= new Date()) {
-            puntosGrafica.push(Math.round(obtenerSaldoEnFecha(cursor) * 100) / 100);
-            cursor.setDate(cursor.getDate() + 1);
-        }
-        // Si el periodo se extiende al futuro (ej. fin de semana o fin de mes que no ha llegado), rellenar con el saldo actual
-        if (puntosGrafica.length === 0) puntosGrafica.push(saldoActual);
-        while(puntosGrafica.length < (fz_periodoActualDashboard === "semana" ? 7 : 2)) {
-            puntosGrafica.push(saldoActual);
+    if (txOrdenadas.length > 0) {
+        const fechaMasViejaStr = txOrdenadas[txOrdenadas.length - 1].fecha.split('T')[0];
+        let cursorMes = new Date(fechaMasViejaStr + 'T12:00:00');
+        const finBucle = new Date();
+        
+        while (cursorMes.getFullYear() < finBucle.getFullYear() || 
+               (cursorMes.getFullYear() === finBucle.getFullYear() && cursorMes.getMonth() <= finBucle.getMonth())) {
+            
+            const ultimoDiaDelMesCursor = new Date(cursorMes.getFullYear(), cursorMes.getMonth() + 1, 0, 23, 59, 59);
+            sumaSaldosMensuales += obtenerSaldoEnFecha(ultimoDiaDelMesCursor);
+            totalMesesRegistrados++;
+            
+            cursorMes.setMonth(cursorMes.getMonth() + 1);
         }
     }
+    
+    const promedioGeneralHistorico = totalMesesRegistrados > 0 ? (sumaSaldosMensuales / totalMesesRegistrados) : saldoActual;
+    const lineaVerde = saldoFinAct >= promedioGeneralHistorico;
 
-    return { delta, porcentaje, clase, puntosGrafica };
+    let puntosGrafica = [];
+    let cursor = new Date(intervalos.inicioAct);
+    const hoyMax = new Date();
+    hoyMax.setHours(23, 59, 59, 999);
+
+    while (cursor <= intervalos.finAct && cursor <= hoyMax) {
+        puntosGrafica.push(Math.round(obtenerSaldoEnFecha(cursor) * 100) / 100);
+        cursor.setDate(cursor.getDate() + 1);
+    }
+
+    return { delta, clase, puntosGrafica, lineaVerde, promedioGeneralHistorico };
 }
 
-/**
- * Pinta la mini-gráfica fluida sin ruidos de ejes
- */
 function fz_dibujarSparklineDashboard(puntos, esPositivo) {
     const canvasElement = document.getElementById('ini-chart-finanzas');
     if (!canvasElement) return;
     const ctx = canvasElement.getContext('2d');
 
     if (fz_graficaSparklineInstancia) {
-        let fz_graficaProductividadInstancia = null;
         fz_graficaSparklineInstancia.destroy();
     }
 
     const colorLinea = esPositivo ? '#10b981' : '#ef4444';
-    const gradienteFondo = ctx.createLinearGradient(0, 0, 0, 50);
-    gradienteFondo.addColorStop(0, esPositivo ? 'rgba(16, 185, 129, 0.20)' : 'rgba(239, 68, 68, 0.20)');
+    const gradienteFondo = ctx.createLinearGradient(0, 0, 0, 140); // Ajustado a la nueva altura de 140
+    gradienteFondo.addColorStop(0, esPositivo ? 'rgba(16, 185, 129, 0.25)' : 'rgba(239,68,68,0.25)');
     gradienteFondo.addColorStop(1, 'rgba(255, 255, 255, 0)');
 
     fz_graficaSparklineInstancia = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: Array(puntos.length).fill(''),
+            labels: Array.from({length: puntos.length}, (_, i) => i + 1), 
             datasets: [{
                 data: puntos,
                 borderColor: colorLinea,
-                borderWidth: 2,
-                pointRadius: 0,
-                pointHoverRadius: 4,
+                borderWidth: 2.5,
+                pointRadius: 3, 
+                pointBackgroundColor: '#ffffff', 
+                pointBorderColor: colorLinea,
+                pointBorderWidth: 1.5,
+                pointHoverRadius: 6,
                 fill: true,
                 backgroundColor: gradienteFondo,
-                tension: 0.35
+                tension: 0.4
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            layout: { padding: { top: 10, bottom: 5, left: 5, right: 10 } },
             plugins: {
                 legend: { display: false },
                 tooltip: {
                     enabled: true,
                     intersect: false,
+                    backgroundColor: 'rgba(0,0,0,0.8)',
+                    padding: 10,
+                    cornerRadius: 8,
                     callbacks: {
                         label: function(context) {
-                            return ' Saldo: ' + fz_formatearMonedaDashboard(context.parsed.y);
+                            return ' Día ' + context.label + ': ' + fz_formatearMonedaDashboard(context.parsed.y);
                         }
                     }
                 }
             },
             scales: {
-                x: { display: false },
-                y: { display: false }
+                x: { 
+                    display: true,
+                    grid: { 
+                        display: true, 
+                        color: 'rgba(128, 128, 128, 0.12)', 
+                        drawBorder: false
+                    },
+                    ticks: {
+                        color: 'var(--text-mutado, #999)',
+                        font: { size: 9, weight: '600' },
+                        maxTicksLimit: 31,
+                        autoSkip: false
+                    }
+                },
+                y: { 
+                    display: true, 
+                    position: 'left',
+                    // 🚀 CORRECCIÓN CLAVE: Si no hay saldos negativos reales, el mínimo de la gráfica será $0
+                    min: Math.min(...puntos) < 0 ? undefined : 0, 
+                    suggestedMax: Math.max(...puntos) * 1.08, // Margen controlado del 8% arriba para que respire
+                    grid: {
+                        display: true,
+                        color: 'rgba(128, 128, 128, 0.08)',
+                        drawBorder: false
+                    },
+                    ticks: {
+                        color: 'var(--text-mutado, #999)',
+                        font: { size: 8, weight: '600' },
+                        maxTicksLimit: 5, // Al tener más altura, subimos a 5 guías horizontales estéticas
+                        callback: function(value) {
+                            if (value >= 1e6) return '$' + (value / 1e6).toFixed(1) + 'M';
+                            if (value >= 1e3) return '$' + (value / 1e3).toFixed(0) + 'k';
+                            return '$' + value;
+                        }
+                    }
+                }
             }
         }
     });
-}
-
-/**
- * Cambia de período lógico (Muestra/Oculta los Pickers de fecha)
- */
-function fz_cambiarPeriodoDashboard(periodo) {
-    fz_periodoActualDashboard = periodo;
-    
-    document.querySelectorAll('.ini-btn-switch').forEach(btn => {
-        if (btn.getAttribute('data-periodo') === periodo) {
-            btn.classList.add('activo');
-        } else {
-            btn.classList.remove('activo');
-        }
-    });
-
-    const pickerContainer = document.getElementById('ini-rango-picker-container');
-    if (periodo === "rango") {
-        pickerContainer.style.display = "flex";
-        
-        // Auto-completar inputs si están vacíos
-        const hoy = new Date();
-        const primero = new Date(hoy.getFullYear(), hoy.getMonth(), 1).toISOString().split('T')[0];
-        const ultimo = hoy.toISOString().split('T')[0];
-        
-        if(!document.getElementById('ini-fecha-inicio').value) document.getElementById('ini-fecha-inicio').value = primero;
-        if(!document.getElementById('ini-fecha-fin').value) document.getElementById('ini-fecha-fin').value = ultimo;
-    } else {
-        pickerContainer.style.display = "none";
-    }
-
-    fz_renderizarFinanzasDashboard();
-    fz_renderizarProductividadDashboard();
-}
-
-/**
- * Evento disparador al cambiar las fechas del rango personalizado
- */
-function fz_procesarRangoPersonalizado() {
-    if (fz_periodoActualDashboard === "rango") {
-        fz_renderizarFinanzasDashboard();
-        fz_renderizarProductividadDashboard();
-    }
 }
 
 function fz_formatearMonedaDashboard(valor) {
@@ -535,9 +489,11 @@ function fz_formatearTiempoProductividad(segundos) {
 function fz_renderizarPlaceholdersExtras() {
     const datos = cargarDatos();
     if (datos.clientes) {
-        document.getElementById('ini-clientes-count').innerText = datos.clientes.filter(c => !c.archivado).length;
+        const clientesEl = document.getElementById('ini-clientes-count');
+        if (clientesEl) clientesEl.innerText = datos.clientes.filter(c => !c.archivado).length;
     }
     if (datos.habitos) {
-        document.getElementById('ini-habitos-porcentaje').innerText = `${datos.habitos.length} Activos`;
+        const habitosEl = document.getElementById('ini-habitos-porcentaje');
+        if (habitosEl) habitosEl.innerText = `${datos.habitos.length} Activos`;
     }
 }
