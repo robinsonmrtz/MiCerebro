@@ -1,0 +1,91 @@
+<div class="dopamina-header">
+    <div class="seccion-titulo">
+        <h2>🧠 Dopamina</h2>
+        <p>Control estricto de estímulos. Cero medias tintas, solo disciplina.</p>
+    </div>
+    <div class="dopamina-toolbar">
+        <button onclick="window.abrirModalDopamina()" class="btn-primario">➕ Nueva Acción</button>
+    </div>
+</div>
+
+<!-- KPIs Rápidos -->
+<div class="kpi-strip">
+    <div class="kpi-card" style="--kpi-accent:#10b981">
+        <div class="kpi-card-emoji">🏆</div>
+        <div class="kpi-card-label">Racha Máxima</div>
+        <div class="kpi-card-value" id="kpi-racha-maxima">-</div>
+        <div class="kpi-card-sub">Histórico global</div>
+    </div>
+    <div class="kpi-card" style="--kpi-accent:#3b82f6">
+        <div class="kpi-card-emoji">🛡️</div>
+        <div class="kpi-card-label">Días Limpio Actual</div>
+        <div class="kpi-card-value" id="kpi-racha-actual">-</div>
+        <div class="kpi-card-sub">Mejor acción viva</div>
+    </div>
+    <div class="kpi-card" style="--kpi-accent:#e74c3c">
+        <div class="kpi-card-emoji">📅</div>
+        <div class="kpi-card-label">Racha Máxima del Mes</div>
+        <div class="kpi-card-value" id="kpi-racha-mes">-</div>
+        <div class="kpi-card-sub">Mes en vista</div>
+    </div>
+</div>
+
+<!-- Analítica -->
+<div class="analitica-trabajo">
+<div class="grafico-contenedor">
+        <div class="grafico-header">
+            <span class="grafico-titulo">Historial de Recaídas</span>
+            <div class="filtro-grupo">
+            <select id="filtro-dopamina-grafica" class="filtro-select" onchange="window.actualizarGraficaDopamina(); window.actualizarKPIsDopamina();">
+                <option value="all">Todas las acciones</option>
+            </select>
+                <button onclick="window.fijarFiltroPredeterminado()" class="btn-ghost" title="Fijar como predeterminado">📌</button>
+            </div>
+        </div>
+        
+        <div style="display: flex; justify-content: center; align-items: center; gap: 14px; margin-bottom: 16px;">
+            <button class="nav-cal" onclick="window.cambiarMesGraficaDopamina(-1)">❮</button>
+            <span id="label-mes-grafica" style="font-size: 14px; font-weight: 700; color: var(--text-hi); text-transform: capitalize; width: 130px; text-align: center;">-</span>
+            <button class="nav-cal" onclick="window.cambiarMesGraficaDopamina(1)">❯</button>
+        </div>
+
+        <div class="canvas-wrapper">
+            <canvas id="graficoDopamina"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Contenedor de las Tarjetas de Vicios -->
+<div class="dopamina-grid" id="lista-acciones-dopamina">
+    <!-- El JS inyectará aquí las tarjetas -->
+</div>
+
+<!-- Modal CRUD Nueva Acción -->
+<div id="modal-dopamina" class="modal-overlay">
+    <div class="modal-caja modal-ancho" style="max-width: 360px;">
+        <div class="modal-header-edit">
+            <h3 id="modal-titulo-dopamina">Nueva Acción</h3>
+            <button onclick="window.cerrarModalDopamina()" class="btn-cerrar-limpio">✕</button>
+        </div>
+        <input type="hidden" id="dopamina-id">
+        
+        <div class="form-grid">
+            <div style="display:flex; gap:12px; align-items:center; width: 100%;">
+                <input type="text" id="dopamina-icono" class="input-icono-grupo emoji-trigger-input" value="📱"
+                       style="width: 48px !important; height: 48px !important; font-size: 24px; cursor: pointer; flex-shrink: 0; text-align: center; padding: 0;"
+                       onclick="event.stopPropagation(); window.abrirSelectorEmojiGlobal(this, 'dopamina-icono')"
+                       title="Haz clic para elegir un icono">
+                <input type="text" id="dopamina-nombre" class="input-minimalista" placeholder="Ej. Redes Sociales" 
+                       style="flex: 1; height: 48px; font-size: 15px;">
+            </div>
+            
+            <div style="margin-top: 10px;">
+                <label style="font-size: 10px; color: var(--text-lo); font-weight: 600;">COLOR DE TARJETA</label>
+                <div class="paleta-wrap" id="paleta-dopamina"></div>
+                <input type="hidden" id="dopamina-color" value="#e74c3c">
+            </div>
+        </div>
+
+        <button onclick="window.guardarAccionDopamina()" class="btn-primario" style="width:100%; margin-top:20px;">Guardar Acción</button>
+    </div>
+</div>

@@ -1,0 +1,168 @@
+/* ============================================================
+   MICEREBRO — dopamina.css
+   Estilos específicos para el control de abstinencia y recaídas
+   ============================================================ */
+
+.dopamina-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+/* Grid para las tarjetas de acciones */
+.dopamina-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 16px;
+    margin-top: 20px;
+}
+
+/* Tarjeta individual del vicio */
+.dopamina-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: 16px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+/* Header de la tarjeta */
+.dopamina-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.dopamina-info-top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.dopamina-icono-bg {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+}
+
+.dopamina-nombre {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-hi);
+}
+
+/* Reloj estilo hacker */
+.dopamina-reloj {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 32px;
+    color: var(--text-hi);
+    text-align: center;
+    margin: 10px 0;
+    letter-spacing: -1px;
+}
+
+.dopamina-reloj span.unidad {
+    font-size: 14px;
+    color: var(--text-lo);
+    letter-spacing: 0;
+}
+
+/* Barra de progreso para el rango */
+.dopamina-rango-wrap {
+    margin: 10px 0 20px;
+}
+
+.dopamina-rango-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--text-lo);
+    font-weight: 600;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+}
+
+.dopamina-rango-track {
+    height: 6px;
+    background: var(--bg-input);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.dopamina-rango-fill {
+    height: 100%;
+    border-radius: 10px;
+    transition: width 1s ease;
+}
+
+/* Estadísticas de castigo inferiores */
+.dopamina-stats {
+    display: flex;
+    justify-content: space-between;
+    padding-top: 14px;
+    border-top: 1px dashed var(--border-card);
+    margin-bottom: 16px;
+}
+
+.dopamina-stat-item {
+    font-size: 11px;
+    color: var(--text-lo);
+}
+
+.dopamina-stat-item strong {
+    color: var(--text-hi);
+    font-size: 13px;
+    margin-left: 4px;
+}
+
+/* Botón de Recaída - Grande y llamativo */
+.btn-recaida {
+    width: 100%;
+    padding: 14px;
+    border-radius: 12px;
+    border: none;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    background: color-mix(in srgb, var(--clr-danger) 15%, transparent);
+    color: var(--clr-danger);
+    border: 1px solid color-mix(in srgb, var(--clr-danger) 30%, transparent);
+    transition: all 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.btn-recaida:hover {
+    background: var(--clr-danger);
+    color: var(--clr-white);
+    box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4);
+}
+
+.btn-iniciar-ayuno {
+    width: 100%;
+    padding: 14px;
+    border-radius: 12px;
+    border: none;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    background: var(--accent);
+    color: var(--clr-white);
+    transition: all 0.2s;
+}
+
+.btn-iniciar-ayuno:hover {
+    opacity: 0.9;
+}

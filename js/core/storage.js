@@ -38,7 +38,8 @@ function cargarDatos() {
             categorias: [],
             transacciones: [],
             recurrentes: []
-        }
+        },
+        dopamina: { acciones: [], predeterminado: 'all' }
     };
 }
 

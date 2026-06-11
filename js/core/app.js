@@ -53,6 +53,10 @@ async function cargarVista(nombreVista) {
                 setTimeout(() => {
                     if (typeof inicializarFinanzasPersonales === 'function') inicializarFinanzasPersonales();
                 }, 50);
+                } else if (nombreVista === 'dopamina') {
+                setTimeout(() => {
+                    if (typeof inicializarDopamina === 'function') inicializarDopamina();
+                }, 50);
             }
         } else {
             contenedorVistas.innerHTML = "<h2>Error 404: Archivo no encontrado.</h2>";
