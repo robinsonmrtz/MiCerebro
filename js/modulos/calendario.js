@@ -99,6 +99,7 @@ function renderizarListasTareas() {
     const btnCrear = document.getElementById('btn-crear-lista');
     if (!contenedor) return;
     
+    // Controlar límite de 3 listas
     if(btnCrear) {
         btnCrear.style.display = d.calendario_tareas.listas.length >= 3 ? 'none' : 'block';
     }
@@ -127,7 +128,8 @@ function renderizarListasTareas() {
                     <div class="task-item ${t.estado === 'completada' ? 'completada' : ''} ${esAtrasada ? 'atrasada' : ''}">
                         <div class="task-checkbox" onclick="window.toggleTarea('${t.id}')">✓</div>
                         <input type="text" class="task-text" value="${t.texto}" 
-                               onchange="window.actualizarTextoTarea('${t.id}', this.value)">
+                               onchange="window.actualizarTextoTarea('${t.id}', this.value)"
+                               onblur="window.actualizarTextoTarea('${t.id}', this.value)">
                         <button class="btn-borrar" style="padding:0 4px; font-size:12px; opacity:0.5;" onclick="window.borrarTarea('${t.id}')">✕</button>
                     </div>`;
                 }).join('')}
