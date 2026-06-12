@@ -1,0 +1,558 @@
+/* ============================================================
+   MICEREBRO — calendario.css (revisado)
+   ============================================================ */
+
+
+/* ============================================================
+   CABECERA GLOBAL
+   ============================================================ */
+.cal-header-global {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border-card);
+}
+
+.cal-nav-fechas {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Botones ❮ ❯ — tamaño fijo, aspecto de control */
+.nav-cal {
+    width: 30px;
+    height: 30px;
+    border-radius: 6px;
+    border: 1px solid var(--border-card);
+    background: var(--bg-card);
+    color: var(--text-base);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    transition: background 0.15s, border-color 0.15s;
+    flex-shrink: 0;
+}
+.nav-cal:hover {
+    background: var(--bg-hover);
+    border-color: var(--border-card);
+}
+
+/* Pill de fecha — parece control tappable */
+.cal-fecha-display {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--border-card);
+    background: var(--bg-card);
+    cursor: pointer;
+    position: relative;
+    transition: background 0.15s;
+}
+.cal-fecha-display:hover {
+    background: var(--bg-hover);
+}
+
+#cal-input-fecha-oculto {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+}
+
+#cal-dia-numero {
+    font-size: 28px;
+    font-weight: 500;
+    color: var(--text-hi);
+    line-height: 1;
+}
+
+.cal-fecha-textos {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+#cal-dia-nombre {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+#cal-mes-anio {
+    font-size: 12px;
+    color: var(--text-lo);
+}
+
+
+/* ============================================================
+   LAYOUT PRINCIPAL (2 columnas)
+   ============================================================ */
+.calendario-layout {
+    display: grid;
+    grid-template-columns: minmax(480px, 1fr) minmax(480px, 1.2fr);
+    gap: 20px;
+    align-items: start;
+}
+
+@media (max-width: 1100px) {
+    .calendario-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+
+/* ============================================================
+   LADO IZQUIERDO: TAREAS
+   ============================================================ */
+.cal-sidebar-tareas {
+    display: flex;
+    flex-direction: column;
+}
+
+.task-board-container {
+    display: flex;
+    flex-direction: row;
+    gap: 12px;
+    margin-bottom: 12px;
+    align-items: start;
+    flex-wrap: wrap;
+}
+
+.task-list-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: 14px;
+    flex: 1;
+    min-width: 150px;
+    display: flex;
+    flex-direction: column;
+    max-height: 480px;
+    overflow: hidden;
+}
+
+.task-list-header {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border-card);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+}
+
+.task-list-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-hi);
+    background: transparent;
+    border: none;
+    outline: none;
+    flex: 1;
+    min-width: 0;
+}
+
+/* Badge de conteo en el header de lista */
+.task-list-count {
+    font-size: 11px;
+    color: var(--text-lo);
+    background: var(--bg-hover);
+    padding: 2px 7px;
+    border-radius: 20px;
+    flex-shrink: 0;
+}
+
+.task-items-container {
+    padding: 8px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    flex: 1;
+    scrollbar-width: thin;
+}
+
+.task-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 7px 8px;
+    border-radius: 6px;
+    transition: background 0.15s;
+    width: 100%;
+    box-sizing: border-box;
+    cursor: pointer;
+}
+.task-item:hover {
+    background: var(--bg-hover);
+}
+
+/* Checkbox circular */
+.task-checkbox {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 1.5px solid var(--text-lo);
+    cursor: pointer;
+    flex-shrink: 0;
+    margin-top: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    font-weight: bold;
+    color: transparent;
+    transition: all 0.15s;
+}
+
+.task-item.completada .task-checkbox {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+}
+.task-item.completada .task-text {
+    text-decoration: line-through;
+    color: var(--text-lo);
+}
+
+.task-item.atrasada .task-checkbox {
+    border-color: var(--clr-danger);
+}
+.task-item.atrasada .task-text {
+    color: var(--clr-danger);
+}
+
+.task-text {
+    font-size: 12px;
+    color: var(--text-base);
+    outline: none;
+    flex: 1;
+    line-height: 1.4;
+    background: transparent;
+    border: none;
+    min-width: 0;
+}
+
+.task-add-btn {
+    margin: 4px 8px 8px;
+    padding: 8px;
+    background: transparent;
+    border: 1px dashed var(--border-card);
+    border-radius: 6px;
+    color: var(--text-lo);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: left;
+    width: calc(100% - 16px);
+}
+.task-add-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.btn-add-lista {
+    height: 40px;
+    width: 100%;
+    background: var(--bg-input);
+    border: 1px dashed var(--border-card);
+    border-radius: 14px;
+    color: var(--text-lo);
+    cursor: pointer;
+    transition: all 0.15s;
+    font-size: 13px;
+    font-weight: 500;
+}
+.btn-add-lista:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+
+/* ============================================================
+   LADO DERECHO: CALENDARIO
+   ============================================================ */
+.cal-main-calendario {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Wrapper con borde como card consistente */
+.cal-grid-wrapper {
+    height: calc(100vh - 190px);
+    overflow-y: auto;
+    border-radius: 14px;
+    border: 1px solid var(--border-card);
+    background: var(--bg-card);
+    position: relative;
+    scrollbar-width: thin;
+}
+
+.cal-timeline {
+    position: relative;
+    height: 960px;
+    display: flex;
+    margin-top: 12px;
+    margin-bottom: 12px;
+}
+
+.cal-horas {
+    width: 56px;
+    flex-shrink: 0;
+    border-right: 1px solid var(--border-card);
+    position: relative;
+}
+
+.cal-hora-label {
+    position: absolute;
+    right: 8px;
+    font-size: 10px;
+    color: var(--text-lo);
+    transform: translateY(-50%);
+    white-space: nowrap;
+}
+
+.cal-eventos-zona {
+    flex: 1;
+    position: relative;
+    cursor: pointer;
+}
+
+.cal-linea-grid {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: var(--border-card);
+}
+
+
+/* ============================================================
+   EVENTOS Y RESIZE
+   ============================================================ */
+.cal-evento {
+    position: absolute;
+    left: 6px;
+    right: 6px;
+    border-radius: 6px;
+    padding: 5px 8px;
+    font-size: 11px;
+    color: white;
+    overflow: hidden;
+    cursor: grab;
+    border-left: 3px solid rgba(0, 0, 0, 0.18);
+    transition: filter 0.15s;
+    user-select: none;
+}
+.cal-evento:active {
+    cursor: grabbing;
+    opacity: 0.9;
+}
+.cal-evento:hover {
+    filter: brightness(1.1);
+}
+
+.cal-evento-titulo {
+    font-weight: 600;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    pointer-events: none;
+}
+.cal-evento-tiempo {
+    font-size: 9px;
+    opacity: 0.85;
+    margin-top: 1px;
+    pointer-events: none;
+}
+
+.cal-evento-resizer {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 8px;
+    z-index: 10;
+}
+.cal-evento-resizer.top    { top: 0;    cursor: ns-resize; }
+.cal-evento-resizer.bottom { bottom: 0; cursor: ns-resize; }
+
+.cal-linea-ahora {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--clr-danger);
+    z-index: 20;
+    pointer-events: none;
+}
+.cal-punto-ahora {
+    position: absolute;
+    left: -4px;
+    top: -4px;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--clr-danger);
+}
+
+
+/* ============================================================
+   MODAL DE EVENTO — estructura limpia sin inline styles
+   ============================================================ */
+
+/* Fondo oscuro */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+}
+.modal-overlay.activo {
+    display: flex;
+}
+
+/* Caja del modal */
+.modal-caja {
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: 14px;
+    width: 100%;
+    max-width: 400px;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+}
+
+/* Topbar con título + botón cierre */
+.modal-topbar {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border-card);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.modal-topbar-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-hi);
+}
+.modal-btn-cerrar {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: 1px solid var(--border-card);
+    background: transparent;
+    color: var(--text-lo);
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s;
+}
+.modal-btn-cerrar:hover {
+    background: var(--bg-hover);
+}
+
+/* Cuerpo */
+.modal-body {
+    padding: 18px;
+}
+
+/* Input de título — underline accent */
+.modal-ev-titulo-input {
+    width: 100%;
+    border: none;
+    border-bottom: 2px solid var(--accent);
+    background: transparent;
+    font-size: 17px;
+    font-weight: 500;
+    color: var(--text-hi);
+    outline: none;
+    padding: 4px 0 8px;
+    margin-bottom: 18px;
+    font-family: inherit;
+}
+.modal-ev-titulo-input::placeholder {
+    color: var(--text-lo);
+    font-weight: 400;
+}
+
+/* Fila de horas */
+.modal-time-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 18px;
+}
+.modal-time-row .input-base {
+    flex: 1;
+}
+.modal-time-sep {
+    font-size: 12px;
+    color: var(--text-lo);
+    flex-shrink: 0;
+}
+
+/* Etiqueta de sección */
+.modal-field-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-lo);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 8px;
+    display: block;
+}
+
+/* Paleta de colores */
+.paleta-wrap {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 4px;
+}
+
+/* Footer con acciones */
+.modal-footer {
+    padding: 14px 18px;
+    border-top: 1px solid var(--border-card);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.modal-acciones {
+    display: flex;
+    gap: 8px;
+}
+
+/* Botón eliminar */
+.btn-borrar {
+    display: none; /* JS lo muestra cuando hay evento existente */
+    align-items: center;
+    gap: 5px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid #fca5a5;
+    background: var(--clr-danger-soft, #fef2f2);
+    color: var(--clr-danger);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity 0.15s;
+}
+.btn-borrar:hover {
+    opacity: 0.8;
+}
+.btn-borrar.visible {
+    display: flex;
+}

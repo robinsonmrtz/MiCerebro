@@ -1,0 +1,83 @@
+<div class="cal-header-global">
+    <div class="cal-nav-fechas">
+        <button class="nav-cal" onclick="window.cambiarDiaCalendario(-1)">❮</button>
+        <div class="cal-fecha-display" onclick="document.getElementById('cal-input-fecha-oculto').showPicker()">
+            <h2 id="cal-dia-numero">1</h2>
+            <div class="cal-fecha-textos">
+                <span id="cal-dia-nombre">LUN</span>
+                <span id="cal-mes-anio">Junio 2026</span>
+            </div>
+            <input type="date" id="cal-input-fecha-oculto" onchange="window.irAFechaCalendario(this.value)">
+        </div>
+        <button class="nav-cal" onclick="window.cambiarDiaCalendario(1)">❯</button>
+        <button class="btn-ghost" onclick="window.irAHoyCalendario()">Hoy</button>
+    </div>
+    <button class="btn-primario" onclick="window.abrirModalEvento()">+ Crear evento</button>
+</div>
+
+<div class="calendario-layout">
+
+    <div class="cal-sidebar-tareas">
+        <div class="task-board-container" id="contenedor-listas-tareas"></div>
+        <button class="btn-add-lista" id="btn-crear-lista" onclick="window.crearNuevaListaTareas()">+ Crear lista</button>
+    </div>
+
+    <div class="cal-main-calendario">
+        <div class="cal-grid-wrapper">
+            <div class="cal-timeline">
+                <div class="cal-horas" id="cal-columna-horas"></div>
+                <div class="cal-eventos-zona" id="cal-zona-arrastre">
+                    <div id="cal-lineas-grid"></div>
+                    <div id="cal-eventos-render"></div>
+                    <div id="cal-linea-ahora" class="cal-linea-ahora">
+                        <div class="cal-punto-ahora"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL -->
+<div id="modal-evento-cal" class="modal-overlay">
+    <div class="modal-caja">
+
+        <div class="modal-topbar">
+            <span class="modal-topbar-title" id="modal-ev-titulo-cabecera">Evento</span>
+            <button class="modal-btn-cerrar" onclick="document.getElementById('modal-evento-cal').classList.remove('activo')">×</button>
+        </div>
+
+        <div class="modal-body">
+            <input type="hidden" id="modal-ev-id">
+            <input type="hidden" id="modal-ev-fecha">
+
+            <input
+                type="text"
+                id="modal-ev-titulo"
+                class="modal-ev-titulo-input"
+                placeholder="Añadir título"
+            >
+
+            <div class="modal-time-row">
+                <input type="time" id="modal-ev-inicio" class="input-base">
+                <span class="modal-time-sep">→</span>
+                <input type="time" id="modal-ev-fin" class="input-base">
+            </div>
+
+            <span class="modal-field-label">Color</span>
+            <div class="paleta-wrap" id="paleta-evento"></div>
+            <input type="hidden" id="modal-ev-color" value="#4f46e5">
+        </div>
+
+        <div class="modal-footer">
+            <button id="btn-borrar-ev" class="btn-borrar" onclick="window.borrarEvento()">
+                🗑 Eliminar
+            </button>
+            <div class="modal-acciones">
+                <button class="btn-secundario" onclick="document.getElementById('modal-evento-cal').classList.remove('activo')">Cancelar</button>
+                <button class="btn-primario" onclick="window.guardarEvento()">Guardar</button>
+            </div>
+        </div>
+
+    </div>
+</div>

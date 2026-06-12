@@ -37,6 +37,10 @@ async function cargarVista(nombreVista) {
                 setTimeout(() => {
                     if (typeof inicializarDashboard === 'function') inicializarDashboard();
                 }, 50);
+                } else if (nombreVista === 'calendario') {
+                setTimeout(() => {
+                    if (typeof inicializarCalendario === 'function') inicializarCalendario();
+                }, 50);
             } else if (nombreVista === 'clientes') {
                 setTimeout(() => {
                     if (typeof inicializarClientes === 'function') inicializarClientes();

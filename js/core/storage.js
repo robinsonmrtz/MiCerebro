@@ -39,7 +39,16 @@ function cargarDatos() {
             transacciones: [],
             recurrentes: []
         },
-        dopamina: { acciones: [], predeterminado: 'all' }
+        dopamina: { acciones: [], predeterminado: 'all' },
+        calendario_tareas: {
+            listas: [
+                { id: 'lst-1', nombre: 'Tareas', editable: true },
+                { id: 'lst-2', nombre: 'Trabajo', editable: true },
+                { id: 'lst-3', nombre: 'Casa', editable: true }
+            ],
+            tareas: [],   // { id, lista_id, texto, estado: 'pendiente'|'completada', fecha_creacion, fecha_completada }
+            eventos: []   // { id, titulo, fecha, hora_inicio, hora_fin, color }
+        }
     };
 }
 
