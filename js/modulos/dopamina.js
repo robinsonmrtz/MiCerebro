@@ -319,7 +319,6 @@ window.cambiarMesGraficaDopamina = function(delta) {
     window.actualizarGraficaDopamina();
     window.actualizarKPIsDopamina(); // Actualiza KPI Racha Máxima del Mes al cambiar de mes
 };
-
 window.actualizarGraficaDopamina = function() {
     const canvas = document.getElementById('graficoDopamina');
     if(!canvas) return;
@@ -339,55 +338,78 @@ window.actualizarGraficaDopamina = function() {
     }
 
     const diasEnMes = new Date(anio, mes + 1, 0).getDate();
-    
     const labels = [];
-    const datosRecaidas = [];
-
+    
+    // Generamos las etiquetas del eje X (1 al 28/30/31)
     for (let dia = 1; dia <= diasEnMes; dia++) {
         labels.push(dia.toString());
-        
-        let recaidasEsteDia = 0;
-        const fechaObjetivo = new Date(anio, mes, dia);
-        const diaStr = fechaObjetivo.toLocaleDateString('es-CO');
-
-        acciones.forEach(acc => {
-            if (filtro === 'all' || filtro == acc.id) {
-                recaidasEsteDia += acc.historialRecaidas.filter(iso => {
-                    return new Date(iso).toLocaleDateString('es-CO') === diaStr;
-                }).length;
-            }
-        });
-        
-        datosRecaidas.push(recaidasEsteDia);
     }
 
-    const rootStyles = getComputedStyle(document.documentElement);
-    const colorLinea = rootStyles.getPropertyValue('--clr-danger').trim() || '#e74c3c';
+    // 1. Determinar qué acciones vamos a graficar
+    const accionesAMostrar = filtro === 'all' ? acciones : acciones.filter(a => a.id == filtro);
 
-    // Gráfica de Líneas en lugar de Barras
+    // 2. Crear un dataset independiente (una línea) por cada acción
+    const datasetsGenerados = accionesAMostrar.map(acc => {
+        const datosRecaidasAccion = [];
+        
+        for (let dia = 1; dia <= diasEnMes; dia++) {
+            const fechaObjetivo = new Date(anio, mes, dia);
+            const diaStr = fechaObjetivo.toLocaleDateString('es-CO');
+
+            // Contar recaídas de esta acción específica en este día
+            const recaidasEsteDia = acc.historialRecaidas.filter(iso => {
+                return new Date(iso).toLocaleDateString('es-CO') === diaStr;
+            }).length;
+            
+            datosRecaidasAccion.push(recaidasEsteDia);
+        }
+
+        return {
+            label: `${acc.icono} ${acc.nombre}`,
+            data: datosRecaidasAccion,
+            borderColor: acc.color,
+            backgroundColor: acc.color + '33', // Transparencia para el fondo
+            fill: accionesAMostrar.length === 1, // Solo rellena el fondo si hay 1 sola línea (para evitar caos visual)
+            tension: 0.3, // Curvas suaves
+            pointBackgroundColor: acc.color,
+            borderWidth: 2,
+            pointRadius: 3,
+            pointHoverRadius: 5
+        };
+    });
+
+    // 3. Renderizar la gráfica con los datasets múltiples
     graficoDopaminaActual = new Chart(ctx, {
         type: 'line',
         data: {
             labels: labels,
-            datasets: [{
-                label: 'Recaídas',
-                data: datosRecaidas,
-                borderColor: colorLinea,
-                backgroundColor: colorLinea + '33', // Transparencia sutil bajo la línea
-                fill: true,
-                tension: 0.3, // Curvas suaves
-                pointBackgroundColor: colorLinea,
-                borderWidth: 2,
-                pointRadius: 3
-            }]
+            datasets: datasetsGenerados
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            interaction: {
+                mode: 'index', // Si pones el mouse en un día, te muestra info de TODAS las líneas a la vez
+                intersect: false,
+            },
             scales: {
                 y: { 
                     beginAtZero: true, 
                     ticks: { stepSize: 1 } 
+                }
+            },
+            plugins: {
+                legend: {
+                    display: accionesAMostrar.length > 1, // Mostrar leyenda de colores solo si hay varias líneas
+                    position: 'top',
+                    labels: { color: 'var(--text-base)', font: { size: 11 } }
+                },
+                tooltip: {
+                    backgroundColor: 'var(--bg-card)',
+                    titleColor: 'var(--text-hi)',
+                    bodyColor: 'var(--text-base)',
+                    borderColor: 'var(--border-card)',
+                    borderWidth: 1
                 }
             }
         }
