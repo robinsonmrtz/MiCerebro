@@ -1,77 +1,81 @@
 <div class="ini-header">
     <div class="seccion-titulo">
-        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
-            <p id="ini-fecha-hoy" style="font-size:12px; color: var(--text-mutado, #888); margin: 0; font-weight: 500;"></p>
+        <div class="ini-meta-row">
+            <p id="ini-fecha-hoy"></p>
             <span id="ini-dolar-pill">Cargando...</span>
         </div>
-        <h2 id="ini-saludo" style="margin: 0;">👋 Hola</h2>
-        <p style="margin-top: 4px;">El centro de mandos de tu vida, trabajo y finanzas.</p>
+        <h2 id="ini-saludo">👋 Hola</h2>
+        <p class="ini-subtitulo">Centro de mandos · trabajo, hábitos y finanzas</p>
     </div>
 
-    <div class="ini-controls-wrapper">      
-        <div class="ini-switch-container" style="align-items: center;">
-            <button class="ini-btn-switch" onclick="fz_navegarMes(-1)" style="padding: 6px 12px;">◀</button>
-            <span id="ini-mes-filtro-label" style="font-size: 13px; font-weight: 700; padding: 0 16px; min-width: 120px; text-align: center; text-transform: capitalize; color: var(--text-base, #111111);"></span>
-            <button class="ini-btn-switch" onclick="fz_navegarMes(1)" style="padding: 6px 12px;">▶</button>
+    <div class="ini-controls-wrapper">
+        <div class="ini-switch-container">
+            <button class="ini-btn-switch" onclick="fz_navegarMes(-1)">◀</button>
+            <span id="ini-mes-filtro-label"></span>
+            <button class="ini-btn-switch" onclick="fz_navegarMes(1)">▶</button>
         </div>
     </div>
 </div>
 
 <div class="ini-dashboard-grid">
+
+    <!-- FINANZAS -->
     <div class="ini-card ini-card-finanzas">
         <div class="ini-card-header">
-            <div class="ini-card-icon">💰</div>
+            <span class="ini-card-icon-wrap">💰</span>
             <span class="ini-card-title">Dinero</span>
+            <span id="ini-finanzas-badge" class="ini-badge">--</span>
         </div>
-        <div class="ini-card-body" style="display: flex; flex-direction: column; align-items: flex-start; gap: 6px; width: 100%;">
-            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; flex-wrap: wrap; gap: 8px;">
-                <h3 id="ini-finanzas-monto">$0.00</h3>
-                <span id="ini-finanzas-badge" class="ini-badge">--</span>
-            </div>
-            <span id="ini-finanzas-promedio" style="font-size: 11px; color: var(--text-mutado, #888); font-weight: 600; margin-top: 2px;">Promedio Histórico: --</span>
+        <div class="ini-card-body">
+            <h3 id="ini-finanzas-monto">$0.00</h3>
+            <span id="ini-finanzas-promedio" class="ini-card-meta">Promedio Histórico: --</span>
         </div>
         <div class="ini-sparkline-container">
             <canvas id="ini-chart-finanzas"></canvas>
         </div>
     </div>
 
-<div class="ini-card">
-    <div class="ini-card-header">
-        <div class="ini-card-icon">🔥</div>
-        <span class="ini-card-title">Productividad</span>
-    </div>
-    <div class="ini-card-body" style="display: flex; flex-direction: column; align-items: flex-start; gap: 6px; width: 100%;">
-        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; flex-wrap: wrap; gap: 8px;">
-            <h3 id="ini-trabajo-horas">0.0h</h3>
-            <span id="ini-trabajo-badge" class="ini-badge">--</span>
-        </div>
-        <span id="ini-trabajo-promedio" style="font-size: 11px; color: var(--text-mutado, #888); font-weight: 600; margin-top: 2px;">Promedio Diario: 0.0h/día</span>
-    </div>
-    <div class="ini-sparkline-container">
-        <canvas id="ini-chart-productividad"></canvas>
-    </div>
-</div>
-
+    <!-- PRODUCTIVIDAD -->
     <div class="ini-card">
         <div class="ini-card-header">
-            <div class="ini-card-icon">⚡</div>
+            <span class="ini-card-icon-wrap">🔥</span>
+            <span class="ini-card-title">Productividad</span>
+            <span id="ini-trabajo-badge" class="ini-badge">--</span>
+        </div>
+        <div class="ini-card-body">
+            <h3 id="ini-trabajo-horas">0.0h</h3>
+            <span id="ini-trabajo-promedio" class="ini-card-meta">Promedio Diario: 0.0h/día</span>
+        </div>
+        <div class="ini-sparkline-container">
+            <canvas id="ini-chart-productividad"></canvas>
+        </div>
+    </div>
+
+    <!-- CONSISTENCIA -->
+    <div class="ini-card ini-card-sm">
+        <div class="ini-card-header">
+            <span class="ini-card-icon-wrap">⚡</span>
             <span class="ini-card-title">Consistencia</span>
         </div>
         <div class="ini-card-body">
             <h3 id="ini-habitos-porcentaje">0%</h3>
             <span class="ini-card-sub">Hábitos completados</span>
         </div>
-        <div class="ini-placeholder-bar"><div class="ini-bar-fill" style="width: 80%; background: var(--accent, #6366f1);"></div></div>
+        <div class="ini-placeholder-bar">
+            <div class="ini-bar-fill" style="width: 80%;"></div>
+        </div>
     </div>
 
-    <div class="ini-card">
+    <!-- PROYECTOS -->
+    <div class="ini-card ini-card-sm">
         <div class="ini-card-header">
-            <div class="ini-card-icon">💼</div>
-            <span class="ini-card-title">Proyectos Activos</span>
+            <span class="ini-card-icon-wrap">💼</span>
+            <span class="ini-card-title">Proyectos</span>
         </div>
         <div class="ini-card-body">
             <h3 id="ini-clientes-count">0</h3>
-            <span class="ini-card-sub">Clientes atendidos</span>
+            <span class="ini-card-sub">Clientes activos</span>
         </div>
     </div>
+
 </div>

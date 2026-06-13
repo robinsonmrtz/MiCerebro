@@ -79,7 +79,7 @@ window.guardarAccionDopamina = function() {
 
 // --- LOGICA DE TIEMPOS Y RÉCORDS PERSONALES ---
 function calcularEstado(acc) {
-    if (!acc.fechaInicio) return { d: 0, h: 0, m: 0, s: 0, pct: 0, record: 7 };
+    if (!acc.fechaInicio) return { d: 0, h: 0, m: 0, s: 0, pct: 0, recordStr: '0d 0h 0m' };
     
     const inicio = new Date(acc.fechaInicio).getTime();
     const dif = Math.max(0, Date.now() - inicio);
@@ -89,26 +89,42 @@ function calcularEstado(acc) {
     const m = Math.floor((dif % 3600000) / 60000);
     const s = Math.floor((dif % 60000) / 1000);
     
-    // Calcular el récord personal histórico para ESTA acción
-    let record = 0;
+    // Calcular el récord personal histórico para ESTA acción usando milisegundos para ser exactos
+    let recordMs = 0;
     let tiempos = [new Date(acc.id).getTime()]; // Fecha de creación de la acción
     acc.historialRecaidas.forEach(iso => tiempos.push(new Date(iso).getTime()));
     
     for (let i = 1; i < tiempos.length; i++) {
-        let diffDias = Math.floor((tiempos[i] - tiempos[i-1]) / 86400000);
-        if (diffDias > record) record = diffDias;
+        let diffMs = tiempos[i] - tiempos[i-1];
+        if (diffMs > recordMs) recordMs = diffMs;
     }
     
-    // Si la racha actual es mayor al récord anterior, el récord se actualiza en vivo
-    if (d > record) record = d;
+    let isCurrentRecord = false;
     
-    // Meta por defecto si aún no tiene un récord establecido
-    if (record === 0) record = 7; 
-
+    // Si la racha actual superó el récord anterior, o es la primera vez (historial vacío)
+    if (dif >= recordMs || acc.historialRecaidas.length === 0) {
+        recordMs = dif;
+        isCurrentRecord = true;
+    }
+    
     // Calcula el porcentaje hacia su récord
-    let pct = Math.min(100, Math.max(0, (d / record) * 100));
+    let pct = 0;
+    if (recordMs > 0) {
+        pct = Math.min(100, Math.max(0, (dif / recordMs) * 100));
+    }
 
-    return { d, h, m, s, pct, record };
+    // Texto de la meta: muestra días, horas y mins si se está rompiendo récord
+    let recordStr = '';
+    if (recordMs === 0) {
+        recordStr = '0d 0h 0m';
+    } else if (isCurrentRecord) {
+        recordStr = `${d}d ${h}h ${m}m`; // Muestra lo que lleva actualmente
+    } else {
+        let recordDias = Math.floor(recordMs / 86400000);
+        recordStr = `${recordDias}d`; // Muestra el récord anterior a superar
+    }
+
+    return { d, h, m, s, pct, recordStr };
 }
 
 function tickRelojesDopamina() {
@@ -130,7 +146,8 @@ function tickRelojesDopamina() {
                                  ${String(estado.s).padStart(2,'0')}<span class="unidad">s</span>`;
         }
         if (elBarra) elBarra.style.width = `${estado.pct}%`;
-        if (elRecord) elRecord.innerText = `${estado.record}d`;
+        // Actualizamos la etiqueta del récord
+        if (elRecord) elRecord.innerText = estado.recordStr;
     });
 }
 
@@ -177,7 +194,7 @@ function renderizarAccionesDopamina() {
             <div class="dopamina-rango-wrap">
                 <div class="dopamina-rango-labels">
                     <span>Progreso al récord personal</span>
-                    <span id="record-dop-${acc.id}">${estado.record}d</span>
+                    <span id="record-dop-${acc.id}">${estado.recordStr || '0d 0h 0m'}</span>
                 </div>
                 <div class="dopamina-rango-track">
                     <div class="dopamina-rango-fill" id="barra-dop-${acc.id}" style="background:${acc.color}; width:${estado.pct}%;"></div>
@@ -186,7 +203,6 @@ function renderizarAccionesDopamina() {
 
             <div class="dopamina-stats">
                 <div class="dopamina-stat-item">Recaídas hoy: <strong>${recaidasHoy}</strong></div>
-                <div class="dopamina-stat-item">Histórico: <strong>${acc.recaidasTotales}</strong></div>
                 <button class="btn-borrar" onclick="window.borrarAccionDopamina(${acc.id})" style="padding:0; font-size:14px;" title="Borrar Acción">🗑️</button>
             </div>
 

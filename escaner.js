@@ -94,7 +94,7 @@ const mapaModulos = {
     'finanzas-personales': [
         'vistas/finanzas-personales.html',
         'css/finanzas-personales.css',
-        'js/modulos/finanzas-personales.js',,
+        'js/modulos/finanzas-personales.js',
         'js/core/storage.js',
         'js/core/app.js',
         'vistas/backup.html'
@@ -144,8 +144,16 @@ const mapaModulos = {
         'js/core/storage.js',
         'js/core/app.js',
         'vistas/backup.html'
-    ]
-
+    ],
+    'dopamina': [
+        'vistas/dopamina.html',
+        'css/dopamina.css',
+        'js/modulos/dopamina.js',
+        'vistas/backup.html',
+        'js/core/storage.js',
+        'js/core/app.js',
+        'vistas/backup.html'
+    ],
 };
  
 let archivosAEscanear = [];
@@ -158,7 +166,7 @@ if (moduloSeleccionado) {
         agregarTexto(`================================================================\n`);
     } else {
         console.log(`❌ El módulo "${moduloSeleccionado}" no está registrado en el escáner.`);
-        console.log(`💡 Módulos disponibles: trabajo, habitos, base, todo`);
+        console.log(`💡 Módulos disponibles: trabajo, clientes, finanzas-personales, habitos, inicio, dopamina, base, todo`);
         process.exit(1);
     }
 } else {

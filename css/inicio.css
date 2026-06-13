@@ -1,229 +1,141 @@
-/* --- ENCABEZADO Y CONTROLES --- */
+/* ============================================================
+   INICIO.CSS — Premium Minimal v2
+   Regla: gráficas intocables. Solo header, cards y layout.
+   ============================================================ */
+
+/* ── HEADER ─────────────────────────────────────────────── */
 
 .ini-header {
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    margin-bottom: 28px;
-    flex-wrap: wrap;
+    align-items: flex-start;
+    margin-bottom: 32px;
     gap: 16px;
+    flex-wrap: wrap;
 }
+
+.ini-meta-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+}
+
+#ini-fecha-hoy {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-mutado, #999);
+    margin: 0;
+    letter-spacing: 0.02em;
+}
+
+#ini-dolar-pill {
+    font-size: 10.5px;
+    font-weight: 500;
+    color: var(--text-mutado, #999);
+    border: 1px solid rgba(0, 0, 0, 0.09);
+    border-radius: 5px;
+    padding: 2px 8px;
+    letter-spacing: 0.01em;
+}
+
+[data-theme="dark"] #ini-dolar-pill {
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.seccion-titulo h2,
+#ini-saludo {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0 0 3px 0;
+    letter-spacing: -0.3px;
+    color: var(--text-base, #111);
+}
+
+.ini-subtitulo {
+    font-size: 11.5px;
+    color: var(--text-mutado, #999);
+    margin: 0;
+    font-weight: 400;
+    letter-spacing: 0.01em;
+}
+
+/* ── NAVEGADOR DE MES ────────────────────────────────────── */
 
 .ini-controls-wrapper {
     display: flex;
     align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
+    padding-top: 2px;
 }
 
-
-#ini-dolar-pill {
-    font-size: 11px;
-    font-weight: 500;
-    color: var(--text-mutado, #888);
-    border: 1px solid rgba(0,0,0,0.08);
-    border-radius: 5px;
-    padding: 2px 7px;
-}
-
-[data-theme="dark"] .ini-dolar-pill {
-    color: var(--text-mutado, #777);
-    border-color: rgba(255,255,255,0.08);
-}
-
-.ini-dolar-flag {
-    font-size: 14px;
-}
-
-
-/* Switcher Tipo iOS / SaaS Moderno */
 .ini-switch-container {
     display: flex;
-    background: rgba(0, 0, 0, 0.05);
-    padding: 4px;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(0, 0, 0, 0.06);
     border-radius: 10px;
-    border: 1px solid rgba(0, 0, 0, 0.03);
+    padding: 3px;
+    gap: 2px;
 }
 
 [data-theme="dark"] .ini-switch-container {
-    background: rgba(255, 255, 255, 0.06);
-    border-color: rgba(255, 255, 255, 0.04);
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.07);
 }
 
 .ini-btn-switch {
     background: transparent;
     border: none;
-    padding: 6px 14px;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text-mutado, #666);
-    cursor: pointer;
-    border-radius: 7px;
-    transition: all 0.2s ease;
-}
-
-.ini-btn-switch.activo {
-    background: #ffffff;
-    color: #111111;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-}
-
-[data-theme="dark"] .ini-btn-switch.activo {
-    background: rgba(255, 255, 255, 0.15);
-    color: #ffffff;
-    box-shadow: none;
-}
-
-/* Selector de Rango Personalizado */
-.ini-rango-container {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    animation: iniFadeIn 0.25s ease forwards;
-}
-
-.ini-rango-container input[type="date"] {
-    background: var(--bg-card, #ffffff);
-    border: 1px solid rgba(0, 0, 0, 0.12);
-    padding: 5px 10px;
-    border-radius: 8px;
-    font-size: 13px;
-    color: var(--text-base, #111111);
-    outline: none;
-}
-
-[data-theme="dark"] .ini-rango-container input[type="date"] {
-    border-color: rgba(255, 255, 255, 0.1);
-    background: rgba(255, 255, 255, 0.05);
-}
-
-.ini-rango-container span {
-    font-size: 13px;
-    color: var(--text-mutado, #777);
-}
-
-/* --- GRID DEL DASHBOARD --- */
-.ini-dashboard-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr); /* Fuerza exactamente 3 tarjetas por fila en pantallas grandes */
-    gap: 20px;
-}
-
-/* TARJETAS MINIMALISTAS */
-.ini-card {
-    background: var(--bg-card, #ffffff);
-    border: 1px solid rgba(0, 0, 0, 0.06);
-    border-radius: 16px;
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    position: relative;
-    overflow: hidden;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.ini-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.04);
-}
-
-.ini-card-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 12px;
-}
-
-.ini-card-icon {
-    font-size: 18px;
-}
-
-.ini-card-title {
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--text-mutado, #666);
-}
-
-.ini-card-body {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 10px;
-}
-
-.ini-card-body h3 {
-    font-size: 26px;
-    font-weight: 700;
-    margin: 0;
-    letter-spacing: -0.5px;
-}
-
-.ini-card-sub {
+    padding: 5px 11px;
     font-size: 12px;
     color: var(--text-mutado, #888);
+    cursor: pointer;
+    border-radius: 7px;
+    transition: background 0.15s ease, color 0.15s ease;
+    line-height: 1;
 }
 
-/* BADGES DE TENDENCIA */
-.ini-badge {
-    font-size: 11px;
-    font-weight: 700;
-    padding: 3px 8px;
-    border-radius: 6px;
-    display: inline-flex;
-    align-items: center;
+.ini-btn-switch:hover {
+    background: rgba(0, 0, 0, 0.06);
+    color: var(--text-base, #111);
 }
 
-.ini-badge.sube {
-    background: rgba(16, 185, 129, 0.12);
-    color: #10b981;
-}
-
-.ini-badge.baja {
-    background: rgba(239, 68, 68, 0.12);
-    color: #ef4444;
-}
-
-.ini-badge.neutro {
-    background: rgba(128, 128, 128, 0.12);
-    color: #888888;
-}
-
-/* SPARKLINE CONTAINER */
-.ini-sparkline-container {
-    width: 100%;
-    margin-top: 15px; 
-    height: 140px;     /*aumentado de 90px a 140px para mayor claridad visual */
-    position: relative;
-}z
-.ini-placeholder-bar {
-    width: 100%;
-    height: 6px;
-    background: rgba(0, 0, 0, 0.05);
-    border-radius: 3px;
-    overflow: hidden;
-    margin-top: 8px;
-}
-[data-theme="dark"] .ini-placeholder-bar {
+[data-theme="dark"] .ini-btn-switch:hover {
     background: rgba(255, 255, 255, 0.08);
-}
-.ini-bar-fill {
-    height: 100%;
-    background: #10b981;
-    border-radius: 3px;
+    color: #fff;
 }
 
-@keyframes iniFadeIn {
-    from { opacity: 0; transform: translateX(8px); }
-    to { opacity: 1; transform: translateX(0); }
+#ini-mes-filtro-label {
+    font-size: 12px;
+    font-weight: 700;
+    min-width: 110px;
+    text-align: center;
+    text-transform: capitalize;
+    color: var(--text-base, #111);
+    letter-spacing: -0.1px;
 }
 
-/* Añadir al final del archivo para asegurar la visualización del nuevo componente */
 [data-theme="dark"] #ini-mes-filtro-label {
-    color: #ffffff !important;
+    color: #fff;
+}
+
+/* ── GRID ────────────────────────────────────────────────── */
+
+.ini-dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: auto auto;
+    gap: 16px;
+}
+
+/* Las dos cards grandes (con gráfica) ocupan 1 columna cada una */
+.ini-card-finanzas {
+    grid-column: span 1;
+}
+
+/* Las dos cards pequeñas se ubican en la fila inferior, 1.5 col cada una */
+.ini-card-sm {
+    grid-column: span 1;
 }
 
 @media (max-width: 1100px) {
@@ -232,8 +144,154 @@
     }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 680px) {
     .ini-dashboard-grid {
         grid-template-columns: 1fr;
     }
+}
+
+/* ── CARDS ───────────────────────────────────────────────── */
+
+.ini-card {
+    background: var(--bg-card, #fff);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 14px;
+    padding: 18px 18px 16px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.02);
+}
+
+.ini-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05), 0 8px 20px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="dark"] .ini-card {
+    border-color: rgba(255, 255, 255, 0.07);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+/* ── CARD HEADER ─────────────────────────────────────────── */
+
+.ini-card-header {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: 14px;
+}
+
+.ini-card-icon-wrap {
+    font-size: 14px;
+    line-height: 1;
+    opacity: 0.85;
+}
+
+.ini-card-title {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--text-mutado, #888);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    flex: 1;
+}
+
+/* ── CARD BODY ───────────────────────────────────────────── */
+
+.ini-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 4px;
+}
+
+.ini-card-body h3 {
+    font-size: 22px;
+    font-weight: 700;
+    margin: 0;
+    letter-spacing: -0.5px;
+    color: var(--text-base, #111);
+    line-height: 1.15;
+}
+
+.ini-card-sub {
+    font-size: 11px;
+    color: var(--text-mutado, #aaa);
+    font-weight: 500;
+}
+
+.ini-card-meta {
+    font-size: 10.5px;
+    color: var(--text-mutado, #999);
+    font-weight: 600;
+    margin-top: 1px;
+}
+
+/* ── BADGES ──────────────────────────────────────────────── */
+
+.ini-badge {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 5px;
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+    letter-spacing: 0.01em;
+    margin-left: auto;
+}
+
+.ini-badge.sube {
+    background: rgba(16, 185, 129, 0.10);
+    color: #10b981;
+}
+
+.ini-badge.baja {
+    background: rgba(239, 68, 68, 0.10);
+    color: #ef4444;
+}
+
+.ini-badge.neutro {
+    background: rgba(128, 128, 128, 0.09);
+    color: #999;
+}
+
+/* ── SPARKLINE (sin tocar) ───────────────────────────────── */
+
+.ini-sparkline-container {
+    width: 100%;
+    margin-top: 14px;
+    height: 140px;
+    position: relative;
+}
+
+/* ── BARRA DE PROGRESO ───────────────────────────────────── */
+
+.ini-placeholder-bar {
+    width: 100%;
+    height: 4px;
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 14px;
+}
+
+[data-theme="dark"] .ini-placeholder-bar {
+    background: rgba(255, 255, 255, 0.07);
+}
+
+.ini-bar-fill {
+    height: 100%;
+    background: var(--accent, #6366f1);
+    border-radius: 2px;
+}
+
+/* ── ANIMACIONES ─────────────────────────────────────────── */
+
+@keyframes iniFadeIn {
+    from { opacity: 0; transform: translateX(6px); }
+    to   { opacity: 1; transform: translateX(0); }
 }
