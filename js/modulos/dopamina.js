@@ -27,21 +27,37 @@ function asegurarDatosDopamina() {
     }
 }
 
-// --- CRUD ---
+// --- CRUD DE ACCIONES (RESTABLECIDO) ---
 window.abrirModalDopamina = function(id = null) {
     document.getElementById('modal-dopamina').style.display = 'flex';
-    document.getElementById('modal-titulo-dopamina').innerText = 'Nueva Acción';
-    document.getElementById('dopamina-id').value = '';
-    document.getElementById('dopamina-nombre').value = '';
-    document.getElementById('dopamina-icono').value = '📱';
     
     const d = cargarDatos();
     const paleta = (d.config_habitos && d.config_habitos.paleta) ? d.config_habitos.paleta : ['#e74c3c', '#3b82f6', '#10b981', '#f59e0b', '#8e44ad'];
     
+    if (id) {
+        // MODO EDICIÓN
+        const acc = d.dopamina.acciones.find(a => a.id === id);
+        document.getElementById('modal-titulo-dopamina').innerText = 'Editar Acción';
+        document.getElementById('dopamina-id').value = acc.id;
+        document.getElementById('dopamina-nombre').value = acc.nombre;
+        document.getElementById('dopamina-icono').value = acc.icono;
+        document.getElementById('dopamina-color').value = acc.color;
+    } else {
+        // MODO CREACIÓN
+        document.getElementById('modal-titulo-dopamina').innerText = 'Nueva Acción';
+        document.getElementById('dopamina-id').value = '';
+        document.getElementById('dopamina-nombre').value = '';
+        document.getElementById('dopamina-icono').value = '📱';
+        document.getElementById('dopamina-color').value = paleta[0]; // Selecciona el primer color por defecto
+    }
+    
+    const colorActual = document.getElementById('dopamina-color').value;
+    
+    // Renderiza la paleta marcando el color actual
     const wrap = document.getElementById('paleta-dopamina');
     if (wrap) {
         wrap.innerHTML = paleta.map(c => `
-            <div class="paleta-color-btn" style="background:${c};" 
+            <div class="paleta-color-btn ${c === colorActual ? 'seleccionado' : ''}" style="background:${c};" 
                  onclick="document.getElementById('dopamina-color').value = '${c}'; 
                           document.querySelectorAll('#paleta-dopamina .paleta-color-btn').forEach(el=>el.classList.remove('seleccionado')); 
                           this.classList.add('seleccionado');">
@@ -55,6 +71,7 @@ window.cerrarModalDopamina = function() {
 };
 
 window.guardarAccionDopamina = function() {
+    const idInput = document.getElementById('dopamina-id').value;
     const nombre = document.getElementById('dopamina-nombre').value.trim();
     const icono = document.getElementById('dopamina-icono').value.trim() || '📱';
     const color = document.getElementById('dopamina-color').value || '#e74c3c';
@@ -62,15 +79,27 @@ window.guardarAccionDopamina = function() {
     if (!nombre) return alert('Escribe el nombre de la acción.');
 
     let d = cargarDatos();
-    d.dopamina.acciones.push({
-        id: Date.now(),
-        nombre,
-        icono,
-        color,
-        fechaInicio: null, 
-        recaidasTotales: 0,
-        historialRecaidas: [] 
-    });
+    
+    if (idInput) {
+        // ACTUALIZAR ACCIÓN EXISTENTE
+        let index = d.dopamina.acciones.findIndex(a => a.id == idInput);
+        if (index > -1) {
+            d.dopamina.acciones[index].nombre = nombre;
+            d.dopamina.acciones[index].icono = icono;
+            d.dopamina.acciones[index].color = color;
+        }
+    } else {
+        // CREAR NUEVA ACCIÓN
+        d.dopamina.acciones.push({
+            id: Date.now(),
+            nombre,
+            icono,
+            color,
+            fechaInicio: null, 
+            recaidasTotales: 0,
+            historialRecaidas: [] 
+        });
+    }
 
     guardarDatos(d);
     cerrarModalDopamina();
@@ -79,6 +108,7 @@ window.guardarAccionDopamina = function() {
 
 // --- LOGICA DE TIEMPOS Y RÉCORDS PERSONALES ---
 function calcularEstado(acc) {
+    // Si no ha iniciado, está en ceros 
     if (!acc.fechaInicio) return { d: 0, h: 0, m: 0, s: 0, pct: 0, recordStr: '0d 0h 0m' };
     
     const inicio = new Date(acc.fechaInicio).getTime();
@@ -89,20 +119,13 @@ function calcularEstado(acc) {
     const m = Math.floor((dif % 3600000) / 60000);
     const s = Math.floor((dif % 60000) / 1000);
     
-    // Calcular el récord personal histórico para ESTA acción usando milisegundos para ser exactos
-    let recordMs = 0;
-    let tiempos = [new Date(acc.id).getTime()]; // Fecha de creación de la acción
-    acc.historialRecaidas.forEach(iso => tiempos.push(new Date(iso).getTime()));
-    
-    for (let i = 1; i < tiempos.length; i++) {
-        let diffMs = tiempos[i] - tiempos[i-1];
-        if (diffMs > recordMs) recordMs = diffMs;
-    }
+    // 1. Obtener el récord histórico preciso (si no existe, arranca en 0)
+    let recordMs = acc.mejorRachaMs || 0;
     
     let isCurrentRecord = false;
     
-    // Si la racha actual superó el récord anterior, o es la primera vez (historial vacío)
-    if (dif >= recordMs || acc.historialRecaidas.length === 0) {
+    // Si la racha actual superó la histórica, o es la primera vez
+    if (dif >= recordMs || recordMs === 0) {
         recordMs = dif;
         isCurrentRecord = true;
     }
@@ -113,15 +136,17 @@ function calcularEstado(acc) {
         pct = Math.min(100, Math.max(0, (dif / recordMs) * 100));
     }
 
-    // Texto de la meta: muestra días, horas y mins si se está rompiendo récord
+    // FORMATEO CORRECTO: Mostrar días, horas y minutos SIEMPRE
     let recordStr = '';
-    if (recordMs === 0) {
-        recordStr = '0d 0h 0m';
-    } else if (isCurrentRecord) {
-        recordStr = `${d}d ${h}h ${m}m`; // Muestra lo que lleva actualmente
+    if (isCurrentRecord) {
+        // Si está rompiendo récord en vivo
+        recordStr = `${d}d ${h}h ${m}m`;
     } else {
-        let recordDias = Math.floor(recordMs / 86400000);
-        recordStr = `${recordDias}d`; // Muestra el récord anterior a superar
+        // Si es un récord anterior a superar, convierte los milisegundos exactos a d, h, m
+        let recD = Math.floor(recordMs / 86400000);
+        let recH = Math.floor((recordMs % 86400000) / 3600000);
+        let recM = Math.floor((recordMs % 3600000) / 60000);
+        recordStr = `${recD}d ${recH}h ${recM}m`; 
     }
 
     return { d, h, m, s, pct, recordStr };
@@ -146,7 +171,6 @@ function tickRelojesDopamina() {
                                  ${String(estado.s).padStart(2,'0')}<span class="unidad">s</span>`;
         }
         if (elBarra) elBarra.style.width = `${estado.pct}%`;
-        // Actualizamos la etiqueta del récord
         if (elRecord) elRecord.innerText = estado.recordStr;
     });
 }
@@ -163,11 +187,8 @@ function renderizarAccionesDopamina() {
         return;
     }
 
-    const hoyStr = new Date().toLocaleDateString('es-CO');
-
     cont.innerHTML = acciones.map(acc => {
         const estado = calcularEstado(acc);
-        const recaidasHoy = acc.historialRecaidas.filter(iso => new Date(iso).toLocaleDateString('es-CO') === hoyStr).length;
 
         let botonHTML = '';
         if (!acc.fechaInicio) {
@@ -178,12 +199,21 @@ function renderizarAccionesDopamina() {
 
         return `
         <div class="dopamina-card" style="--card-accent: ${acc.color}">
+            
+            <div class="dopamina-opciones">
+                <button class="btn-opciones" onclick="window.toggleMenuDopamina(event, ${acc.id})">⋮</button>
+                <div class="dopamina-dropdown" id="menu-dopamina-${acc.id}">
+                    <button onclick="window.abrirModalDopamina(${acc.id})">Editar</button>
+                    <button class="btn-danger-text" onclick="window.borrarAccionDopamina(${acc.id})">Eliminar</button>
+                </div>
+            </div>
+
             <div class="dopamina-card-header">
                 <div class="dopamina-info-top">
                     <div class="dopamina-icono-bg" style="background:${acc.color}22; color:${acc.color};">
                         ${acc.icono}
                     </div>
-                    <span class="dopamina-nombre">${acc.nombre}</span>
+                    <span class="dopamina-nombre" style="padding-right: 20px;">${acc.nombre}</span>
                 </div>
             </div>
 
@@ -201,11 +231,6 @@ function renderizarAccionesDopamina() {
                 </div>
             </div>
 
-            <div class="dopamina-stats">
-                <div class="dopamina-stat-item">Recaídas hoy: <strong>${recaidasHoy}</strong></div>
-                <button class="btn-borrar" onclick="window.borrarAccionDopamina(${acc.id})" style="padding:0; font-size:14px;" title="Borrar Acción">🗑️</button>
-            </div>
-
             ${botonHTML}
         </div>
         `;
@@ -213,6 +238,30 @@ function renderizarAccionesDopamina() {
 
     tickRelojesDopamina();
 }
+
+// =========================================
+// LÓGICA PARA ABRIR/CERRAR EL MENÚ DE 3 PUNTOS
+// (Pega esto justo debajo de la función de arriba)
+// =========================================
+window.toggleMenuDopamina = function(event, id) {
+    event.stopPropagation(); // Evita que se cierre instantáneamente
+    
+    // Primero cerramos cualquier otro menú que esté abierto
+    document.querySelectorAll('.dopamina-dropdown').forEach(menu => {
+        if(menu.id !== `menu-dopamina-${id}`) menu.classList.remove('mostrar');
+    });
+    
+    // Abrimos/Cerramos el que clickeamos
+    const menu = document.getElementById(`menu-dopamina-${id}`);
+    if (menu) menu.classList.toggle('mostrar');
+};
+
+// Listener global: Si haces clic en cualquier otro lado de la pantalla, cierra los menús
+document.addEventListener('click', function() {
+    document.querySelectorAll('.dopamina-dropdown.mostrar').forEach(menu => {
+        menu.classList.remove('mostrar');
+    });
+});
 
 // --- ACCIONES BINARIAS ---
 window.iniciarAyuno = function(id) {
@@ -231,9 +280,21 @@ window.registrarRecaida = function(id, nombre) {
     let d = cargarDatos();
     let acc = d.dopamina.acciones.find(a => a.id === id);
     if (acc) {
+        // BUG FIX: Calculamos la duración exacta de la racha ANTES de sobreescribirla
+        const fin = Date.now();
+        const inicioAnterior = acc.fechaInicio ? new Date(acc.fechaInicio).getTime() : fin;
+        const duracionRachaPerdida = Math.max(0, fin - inicioAnterior);
+
+        // Guardamos la racha como la 'mejorRachaMs' si superó el récord anterior
+        if (!acc.mejorRachaMs || duracionRachaPerdida > acc.mejorRachaMs) {
+            acc.mejorRachaMs = duracionRachaPerdida;
+        }
+
+        // Reiniciamos el contador a cero
         acc.fechaInicio = new Date().toISOString(); 
         acc.recaidasTotales += 1;
         acc.historialRecaidas.push(new Date().toISOString()); 
+        
         guardarDatos(d);
         inicializarDopamina();
     }
@@ -253,9 +314,9 @@ window.actualizarKPIsDopamina = function() {
     const acciones = d.dopamina?.acciones || [];
     const filtro = document.getElementById('filtro-dopamina-grafica')?.value || 'all';
     
-    let rachaMaxGlobal = 0; // Excepción: siempre global
-    let rachaActualMax = 0; // Afectado por filtro
-    let rachaMaxMes = 0;    // Afectado por filtro y mes en vista
+    let rachaMaxGlobal = 0;
+    let rachaActualMax = 0; 
+    let rachaMaxMes = 0;    
 
     const anioVista = window.fechaVistaGraficaDopamina.getFullYear();
     const mesVista = window.fechaVistaGraficaDopamina.getMonth();
@@ -263,7 +324,6 @@ window.actualizarKPIsDopamina = function() {
     const finMesMs = new Date(anioVista, mesVista + 1, 0, 23, 59, 59).getTime();
 
     acciones.forEach(acc => {
-        // 1. CÁLCULO GLOBAL (Ignora el filtro)
         let puntosGlobales = [new Date(acc.id).getTime()];
         acc.historialRecaidas.forEach(iso => puntosGlobales.push(new Date(iso).getTime()));
         if (acc.fechaInicio) puntosGlobales.push(Date.now());
@@ -273,21 +333,17 @@ window.actualizarKPIsDopamina = function() {
             if (diasDif > rachaMaxGlobal) rachaMaxGlobal = diasDif;
         }
 
-        // 2. CÁLCULOS CON FILTRO (Si el filtro no coincide, saltamos la acción)
         if (filtro !== 'all' && filtro != acc.id) return;
 
-        // Racha Limpio Actual
         if (acc.fechaInicio) {
             const diasVivos = Math.floor((Date.now() - new Date(acc.fechaInicio).getTime()) / 86400000);
             if (diasVivos > rachaActualMax) rachaActualMax = diasVivos;
         }
 
-        // Racha Máxima del Mes en vista
         for (let i = 1; i < puntosGlobales.length; i++) {
             let t1 = puntosGlobales[i-1];
             let t2 = puntosGlobales[i];
 
-            // Si la racha chocó o ocurrió dentro del mes que estamos mirando
             if (t1 <= finMesMs && t2 >= inicioMesMs) {
                 let inicioRachaEnMes = Math.max(t1, inicioMesMs);
                 let finRachaEnMes = Math.min(t2, finMesMs);
@@ -333,8 +389,9 @@ window.fijarFiltroPredeterminado = function() {
 window.cambiarMesGraficaDopamina = function(delta) {
     window.fechaVistaGraficaDopamina.setMonth(window.fechaVistaGraficaDopamina.getMonth() + delta);
     window.actualizarGraficaDopamina();
-    window.actualizarKPIsDopamina(); // Actualiza KPI Racha Máxima del Mes al cambiar de mes
+    window.actualizarKPIsDopamina();
 };
+
 window.actualizarGraficaDopamina = function() {
     const canvas = document.getElementById('graficoDopamina');
     if(!canvas) return;
@@ -356,15 +413,12 @@ window.actualizarGraficaDopamina = function() {
     const diasEnMes = new Date(anio, mes + 1, 0).getDate();
     const labels = [];
     
-    // Generamos las etiquetas del eje X (1 al 28/30/31)
     for (let dia = 1; dia <= diasEnMes; dia++) {
         labels.push(dia.toString());
     }
 
-    // 1. Determinar qué acciones vamos a graficar
     const accionesAMostrar = filtro === 'all' ? acciones : acciones.filter(a => a.id == filtro);
 
-    // 2. Crear un dataset independiente (una línea) por cada acción
     const datasetsGenerados = accionesAMostrar.map(acc => {
         const datosRecaidasAccion = [];
         
@@ -372,7 +426,6 @@ window.actualizarGraficaDopamina = function() {
             const fechaObjetivo = new Date(anio, mes, dia);
             const diaStr = fechaObjetivo.toLocaleDateString('es-CO');
 
-            // Contar recaídas de esta acción específica en este día
             const recaidasEsteDia = acc.historialRecaidas.filter(iso => {
                 return new Date(iso).toLocaleDateString('es-CO') === diaStr;
             }).length;
@@ -384,9 +437,9 @@ window.actualizarGraficaDopamina = function() {
             label: `${acc.icono} ${acc.nombre}`,
             data: datosRecaidasAccion,
             borderColor: acc.color,
-            backgroundColor: acc.color + '33', // Transparencia para el fondo
-            fill: accionesAMostrar.length === 1, // Solo rellena el fondo si hay 1 sola línea (para evitar caos visual)
-            tension: 0.3, // Curvas suaves
+            backgroundColor: acc.color + '33', 
+            fill: accionesAMostrar.length === 1, 
+            tension: 0.3, 
             pointBackgroundColor: acc.color,
             borderWidth: 2,
             pointRadius: 3,
@@ -394,7 +447,6 @@ window.actualizarGraficaDopamina = function() {
         };
     });
 
-    // 3. Renderizar la gráfica con los datasets múltiples
     graficoDopaminaActual = new Chart(ctx, {
         type: 'line',
         data: {
@@ -405,7 +457,7 @@ window.actualizarGraficaDopamina = function() {
             responsive: true,
             maintainAspectRatio: false,
             interaction: {
-                mode: 'index', // Si pones el mouse en un día, te muestra info de TODAS las líneas a la vez
+                mode: 'index', 
                 intersect: false,
             },
             scales: {
@@ -416,7 +468,7 @@ window.actualizarGraficaDopamina = function() {
             },
             plugins: {
                 legend: {
-                    display: accionesAMostrar.length > 1, // Mostrar leyenda de colores solo si hay varias líneas
+                    display: accionesAMostrar.length > 1, 
                     position: 'top',
                     labels: { color: 'var(--text-base)', font: { size: 11 } }
                 },

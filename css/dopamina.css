@@ -166,3 +166,78 @@
 .btn-iniciar-ayuno:hover {
     opacity: 0.9;
 }
+
+/* =========================================
+   MENÚ 3 PUNTICOS REPOSICIONADO A LA ESQUINA
+   ========================================= */
+.dopamina-opciones {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    line-height: 1; /* Evita espacios extra verticales */
+    z-index: 5;
+}
+
+.btn-opciones {
+    background: none;
+    border: none;
+    color: var(--text-lo);
+    font-size: 22px; /* Un poco más grande para mejor zona de clic */
+    font-weight: bold;
+    cursor: pointer;
+    padding: 4px 8px; /* Pequeño colchón interno */
+    margin: 0;
+    transition: color 0.2s, transform 0.1s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-opciones:hover {
+    color: var(--text-hi);
+}
+
+.btn-opciones:active {
+    transform: scale(0.9); /* Efecto sutil al presionarlo */
+}
+
+.dopamina-dropdown {
+    display: none;
+    position: absolute;
+    top: 32px;
+    right: 4px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    z-index: 10;
+    overflow: hidden;
+    min-width: 120px;
+}
+
+.dopamina-dropdown.mostrar {
+    display: block;
+}
+
+.dopamina-dropdown button {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 10px 14px;
+    background: none;
+    border: none;
+    color: var(--text-base);
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.dopamina-dropdown button:hover {
+    background: color-mix(in srgb, var(--bg-body) 80%, transparent);
+    color: var(--text-hi);
+}
+
+.dopamina-dropdown button.btn-danger-text {
+    color: var(--clr-danger);
+    border-top: 1px solid var(--border-card); /* Separador sutil para eliminar */
+}

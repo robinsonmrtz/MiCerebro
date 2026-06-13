@@ -49,7 +49,6 @@
         <div class="grafico-header">
             <span class="grafico-titulo">Historial de Recaídas</span>
         </div>
-        
         <div class="canvas-wrapper">
             <canvas id="graficoDopamina"></canvas>
         </div>
@@ -58,3 +57,32 @@
 
 <div class="dopamina-grid" id="lista-acciones-dopamina">
     </div>
+
+<div id="modal-dopamina" class="modal-overlay">
+    <div class="modal-caja modal-ancho" style="max-width: 360px;">
+        <div class="modal-header-edit">
+            <h3 id="modal-titulo-dopamina">Nueva Acción</h3>
+            <button onclick="window.cerrarModalDopamina()" class="btn-cerrar-limpio">✕</button>
+        </div>
+        <input type="hidden" id="dopamina-id">
+        
+        <div class="form-grid">
+            <div style="display:flex; gap:12px; align-items:center; width: 100%;">
+                <input type="text" id="dopamina-icono" class="input-icono-grupo emoji-trigger-input" value="📱"
+                       style="width: 48px !important; height: 48px !important; font-size: 24px; cursor: pointer; flex-shrink: 0; text-align: center; padding: 0;"
+                       onclick="event.stopPropagation(); window.abrirSelectorEmojiGlobal(this, 'dopamina-icono')"
+                       title="Haz clic para elegir un icono">
+                <input type="text" id="dopamina-nombre" class="input-minimalista" placeholder="Ej. Redes Sociales" 
+                       style="flex: 1; height: 48px; font-size: 15px;">
+            </div>
+            
+            <div style="margin-top: 10px;">
+                <label style="font-size: 10px; color: var(--text-lo); font-weight: 600;">COLOR DE TARJETA</label>
+                <div class="paleta-wrap" id="paleta-dopamina"></div>
+                <input type="hidden" id="dopamina-color" value="#e74c3c">
+            </div>
+        </div>
+
+        <button onclick="window.guardarAccionDopamina()" class="btn-primario" style="width:100%; margin-top:20px;">Guardar Acción</button>
+    </div>
+</div>
