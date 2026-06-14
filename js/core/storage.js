@@ -1,9 +1,9 @@
 // ==========================================
 // CORE: storage.js (El Almacén de Datos)
-// VERSIÓN: 2.1 — Agrega horaInicio y horaFin al registro de trabajo
+// VERSIÓN: 2.2 — Agrega campo "pausado" (pausas explícitas) al registro de trabajo
 // ==========================================
 
-const VERSION_DATOS = "2.1";
+const VERSION_DATOS = "2.2";
 
 function cargarDatos() {
     const datos = localStorage.getItem('datos_cerebro');
@@ -57,19 +57,23 @@ function guardarDatos(datos) {
     localStorage.setItem('datos_cerebro', JSON.stringify(datos));
 }
 
-// ✅ Agrega horaInicio y horaFin — compatibe con registros viejos (quedan con null)
-function guardarSesionTrabajo(fecha, meta, trabajado, descansado, horaInicio = null, horaFin = null) {
+// ✅ Agrega horaInicio, horaFin y pausado — compatible con registros viejos (quedan con null/0)
+function guardarSesionTrabajo(fecha, meta, trabajado, descansado, horaInicio = null, horaFin = null, pausado = 0) {
     let datos = cargarDatos();
     if (!datos.registro_trabajo) datos.registro_trabajo = [];
 
     // Nos aseguramos de que descansado nunca sea undefined o negativo
     const descansadoFinal = (typeof descansado === 'number' && descansado >= 0) ? descansado : 0;
 
+    // ✅ Nos aseguramos de que pausado nunca sea undefined o negativo
+    const pausadoFinal = (typeof pausado === 'number' && pausado >= 0) ? pausado : 0;
+
     let registroExistente = datos.registro_trabajo.find(r => r.fecha === fecha);
     if (registroExistente) {
         registroExistente.meta       = meta;
         registroExistente.trabajado  = trabajado;
         registroExistente.descansado = descansadoFinal;   // ✅ usa el valor real
+        registroExistente.pausado    = pausadoFinal;      // ✅ usa el valor real
         // Solo actualiza horaInicio si no tenía una ya
         if (!registroExistente.horaInicio && horaInicio) registroExistente.horaInicio = horaInicio;
         registroExistente.horaFin = horaFin;
@@ -80,6 +84,7 @@ function guardarSesionTrabajo(fecha, meta, trabajado, descansado, horaInicio = n
             meta:       meta,
             trabajado:  trabajado,
             descansado: descansadoFinal,   // ✅ también aquí
+            pausado:    pausadoFinal,      // ✅ también aquí
             horaInicio: horaInicio,
             horaFin:    horaFin
         });

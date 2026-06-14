@@ -402,3 +402,33 @@
     .controles button { padding: 9px 14px; font-size: 12px; }
 }
 
+
+.btn-borrar-trabajo {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 5px 10px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid transparent;
+    border-color: color-mix(in srgb, var(--clr-danger) 25%, transparent);
+    background: transparent;
+    color: var(--clr-danger);
+    transition: opacity 0.15s, box-shadow 0.15s, background 0.15s;
+    white-space: nowrap;
+    font-family: inherit;
+}
+
+.btn-borrar-trabajo:hover {
+    background: var(--clr-danger);
+    color: var(--clr-white);
+}
+
+.estado-pausado { color: var(--status-warn); }
+
+.status-dot.interrumpido {
+    background: var(--status-warn);
+}

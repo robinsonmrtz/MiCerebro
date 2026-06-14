@@ -190,15 +190,16 @@ function renderizarTabla(registros) {
         const cumplio = hTrabajoDecimal >= reg.meta;
         const inicio = reg.horaInicio || '-';
         const fin = reg.horaFin || '-';
-        
+        const pausaTxt = reg.pausado ? ` <span style="color:var(--status-warn); font-size:10px;">(pausas: ${segundosAHorasMinutos(reg.pausado)})</span>` : '';
+
         const fila = document.createElement('tr');
         fila.innerHTML = `
             <td style="font-weight: 600;">${reg.fecha}</td>
             <td>${reg.meta}h</td>
             <td style="color: var(--accent); font-weight: bold;">${tiempoTrabajadoBonito}</td>
-            <td style="color: #5f6368;">${inicio} → ${fin}</td>
+            <td style="color: #5f6368;">${inicio} → ${fin}${pausaTxt}</td>
             <td>${cumplio ? '<span class="badge-exito">SÍ</span>' : '<span class="badge-fallo">NO</span>'}</td>
-            <td><button class="btn-borrar" onclick="preguntarBorrar(${reg.id})">🗑️ Borrar</button></td>
+            <td><button class="btn-borrar-trabajo" onclick="preguntarBorrar(${reg.id})">🗑️ Borrar</button></td>
         `;
         tablaCuerpo.appendChild(fila);
     });
