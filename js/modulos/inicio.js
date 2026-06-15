@@ -1,11 +1,14 @@
 // ====================================================
-// CORE COMPONENT: inicio.js (Motor Mensual Acumulativo Profesional v3.4)
+// CORE COMPONENT: inicio.js (Motor Mensual Acumulativo Profesional v4.0)
 // FILTROS: Ejes Visuales Completos + Indicadores de Promedio en Color
+// CORRECCIÓN HISTÓRICA: Balance de dinero amarrado al cierre exacto del mes consultado
+// DISEÑO SECTORIZADO: Diseño exacto de KPI Cards con flexbox e iconos
 // ====================================================
 
 let fz_fechaFiltroGlobal = new Date(); 
 let fz_graficaSparklineInstancia = null;
 let fz_graficaProductividadInstancia = null;
+let fz_graficaVideosInstancia = null;
 
 function inicializarDashboard() {
     console.log("🧠 Inicializando Dashboard Mensual Avanzado...");
@@ -15,7 +18,8 @@ function inicializarDashboard() {
     
     fz_renderizarFinanzasDashboard();
     fz_renderizarProductividadDashboard();
-    fz_renderizarPlaceholdersExtras();
+    fz_renderizarVideosDashboard(); 
+    fz_renderizarResumenClientesDashboard();
 }
 
 function fz_renderizarSaludo() {
@@ -65,23 +69,40 @@ function fz_navegarMes(direccion) {
     
     fz_renderizarFinanzasDashboard();
     fz_renderizarProductividadDashboard();
+    fz_renderizarVideosDashboard(); 
+    fz_renderizarResumenClientesDashboard();
 }
 
+// ─── LÓGICA DE FINANZAS COMPROMETIDA CON EL CIERRE MENSUAL ─────────
 function fz_renderizarFinanzasDashboard() {
     const datosCompletos = cargarDatos();
     const finanzas = datosCompletos.finanzas_personales;
 
     if (!finanzas || !finanzas.cuentas) return;
 
+    const intervalos = fz_obtenerLimitesFechasMensuales();
+    if (!intervalos) return; 
+
+    const hoy = new Date();
+    const esMesActualOSiguiente = (fz_fechaFiltroGlobal.getFullYear() > hoy.getFullYear()) || 
+        (fz_fechaFiltroGlobal.getFullYear() === hoy.getFullYear() && fz_fechaFiltroGlobal.getMonth() >= hoy.getMonth());
+
     const cuentasActivas = finanzas.cuentas.filter(c => !c.archivada && c.incluir_dashboard !== false);
     const idsCuentasActivas = cuentasActivas.map(c => c.id);
 
-    let saldoActualNeto = cuentasActivas.reduce((sum, c) => sum + parseFloat(c.saldo_inicial || 0), 0);
-    const hoyStr = new Date().toISOString().split('T')[0];
+    let saldoBaseCalculo = cuentasActivas.reduce((sum, c) => sum + parseFloat(c.saldo_inicial || 0), 0);
+
+    const añoFiltro = intervalos.finAct.getFullYear();
+    const mesFiltro = String(intervalos.finAct.getMonth() + 1).padStart(2, '0');
+    const diaFiltro = String(intervalos.finAct.getDate()).padStart(2, '0');
+    const fechaCierreMesStr = `${añoFiltro}-${mesFiltro}-${diaFiltro}`;
+
+    const hoyStr = hoy.toISOString().split('T')[0];
+    const fechaLimiteStr = esMesActualOSiguiente ? hoyStr : fechaCierreMesStr;
 
     const transaccionesValidas = (finanzas.transacciones || []).filter(t => 
         !t.archivada && 
-        t.fecha <= hoyStr && 
+        t.fecha <= fechaLimiteStr && 
         t.pagado !== false &&
         idsCuentasActivas.includes(t.cuenta_id) &&
         (t.tipo === 'ingreso' || t.tipo === 'gasto')
@@ -89,17 +110,16 @@ function fz_renderizarFinanzasDashboard() {
 
     transaccionesValidas.forEach(t => {
         const monto = parseFloat(t.monto || 0);
-        if (t.tipo === 'ingreso') saldoActualNeto += monto;
-        if (t.tipo === 'gasto') saldoActualNeto -= monto;
+        if (t.tipo === 'ingreso') saldoBaseCalculo += monto;
+        if (t.tipo === 'gasto') saldoBaseCalculo -= monto;
     });
 
     const montoElement = document.getElementById('ini-finanzas-monto');
-    if (montoElement) montoElement.innerText = fz_formatearMonedaDashboard(saldoActualNeto);
+    if (montoElement) {
+        montoElement.innerText = fz_formatearMonedaDashboard(saldoBaseCalculo);
+    }
 
-    const intervalos = fz_obtenerLimitesFechasMensuales();
-    if (!intervalos) return; 
-
-    const analitica = fz_procesarIntervaloFinancieroMensual(saldoActualNeto, transaccionesValidas, intervalos);
+    const analitica = fz_procesarIntervaloFinancieroMensual(saldoBaseCalculo, transaccionesValidas, intervalos, fechaLimiteStr);
 
     const badge = document.getElementById('ini-finanzas-badge');
     if (badge) {
@@ -108,7 +128,6 @@ function fz_renderizarFinanzasDashboard() {
         badge.innerText = `${signo}${fz_formatearMonedaDashboard(Math.abs(analitica.delta))} ${intervalos.leyenda}`;
     }
 
-    // 🚀 ASIGNACIÓN DE COLOR AL PROMEDIO HISTÓRICO (Verde si superas el promedio, Rojo si estás por debajo)
     const promedioEl = document.getElementById('ini-finanzas-promedio');
     if (promedioEl) {
         promedioEl.innerText = `Promedio Histórico: ${fz_formatearMonedaDashboard(analitica.promedioGeneralHistorico)}`;
@@ -126,8 +145,7 @@ function fz_parsearFechaRegistro(fechaStr) {
     return null;
 }
 
-// Reemplaza por completo estas dos funciones dentro de tu archivo inicio.js
-
+// ─── LÓGICA DE PRODUCTIVIDAD (HORAS) ─────────────────────────
 function fz_renderizarProductividadDashboard() {
     const datos = cargarDatos();
     const registroTrabajo = datos.registro_trabajo || [];
@@ -182,7 +200,6 @@ function fz_renderizarProductividadDashboard() {
         cursor.setDate(cursor.getDate() + 1);
     }
 
-    // 🚀 NUEVA LÓGICA: Cálculo del Promedio Diario Incluyendo los Días Cero
     const diasTranscurridos = puntosGrafica.length;
     const totalHorasMes = totalSegsActual / 3600;
     const promedioDiarioHoras = diasTranscurridos > 0 ? (totalHorasMes / diasTranscurridos) : 0;
@@ -190,14 +207,13 @@ function fz_renderizarProductividadDashboard() {
     const promedioEl = document.getElementById('ini-trabajo-promedio');
     if (promedioEl) {
         promedioEl.innerText = `Promedio Diario: ${promedioDiarioHoras.toFixed(1)}h/día`;
-        // Pintar en verde si el promedio actual supera o es igual al del periodo anterior completo (ej: 2.0 horas base)
-        promedioEl.style.color = promedioDiarioHoras > 0 ? 'var(--text-base, #111111)' : 'var(--text-mutated, #888)';
+        promedioEl.style.color = promedioDiarioHoras > 0 ? 'var(--text-base, #111111)' : 'var(--text-mutado, #888)';
     }
 
-    fz_dibujarSparklineProductividad(puntosGrafica, clase !== "baja");
+    fz_dibujarSparklineProductividad(puntosGrafica, promedioDiarioHoras);
 }
 
-function fz_dibujarSparklineProductividad(puntos, esPositivo) {
+function fz_dibujarSparklineProductividad(puntos, promedioHoras) {
     const canvasElement = document.getElementById('ini-chart-productividad');
     if (!canvasElement) return;
 
@@ -206,9 +222,19 @@ function fz_dibujarSparklineProductividad(puntos, esPositivo) {
         try { fz_graficaProductividadInstancia.destroy(); } catch(e) {}
     }
 
-    const colorLinea = esPositivo ? '#f59e0b' : '#ef4444';
-    const gradienteFondo = ctx.createLinearGradient(0, 0, 0, 140); // Sincronizado a 140px de altura
-    gradienteFondo.addColorStop(0, esPositivo ? 'rgba(245,158,11,0.20)' : 'rgba(239,68,68,0.20)');
+    let colorLinea = '#ef4444'; 
+    let colorFondo = 'rgba(239, 68, 68, 0.20)';
+
+    if (promedioHoras >= 8) {
+        colorLinea = '#10b981'; 
+        colorFondo = 'rgba(16, 185, 129, 0.20)';
+    } else if (promedioHoras >= 4) {
+        colorLinea = '#f59e0b'; 
+        colorFondo = 'rgba(245, 158, 11, 0.20)';
+    }
+
+    const gradienteFondo = ctx.createLinearGradient(0, 0, 0, 140);
+    gradienteFondo.addColorStop(0, colorFondo);
     gradienteFondo.addColorStop(1, 'rgba(255, 255, 255, 0)');
 
     try {
@@ -248,35 +274,18 @@ function fz_dibujarSparklineProductividad(puntos, esPositivo) {
                 scales: {
                     x: { 
                         display: true,
-                        grid: { 
-                            display: true, 
-                            color: 'rgba(128, 128, 128, 0.12)',
-                            drawBorder: false
-                        },
-                        ticks: {
-                            color: 'var(--text-mutado, #999)',
-                            font: { size: 9, weight: '600' },
-                            maxTicksLimit: 31,
-                            autoSkip: false 
-                        }
+                        grid: { display: true, color: 'rgba(128, 128, 128, 0.12)', drawBorder: false },
+                        ticks: { color: 'var(--text-mutado, #999)', font: { size: 9, weight: '600' }, maxTicksLimit: 31, autoSkip: false }
                     },
                     y: {
                         display: true,
                         position: 'left',
-                        min: 0, // No existen horas negativas
-                        suggestedMax: Math.max(...puntos) > 0 ? Math.max(...puntos) * 1.12 : 8, // Escala proporcional o jornada base de 8h
-                        grid: {
-                            display: true,
-                            color: 'rgba(128, 128, 128, 0.08)',
-                            drawBorder: false
-                        },
+                        min: 0,
+                        suggestedMax: Math.max(...puntos) > 0 ? Math.max(...puntos) * 1.12 : 8,
+                        grid: { display: true, color: 'rgba(128, 128, 128, 0.08)', drawBorder: false },
                         ticks: {
-                            color: 'var(--text-mutado, #999)',
-                            font: { size: 8, weight: '600' },
-                            maxTicksLimit: 5,
-                            callback: function(value) {
-                                return value.toFixed(1) + 'h';
-                            }
+                            color: 'var(--text-mutado, #999)', font: { size: 8, weight: '600' }, maxTicksLimit: 5,
+                            callback: function(value) { return value.toFixed(1) + 'h'; }
                         }
                     }
                 }
@@ -287,6 +296,243 @@ function fz_dibujarSparklineProductividad(puntos, esPositivo) {
     }
 }
 
+// ─── LÓGICA DE TRABAJOS ENTREGADOS ──────────────────────────────
+function fz_renderizarVideosDashboard() {
+    const datos = cargarDatos();
+    const clientes = datos.clientes || [];
+    const intervalos = fz_obtenerLimitesFechasMensuales();
+    if (!intervalos) return;
+
+    function enRango(fechaObj, inicio, fin) {
+        if (!fechaObj || isNaN(fechaObj)) return false;
+        const f = new Date(fechaObj);
+        f.setHours(12, 0, 0, 0); 
+        return f >= inicio && f <= fin;
+    }
+
+    let totalAct = 0;
+    let totalAnt = 0;
+    let mapaFechas = {};
+
+    clientes.forEach(c => {
+        (c.videos || []).forEach(v => {
+            if (v.estado === 'listo') {
+                const fStr = v.fecha_entrega || v.fecha_pago || v.fecha_recibido || (v.ultima_edicion ? v.ultima_edicion.split('T')[0] : null);
+                if (fStr) {
+                    const f = new Date(fStr + 'T00:00:00');
+                    if (enRango(f, intervalos.inicioAct, intervalos.finAct)) {
+                        totalAct++;
+                        const key = f.toISOString().split('T')[0];
+                        mapaFechas[key] = (mapaFechas[key] || 0) + 1;
+                    } else if (enRango(f, intervalos.inicioAnt, intervalos.finAnt)) {
+                        totalAnt++;
+                    }
+                }
+            }
+        });
+    });
+
+    const countElement = document.getElementById('ini-videos-count');
+    if (countElement) countElement.innerText = totalAct;
+
+    const delta = totalAct - totalAnt;
+    let porcentaje = totalAnt > 0 ? Math.round((delta / totalAnt) * 100) : 0;
+    let clase = "neutro";
+    if (delta > 0) clase = "sube";
+    if (delta < 0) clase = "baja";
+
+    const badge = document.getElementById('ini-videos-badge');
+    if (badge) {
+        badge.className = "ini-badge " + clase;
+        const signo = delta >= 0 ? "+" : "";
+        badge.innerText = `${signo}${Math.abs(delta)} (${signo}${porcentaje}%) ${intervalos.leyenda}`;
+    }
+
+    let puntosGrafica = [];
+    let cursor = new Date(intervalos.inicioAct);
+    const hoyMax = new Date();
+    hoyMax.setHours(23, 59, 59, 999);
+
+    while (cursor <= intervalos.finAct && cursor <= hoyMax) {
+        const key = cursor.toISOString().split('T')[0];
+        puntosGrafica.push(mapaFechas[key] || 0);
+        cursor.setDate(cursor.getDate() + 1);
+    }
+
+    const diasTranscurridos = puntosGrafica.length;
+    const promedioDiario = diasTranscurridos > 0 ? (totalAct / diasTranscurridos) : 0;
+
+    const promedioEl = document.getElementById('ini-videos-promedio');
+    if (promedioEl) {
+        promedioEl.innerText = `Promedio Diario: ${promedioDiario.toFixed(2)}/día`;
+        promedioEl.style.color = promedioDiario >= (totalAnt / 30 || 0) ? 'var(--text-base, #111111)' : 'var(--text-mutado, #888)';
+    }
+
+    fz_dibujarSparklineVideos(puntosGrafica, totalAct);
+}
+
+function fz_dibujarSparklineVideos(puntos, totalTrabajosMes) {
+    const canvasElement = document.getElementById('ini-chart-videos');
+    if (!canvasElement) return;
+
+    const ctx = canvasElement.getContext('2d');
+    if (fz_graficaVideosInstancia) {
+        try { fz_graficaVideosInstancia.destroy(); } catch(e) {}
+    }
+
+    let colorLinea = '#ef4444'; 
+    let colorFondo = 'rgba(239, 68, 68, 0.20)';
+
+    if (totalTrabajosMes >= 1) {
+        colorLinea = '#10b981'; 
+        colorFondo = 'rgba(16, 185, 129, 0.20)';
+    }
+
+    const gradienteFondo = ctx.createLinearGradient(0, 0, 0, 140);
+    gradienteFondo.addColorStop(0, colorFondo);
+    gradienteFondo.addColorStop(1, 'rgba(255, 255, 255, 0)');
+
+    try {
+        fz_graficaVideosInstancia = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: Array.from({length: puntos.length}, (_, i) => i + 1),
+                datasets: [{
+                    data: puntos,
+                    borderColor: colorLinea,
+                    borderWidth: 2.5,
+                    pointRadius: 3,
+                    pointBackgroundColor: '#ffffff',
+                    pointBorderColor: colorLinea,
+                    pointBorderWidth: 1.5,
+                    pointHoverRadius: 6,
+                    fill: true,
+                    backgroundColor: gradienteFondo,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                layout: { padding: { top: 10, bottom: 5, left: 5, right: 10 } },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        enabled: true,
+                        intersect: false,
+                        backgroundColor: 'rgba(0,0,0,0.8)',
+                        padding: 10,
+                        cornerRadius: 8,
+                        callbacks: { label: c => ` Día ${c.label}: ${c.parsed.y} trabajo(s)` }
+                    }
+                },
+                scales: {
+                    x: {
+                        display: true,
+                        grid: { display: true, color: 'rgba(128, 128, 128, 0.12)', drawBorder: false },
+                        ticks: { color: 'var(--text-mutado, #999)', font: { size: 9, weight: '600' }, maxTicksLimit: 31, autoSkip: false }
+                    },
+                    y: {
+                        display: true,
+                        position: 'left',
+                        min: 0,
+                        suggestedMax: Math.max(...puntos) > 0 ? Math.max(...puntos) + 1 : 3,
+                        grid: { display: true, color: 'rgba(128, 128, 128, 0.08)', drawBorder: false },
+                        ticks: {
+                            color: 'var(--text-mutado, #999)', font: { size: 8, weight: '600' }, maxTicksLimit: 5,
+                            callback: function(value) { if(value % 1 === 0) return value; } 
+                        }
+                    }
+                }
+            }
+        });
+    } catch(e) {
+        console.error("❌ Error al crear gráfica videos:", e);
+    }
+}
+
+// ─── LÓGICA DE PORTAFOLIO CLIENTES (BLOQUES DE COLOR NOTION) ─────────
+function fz_renderizarResumenClientesDashboard() {
+    const datos = cargarDatos();
+    const clientes = datos.clientes || [];
+    const intervalos = fz_obtenerLimitesFechasMensuales();
+    if (!intervalos) return;
+
+    function enRango(fechaStr, inicio, fin) {
+        const f = fz_parsearFechaRegistro(fechaStr);
+        if (!f) return false;
+        f.setHours(12, 0, 0, 0);
+        return f >= inicio && f <= fin;
+    }
+
+    let ingresosAct = 0;
+    let ingresosAnt = 0;
+    let trabajosPendientes = 0;
+    let totalClientesActivos = 0;
+
+    clientes.forEach(c => {
+        let tieneActividadMes = false;
+
+        (c.videos || []).forEach(v => {
+            if (v.estado === 'sin_empezar' || v.estado === 'en_curso') {
+                trabajosPendientes++;
+            }
+
+            if (v.estado === 'listo') {
+                const cobrado = (v.finanzas?.inversion || 0) + (v.finanzas?.bono || 0);
+                const fStr = v.fecha_entrega || v.fecha_pago || v.fecha_recibido || (v.ultima_edicion ? v.ultima_edicion.split('T')[0] : null);
+                
+                if (fStr) {
+                    if (enRango(fStr, intervalos.inicioAct, intervalos.finAct)) {
+                        ingresosAct += cobrado;
+                        tieneActividadMes = true;
+                    } else if (enRango(fStr, intervalos.inicioAnt, intervalos.finAnt)) {
+                        ingresosAnt += cobrado;
+                    }
+                }
+            }
+        });
+
+        (c.pagos || []).forEach(p => {
+            if (p.fecha && enRango(p.fecha, intervalos.inicioAct, intervalos.finAct)) {
+                tieneActividadMes = true;
+            }
+        });
+
+        if (tieneActividadMes || (c.videos && c.videos.some(v => v.estado !== 'listo'))) {
+            totalClientesActivos++;
+        }
+    });
+
+    const elPend = document.getElementById('ini-resumen-pendientes');
+    if (elPend) {
+        elPend.innerText = trabajosPendientes;
+        // Pinta el número de rojo si hay pendientes, sino usa el color base.
+        elPend.style.color = trabajosPendientes > 0 ? '#ef4444' : 'var(--text-base, #111)';
+    }
+
+    const elCli = document.getElementById('ini-resumen-clientes');
+    if (elCli) elCli.innerText = totalClientesActivos;
+
+    const elIng = document.getElementById('ini-resumen-ingresos');
+    if (elIng) elIng.innerText = `$${ingresosAct.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+
+    // 🔥 CÁLCULO COMPARATIVO EN LA ESQUINA SUPERIOR (CARD HEADER)
+    const badgeCont = document.getElementById('ini-resumen-ingresos-badge');
+    if (badgeCont) {
+        const delta = ingresosAct - ingresosAnt;
+        let porcentaje = ingresosAnt > 0 ? Math.round((delta / ingresosAnt) * 100) : 0;
+        let clase = "neutro";
+        if (delta > 0.01) clase = "sube";
+        if (delta < -0.01) clase = "baja";
+
+        badgeCont.className = "ini-badge " + clase;
+        const signo = delta >= 0 ? "+" : "";
+        badgeCont.innerText = `${signo}${porcentaje}% ${intervalos.leyenda}`;
+    }
+}
+
+// ─── UTILIDADES (FECHAS Y SPARKLINE FINANZAS) ─────────────────────
 function fz_obtenerLimitesFechasMensuales() {
     const año = fz_fechaFiltroGlobal.getFullYear();
     const mes = fz_fechaFiltroGlobal.getMonth();
@@ -303,13 +549,12 @@ function fz_obtenerLimitesFechasMensuales() {
     return { inicioAct, finAct, inicioAnt, finAnt, leyenda };
 }
 
-function fz_procesarIntervaloFinancieroMensual(saldoActual, transacciones, intervalos) {
+function fz_procesarIntervaloFinancieroMensual(saldoActual, transacciones, intervalos, fechaLimiteStr) {
     const txOrdenadas = [...transacciones].sort((a, b) => b.fecha.localeCompare(a.fecha));
     
-    const hoyStr = new Date().toISOString().split('T')[0];
     let saldoTemporal = saldoActual;
     let mapaSaldosDiarios = {};
-    mapaSaldosDiarios[hoyStr] = saldoActual;
+    mapaSaldosDiarios[fechaLimiteStr] = saldoActual;
 
     txOrdenadas.forEach(t => {
         const fTx = t.fecha.split('T')[0];
@@ -324,7 +569,7 @@ function fz_procesarIntervaloFinancieroMensual(saldoActual, transacciones, inter
 
     function obtenerSaldoEnFecha(fechaObj) {
         let fStr = fechaObj.toISOString().split('T')[0];
-        if (fStr >= hoyStr) return saldoActual;
+        if (fStr >= fechaLimiteStr) return saldoActual;
         
         let diasBusqueda = Object.keys(mapaSaldosDiarios).sort();
         let saldoEncontrado = saldoActual;
@@ -391,7 +636,7 @@ function fz_dibujarSparklineDashboard(puntos, esPositivo) {
     }
 
     const colorLinea = esPositivo ? '#10b981' : '#ef4444';
-    const gradienteFondo = ctx.createLinearGradient(0, 0, 0, 140); // Ajustado a la nueva altura de 140
+    const gradienteFondo = ctx.createLinearGradient(0, 0, 0, 140);
     gradienteFondo.addColorStop(0, esPositivo ? 'rgba(16, 185, 129, 0.25)' : 'rgba(239,68,68,0.25)');
     gradienteFondo.addColorStop(1, 'rgba(255, 255, 255, 0)');
 
@@ -435,33 +680,17 @@ function fz_dibujarSparklineDashboard(puntos, esPositivo) {
             scales: {
                 x: { 
                     display: true,
-                    grid: { 
-                        display: true, 
-                        color: 'rgba(128, 128, 128, 0.12)', 
-                        drawBorder: false
-                    },
-                    ticks: {
-                        color: 'var(--text-mutado, #999)',
-                        font: { size: 9, weight: '600' },
-                        maxTicksLimit: 31,
-                        autoSkip: false
-                    }
+                    grid: { display: true, color: 'rgba(128, 128, 128, 0.12)', drawBorder: false },
+                    ticks: { color: 'var(--text-mutado, #999)', font: { size: 9, weight: '600' }, maxTicksLimit: 31, autoSkip: false }
                 },
                 y: { 
                     display: true, 
                     position: 'left',
-                    // 🚀 CORRECCIÓN CLAVE: Si no hay saldos negativos reales, el mínimo de la gráfica será $0
                     min: Math.min(...puntos) < 0 ? undefined : 0, 
-                    suggestedMax: Math.max(...puntos) * 1.08, // Margen controlado del 8% arriba para que respire
-                    grid: {
-                        display: true,
-                        color: 'rgba(128, 128, 128, 0.08)',
-                        drawBorder: false
-                    },
+                    suggestedMax: Math.max(...puntos) * 1.08,
+                    grid: { display: true, color: 'rgba(128, 128, 128, 0.08)', drawBorder: false },
                     ticks: {
-                        color: 'var(--text-mutado, #999)',
-                        font: { size: 8, weight: '600' },
-                        maxTicksLimit: 5, // Al tener más altura, subimos a 5 guías horizontales estéticas
+                        color: 'var(--text-mutado, #999)', font: { size: 8, weight: '600' }, maxTicksLimit: 5,
                         callback: function(value) {
                             if (value >= 1e6) return '$' + (value / 1e6).toFixed(1) + 'M';
                             if (value >= 1e3) return '$' + (value / 1e3).toFixed(0) + 'k';
@@ -484,16 +713,4 @@ function fz_formatearTiempoProductividad(segundos) {
     const m = Math.floor((Math.abs(segundos) % 3600) / 60);
     if (h === 0) return `${m}m`;
     return `${h}h ${String(m).padStart(2, '0')}m`;
-}
-
-function fz_renderizarPlaceholdersExtras() {
-    const datos = cargarDatos();
-    if (datos.clientes) {
-        const clientesEl = document.getElementById('ini-clientes-count');
-        if (clientesEl) clientesEl.innerText = datos.clientes.filter(c => !c.archivado).length;
-    }
-    if (datos.habitos) {
-        const habitosEl = document.getElementById('ini-habitos-porcentaje');
-        if (habitosEl) habitosEl.innerText = `${datos.habitos.length} Activos`;
-    }
 }

@@ -4,6 +4,7 @@
 // =========================================================================
 
 let clienteActualId = null;
+let proyectoActualId = null; // <--- NUEVO: Control de pestañas de proyectos
 
 // Estado de filtros y ordenamiento
 let filtroVideoTexto  = '';
@@ -19,6 +20,29 @@ let mesSeleccionadoCliente = null;
 let chartIngresosCli = null;
 let chartVideosCli = null;
 let chartPastelCli = null;
+
+
+// ─── LÓGICA DE MIGRACIÓN (Sin dañar BD) ────────────────────────────────
+function asegurarMigracionProyectos(cliente) {
+    if (!cliente.proyectos || cliente.proyectos.length === 0) {
+        const idPorDefecto = 'proj_' + Date.now();
+        cliente.proyectos = [{
+            id: idPorDefecto,
+            nombre: cliente.proyecto || 'Proyecto Principal'
+        }];
+        // Etiquetamos los videos y pagos antiguos para que pertenezcan a este proyecto
+        if (cliente.videos) cliente.videos.forEach(v => { if (!v.id_proyecto) v.id_proyecto = idPorDefecto; });
+        if (cliente.pagos) cliente.pagos.forEach(p => { if (!p.id_proyecto) p.id_proyecto = idPorDefecto; });
+        
+        // Guardar la migración automáticamente
+        const datos = cargarDatos();
+        const idx = datos.clientes.findIndex(c => c.id === cliente.id);
+        if(idx !== -1) {
+            datos.clientes[idx] = cliente;
+            guardarDatos(datos);
+        }
+    }
+}
 
 // ─── Inicialización ────────────────────────────────────────────────────
 window.inicializarClientes = function () {
@@ -153,14 +177,12 @@ function construirOpcionesFiltroGlobal() {
 
     let html = `<option value="all" ${filtroGlobalClientes === 'all' ? 'selected' : ''}>🌍 Todo el histórico</option>`;
     
-    // Agrupar Años
     Array.from(anos).sort((a,b) => b - a).forEach(a => {
         html += `<option value="${a}" ${filtroGlobalClientes === a ? 'selected' : ''}>📅 Año ${a}</option>`;
     });
 
     html += `<option disabled>──────────</option>`;
 
-    // Agrupar Meses
     Array.from(meses).sort((a,b) => b.localeCompare(a)).forEach(m => {
         html += `<option value="${m}" ${filtroGlobalClientes === m ? 'selected' : ''}>${formatearMes(m)}</option>`;
     });
@@ -168,12 +190,11 @@ function construirOpcionesFiltroGlobal() {
     return html;
 }
 
-// ─── Cálculo de métricas Globales y Gráficos ────────────────────────────
+// ─── Cálculo de métricas Globales y Gráficos (Dashboard Intacto) ────────────
 function calcularMetricasGlobales() {
     const datos    = cargarDatos();
     const clientes = datos.clientes || [];
     
-    // Funciones dinámicas para evaluar si una fecha cae en el filtro actual o el anterior
     let matchActual = () => false;
     let matchAnterior = () => false;
     let textoComparativo = '';
@@ -183,13 +204,11 @@ function calcularMetricasGlobales() {
         matchAnterior = () => false;
         textoComparativo = '';
     } else if (filtroGlobalClientes.length === 4) {
-        // Filtro por AÑO
         const y = parseInt(filtroGlobalClientes, 10);
         matchActual = (f) => f.getFullYear() === y;
         matchAnterior = (f) => f.getFullYear() === y - 1;
         textoComparativo = 'vs año ant.';
     } else {
-        // Filtro por MES (YYYY-MM)
         const [yStr, mStr] = filtroGlobalClientes.split('-');
         const y = parseInt(yStr, 10);
         const m = parseInt(mStr, 10) - 1;
@@ -207,7 +226,6 @@ function calcularMetricasGlobales() {
     const clientesConPend = new Set();
     const clientesActivosPeriodo = new Set();
 
-    // Estructuras de datos para los gráficos
     let dataIngresosDiarios = {};
     let dataVideosDiarios = {};
     let dataPastelClientes = {};
@@ -220,7 +238,6 @@ function calcularMetricasGlobales() {
         
         let ultimaFecha = new Date(cliente.fecha_creacion || 0).getTime();
 
-        // 1. Evaluar Pagos (AHORA SOLO SIRVEN PARA EL BALANCE Y LA ÚLTIMA ACTIVIDAD)
         (cliente.pagos || []).forEach(p => {
             const monto = parseFloat(p.monto) || 0;
             totalPagado += monto;
@@ -231,7 +248,6 @@ function calcularMetricasGlobales() {
             }
         });
 
-        // 2. Evaluar Videos (TRABAJO E INGRESOS DEVENGADOS)
         (cliente.videos || []).forEach(v => {
             const cobrado = (v.finanzas?.inversion || 0) + (v.finanzas?.bono || 0);
 
@@ -244,7 +260,6 @@ function calcularMetricasGlobales() {
                 const f = new Date(strFecha + 'T00:00:00');
                 if (!isNaN(f) && f.getTime() > ultimaFecha) ultimaFecha = f.getTime();
 
-                // Sumamos a ingresos SOLAMENTE si el video está LISTO
                 if (v.estado === 'listo') {
                     if (matchActual(f)) {
                         entregadosAct++;
@@ -252,7 +267,6 @@ function calcularMetricasGlobales() {
                         ingMesAct += cobrado;
                         tuvoActividadEnPeriodo = true;
                         
-                        // Guardar para gráficos diarios (ahora toma los ingresos de los videos)
                         dataVideosDiarios[strFecha] = (dataVideosDiarios[strFecha] || 0) + 1;
                         dataIngresosDiarios[strFecha] = (dataIngresosDiarios[strFecha] || 0) + cobrado;
                     } else if (matchAnterior(f)) {
@@ -271,12 +285,10 @@ function calcularMetricasGlobales() {
             totalActivos++;
         }
 
-        // Guardar para gráfico de pastel
         if (ingMesAct > 0) {
             dataPastelClientes[cliente.nombre] = ingMesAct;
         }
 
-        // Tendencias individuales para la tarjeta del cliente
         let tendenciaClase = '', tendenciaTexto = '— Igual';
         if (ingMesAnt === 0 && ingMesAct > 0) { tendenciaClase = 'sube'; tendenciaTexto = '↑ Nuevo'; }
         else if (ingMesAct > ingMesAnt) { tendenciaClase = 'sube'; tendenciaTexto = `↑ +${(((ingMesAct - ingMesAnt) / ingMesAnt) * 100).toFixed(0)}%`; }
@@ -290,7 +302,6 @@ function calcularMetricasGlobales() {
         };
     });
 
-    // Calcular porcentajes globales
     const pctIng = ingresosAnt > 0 ? (((ingresosAct - ingresosAnt) / ingresosAnt) * 100).toFixed(0) : null;
     const pctEnt = entregadosAnt > 0 ? (((entregadosAct - entregadosAnt) / entregadosAnt) * 100).toFixed(0) : null;
 
@@ -315,7 +326,6 @@ function calcularMetricasGlobales() {
 }
 
 // ─── Generación de los Gráficos (Chart.js) ──────────────────────────────
-// ─── Generación de los Gráficos (Chart.js) ──────────────────────────────
 function renderizarGraficosDashboard(ingresosMap, videosMap, pastelMap) {
     if (typeof Chart === 'undefined') return;
 
@@ -330,20 +340,17 @@ function renderizarGraficosDashboard(ingresosMap, videosMap, pastelMap) {
     if (fechasRaw.length === 0) {
         fechasRaw.push(new Date().toISOString().split('T')[0]);
     } else {
-        // --- 🚀 NUEVA LÓGICA: Rellenar días vacíos para no saltarlos ---
         let minDateStr = fechasRaw[0];
         let maxDateStr = fechasRaw[fechasRaw.length - 1];
 
-        // Si hay un filtro específico de mes (ej. "2023-10"), ajustamos al mes completo
         if (filtroGlobalClientes && filtroGlobalClientes.length === 7 && filtroGlobalClientes.includes('-')) {
             const [y, m] = filtroGlobalClientes.split('-');
-            minDateStr = `${y}-${m}-01`; // Día 1 del mes
+            minDateStr = `${y}-${m}-01`; 
             
             const lastDay = new Date(y, m, 0).getDate();
             const hoy = new Date();
             const esMesActual = hoy.getFullYear() === parseInt(y) && (hoy.getMonth() + 1) === parseInt(m);
             
-            // Si es el mes en curso, cortamos en el día actual para no mostrar el futuro en ceros
             const diaFin = esMesActual ? hoy.getDate() : lastDay;
             maxDateStr = `${y}-${m}-${String(diaFin).padStart(2, '0')}`;
         }
@@ -354,7 +361,6 @@ function renderizarGraficosDashboard(ingresosMap, videosMap, pastelMap) {
         if (!isNaN(minDate) && !isNaN(maxDate)) {
             const diffDias = Math.floor((maxDate - minDate) / (1000 * 60 * 60 * 24));
             
-            // Si la diferencia de tiempo es manejable rellenamos día a día
             if (diffDias >= 0 && diffDias <= 730) {
                 const fechasCompletas = [];
                 let currentDate = new Date(minDate);
@@ -366,15 +372,14 @@ function renderizarGraficosDashboard(ingresosMap, videosMap, pastelMap) {
                     fechasCompletas.push(`${yyyy}-${mm}-${dd}`);
                     currentDate.setDate(currentDate.getDate() + 1);
                 }
-                fechasRaw = fechasCompletas; // Reemplazamos las fechas salteadas por la línea continua
+                fechasRaw = fechasCompletas;
             }
         }
-        // ------------------------------------------------------------------
     }
 
     const labelsFechas = fechasRaw.map(f => { const p = f.split('-'); return `${p[2]}/${p[1]}`; });
-    const dataIngresos = fechasRaw.map(f => ingresosMap[f] || 0); // Asigna $0 a los días sin ingresos
-    const dataVideos   = fechasRaw.map(f => videosMap[f] || 0);   // Asigna 0 a los días sin entregas
+    const dataIngresos = fechasRaw.map(f => ingresosMap[f] || 0);
+    const dataVideos   = fechasRaw.map(f => videosMap[f] || 0);
 
     const pastelLabels = Object.keys(pastelMap);
     const pastelData = Object.values(pastelMap);
@@ -412,12 +417,10 @@ function renderizarGraficosDashboard(ingresosMap, videosMap, pastelMap) {
 if (window.chartPastelCli) window.chartPastelCli.destroy();
     const ctxPas = document.getElementById('chart-clientes-pastel');
     if (ctxPas) {
-        // --- 🚀 NUEVO: Seguro anti-desborde para el contenedor ---
         ctxPas.parentElement.style.position = 'relative';
         ctxPas.parentElement.style.minHeight = '180px'; 
         ctxPas.parentElement.style.maxHeight = '230px'; 
         ctxPas.parentElement.style.width = '100%';
-        // ---------------------------------------------------------
 
         window.chartPastelCli = new Chart(ctxPas, {
             type: 'doughnut',
@@ -425,13 +428,13 @@ if (window.chartPastelCli) window.chartPastelCli.destroy();
             options: { 
                 responsive: true, 
                 maintainAspectRatio: false, 
-                cutout: '70%', // Aro un poquito más grueso para que luzca mejor
+                cutout: '70%', 
                 layout: {
-                    padding: 10 // Le da "aire" para que no toque los bordes de la tarjeta
+                    padding: 10
                 },
                 plugins: { 
                     legend: { 
-                        position: 'bottom', // <--- LA CLAVE: Abajo no aplasta el gráfico
+                        position: 'bottom',
                         labels: { color: colText, font: { size: 10 }, boxWidth: 10, padding: 10 } 
                     }, 
                     tooltip: { enabled: pastelData.length > 0 } 
@@ -521,11 +524,18 @@ window.abrirPanelCliente = function (id) {
     const cliente = datos.clientes.find(c => c.id === id);
     if (!cliente) return;
 
+    // --- MIGRACIÓN DE PROYECTOS Y SELECCIÓN AUTOMÁTICA ---
+    asegurarMigracionProyectos(cliente);
+    if(!proyectoActualId || !cliente.proyectos.find(p => p.id === proyectoActualId)) {
+        proyectoActualId = cliente.proyectos[0].id;
+    }
+
     document.getElementById('vista-lista-clientes').style.display = 'none';
     document.getElementById('vista-panel-cliente').style.display  = 'block';
 
     document.getElementById('titulo-panel-cliente').textContent = cliente.nombre;
-    document.getElementById('panel-ch-meta').textContent = [cliente.proyecto, cliente.pais].filter(Boolean).join(' · ');
+    // Ahora mostramos la cantidad de proyectos creados para este cliente
+    document.getElementById('panel-ch-meta').textContent = `${cliente.proyectos.length} proyecto(s) · ${cliente.pais || ''}`;
 
     const avatarEl = document.getElementById('panel-avatar');
     if (avatarEl) {
@@ -544,6 +554,7 @@ window.abrirPanelCliente = function (id) {
         selectMesCliente.innerHTML = meses.map(m => `<option value="${m}" ${m === mesSeleccionadoCliente ? 'selected' : ''}>${formatearMes(m)}</option>`).join('');
     }
 
+    renderizarTabsProyectos();
     renderizarKpisCliente();
     const inp = document.getElementById('buscar-video-notion'); if (inp) inp.value = '';
     actualizarPills();
@@ -552,6 +563,7 @@ window.abrirPanelCliente = function (id) {
 
 window.cerrarPanelCliente = function () {
     clienteActualId = null;
+    proyectoActualId = null;
     document.getElementById('vista-panel-cliente').style.display  = 'none';
     document.getElementById('vista-lista-clientes').style.display = 'block';
     renderizarListaClientes();
@@ -568,21 +580,20 @@ window.renderizarKpisCliente = function() {
 
     let ingMes = 0, totalPagado = 0, totalConsumido = 0, entregados = 0, pendientes = 0;
 
-    // Solo sumar pagos para el balance
-    (cliente.pagos || []).forEach(p => {
+    // Solo sumar pagos para el balance DEL PROYECTO ACTUAL
+    (cliente.pagos || []).filter(p => p.id_proyecto === proyectoActualId).forEach(p => {
         const monto = parseFloat(p.monto) || 0;
         totalPagado += monto;
     });
 
-    // Sumar ingresos desde los videos "listos"
-    (cliente.videos || []).forEach(v => {
+    // Sumar ingresos desde los videos "listos" DEL PROYECTO ACTUAL
+    (cliente.videos || []).filter(v => v.id_proyecto === proyectoActualId).forEach(v => {
         const cobrado = (v.finanzas?.inversion || 0) + (v.finanzas?.bono || 0);
         
         if (v.estado === 'listo') { 
             entregados++; 
             totalConsumido += cobrado; 
             
-            // Si el video está listo en este mes, suma a las ganancias del mes
             const strFecha = v.fecha_entrega || v.fecha_pago || v.fecha_recibido || (v.ultima_edicion ? v.ultima_edicion.split('T')[0] : null);
             if (strFecha) {
                 const f = new Date(strFecha + 'T00:00:00');
@@ -619,6 +630,81 @@ window.renderizarKpisCliente = function() {
     }
 };
 
+// ─── Pestañas de Proyectos (CRUD Visual) ────────────────────────────────
+window.renderizarTabsProyectos = function() {
+    const datos = cargarDatos();
+    const cliente = datos.clientes.find(c => c.id === clienteActualId);
+    if (!cliente || !cliente.proyectos) return;
+
+    const cont = document.getElementById('tabs-proyectos-container');
+    if (!cont) return;
+
+    let html = cliente.proyectos.map(p => {
+        const isActive = p.id === proyectoActualId;
+        return `
+        <button class="btn-notion-pill ${isActive ? 'active' : ''}" style="font-size:12px; padding:6px 14px; display:inline-flex; align-items:center; gap:6px; border-radius:6px; border-style:${isActive ? 'solid' : 'dashed'}; border-width: 1px;" onclick="window.seleccionarProyecto('${p.id}')">
+            <i class="ti ti-folder" aria-hidden="true"></i> ${p.nombre}
+            ${isActive ? `<i class="ti ti-pencil" onclick="event.stopPropagation(); window.abrirModalProyecto('${p.id}')" style="margin-left:4px; opacity:0.6; cursor:pointer;" title="Editar Nombre"></i>` : ''}
+        </button>`;
+    }).join('');
+
+    html += `<button class="btn-notion-pill" style="border-style:dashed; border-width: 1px; font-size:12px; padding:6px 14px; border-radius:6px; background:transparent;" onclick="window.abrirModalProyecto()">
+        <i class="ti ti-plus" aria-hidden="true"></i> Nuevo...
+    </button>`;
+
+    cont.innerHTML = html;
+};
+
+window.seleccionarProyecto = function(id) {
+    proyectoActualId = id;
+    renderizarTabsProyectos();
+    renderizarKpisCliente();
+    renderizarTablaVideos();
+};
+
+window.abrirModalProyecto = function(id = null) {
+    document.getElementById('p-id-edit').value = id || '';
+    if (id) {
+        const datos = cargarDatos();
+        const cliente = datos.clientes.find(c => c.id === clienteActualId);
+        const proj = cliente.proyectos.find(p => p.id === id);
+        document.getElementById('p-nombre').value = proj ? proj.nombre : '';
+        document.getElementById('modal-proyecto-titulo').textContent = 'Editar Proyecto';
+    } else {
+        document.getElementById('p-nombre').value = '';
+        document.getElementById('modal-proyecto-titulo').textContent = 'Nuevo Proyecto';
+    }
+    document.getElementById('modal-proyecto').style.display = 'flex';
+};
+
+window.guardarProyecto = function() {
+    const nombre = document.getElementById('p-nombre').value.trim();
+    if (!nombre) return alert('Ingresa un nombre para el proyecto.');
+
+    const idEdit = document.getElementById('p-id-edit').value;
+    const datos = cargarDatos();
+    const cliente = datos.clientes.find(c => c.id === clienteActualId);
+
+    if (idEdit) {
+        const proj = cliente.proyectos.find(p => p.id === idEdit);
+        if (proj) proj.nombre = nombre;
+    } else {
+        const nuevoId = 'proj_' + Date.now();
+        cliente.proyectos.push({ id: nuevoId, nombre });
+        proyectoActualId = nuevoId; 
+    }
+    
+    guardarDatos(datos);
+    document.getElementById('modal-proyecto').style.display = 'none';
+    
+    // Actualizamos las vistas
+    document.getElementById('panel-ch-meta').textContent = `${cliente.proyectos.length} proyecto(s) · ${cliente.pais || ''}`;
+    renderizarTabsProyectos();
+    renderizarKpisCliente();
+    renderizarTablaVideos();
+};
+
+
 // ─── Pagos y Adelantos (El Banco) ───────────────────────────────────────
 window.abrirModalPago = function() {
     document.getElementById('pago-monto').value = '';
@@ -642,7 +728,8 @@ window.guardarPago = function() {
     const cliente = datos.clientes.find(c => c.id === clienteActualId);
     if (!cliente.pagos) cliente.pagos = [];
 
-    cliente.pagos.push({ id: Date.now(), monto, fecha, nota });
+    // Ahora el pago se asocia al proyecto actual
+    cliente.pagos.push({ id: Date.now(), monto, fecha, nota, id_proyecto: proyectoActualId });
     guardarDatos(datos);
     window.cerrarModalPago();
     
@@ -659,11 +746,12 @@ window.verHistorialPagos = function() {
     const cliente = datos.clientes.find(c => c.id === clienteActualId);
     if (!cliente) return;
     
-    const pagos = (cliente.pagos || []).sort((a,b) => new Date(b.fecha) - new Date(a.fecha));
+    // Filtramos los pagos solo del proyecto seleccionado
+    const pagos = (cliente.pagos || []).filter(p => p.id_proyecto === proyectoActualId).sort((a,b) => new Date(b.fecha) - new Date(a.fecha));
     const tbody = document.getElementById('tabla-pagos-body');
     
     if (pagos.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--text-lo)">Aún no tienes pagos registrados.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--text-lo)">Aún no tienes pagos registrados en este proyecto.</td></tr>';
     } else {
         tbody.innerHTML = pagos.map(p => `
             <tr style="border-bottom: 1px solid var(--border-card)">
@@ -728,11 +816,18 @@ function renderizarTablaVideos() {
     const datos = cargarDatos(); const cliente = datos.clientes.find(c => c.id === clienteActualId);
 
     if (!cliente?.videos?.length) {
-        cuerpo.innerHTML = `<tr><td colspan="12" style="text-align:center;padding:40px;color:var(--text-lo)">Aún no hay videos. Haz clic en <strong>Agregar video</strong>.</td></tr>`;
+        cuerpo.innerHTML = `<tr><td colspan="12" style="text-align:center;padding:40px;color:var(--text-lo)">Aún no hay videos en general. Haz clic en <strong>Agregar video</strong>.</td></tr>`;
         return;
     }
 
-    let lista = cliente.videos.filter(v => (v.nombre.toLowerCase().includes(filtroVideoTexto)) && (filtroVideoEstado === 'todos' || v.estado === filtroVideoEstado));
+    // Filtramos SÓLO los videos del proyecto seleccionado
+    let lista = cliente.videos.filter(v => v.id_proyecto === proyectoActualId && (v.nombre.toLowerCase().includes(filtroVideoTexto)) && (filtroVideoEstado === 'todos' || v.estado === filtroVideoEstado));
+    
+    if (lista.length === 0) {
+        cuerpo.innerHTML = `<tr><td colspan="12" style="text-align:center;padding:40px;color:var(--text-lo)">No hay videos en este proyecto.</td></tr>`;
+        return;
+    }
+
     lista.sort((a, b) => {
         let va, vb;
         if (ordenVideoColumna === 'numero') { va = a.numero_video || 0; vb = b.numero_video || 0; }
@@ -878,7 +973,12 @@ window.abrirModalNuevoVideo = function (idVideoEdit = null) {
     ['v-numero','v-palabras','v-inversion','v-bono'].forEach(id => { const el = document.getElementById(id); if (el) el.value = 0; });
     ['yt','fb','tk','ig'].forEach(p => { ['vistas','likes','url','nota'].forEach(campo => { const el = document.getElementById(`v-${p}-${campo}`); if (el) el.value = ['url','nota'].includes(campo) ? '' : 0; }); });
     const datos = cargarDatos(); const cliente = datos.clientes.find(c => c.id === clienteActualId); if (!cliente) return;
-    document.getElementById('v-numero').value = (cliente.videos?.length || 0) + 1; document.getElementById('v-estado').value = 'sin_empezar';
+    
+    // Obtenemos los videos SOLO de este proyecto para calcular el número que sigue
+    const videosDelProyecto = cliente.videos?.filter(v => v.id_proyecto === proyectoActualId) || [];
+    document.getElementById('v-numero').value = videosDelProyecto.length + 1; 
+    
+    document.getElementById('v-estado').value = 'sin_empezar';
     if (idVideoEdit) {
         const v = cliente.videos.find(vid => vid.id_video === idVideoEdit);
         if (v) {
@@ -889,12 +989,45 @@ window.abrirModalNuevoVideo = function (idVideoEdit = null) {
     modal.style.display = 'flex';
 };
 window.cerrarModalVideo = function () { document.getElementById('modal-video-completo').style.display = 'none'; };
+
 window.guardarVideoModal = function () {
     if (!clienteActualId) return; const nombre = document.getElementById('v-nombre').value.trim(); if (!nombre) { alert('El video necesita un título.'); return; }
     const idEdit = document.getElementById('v-id-edit').value; const datos = cargarDatos(); const cliente = datos.clientes.find(c => c.id === clienteActualId); if (!cliente.videos) cliente.videos = [];
     const getRed = (p) => ({ vistas: parseInt(document.getElementById(`v-${p}-vistas`)?.value) || 0, likes: parseInt(document.getElementById(`v-${p}-likes`)?.value) || 0, url: document.getElementById(`v-${p}-url`)?.value.trim() || '', nota: document.getElementById(`v-${p}-nota`)?.value.trim() || '' });
-    const videoData = { numero_video: parseInt(document.getElementById('v-numero').value) || 1, nombre, estado: document.getElementById('v-estado').value, fecha_recibido: document.getElementById('v-f-recibido').value, fecha_entrega: document.getElementById('v-f-entrega').value, fecha_subido: document.getElementById('v-f-subido').value, fecha_pago: document.getElementById('v-f-pago').value, tiempo_trabajo: document.getElementById('v-tiempo').value, palabras_guion: parseInt(document.getElementById('v-palabras').value) || 0, finanzas: { inversion: parseFloat(document.getElementById('v-inversion').value) || 0, bono: parseFloat(document.getElementById('v-bono').value) || 0 }, redes: { youtube: getRed('yt'), facebook: getRed('fb'), tiktok: getRed('tk'), instagram: getRed('ig') }, ultima_edicion: new Date().toISOString() };
-    if (idEdit) { const idx = cliente.videos.findIndex(v => v.id_video == idEdit); if (idx !== -1) { videoData.id_video = cliente.videos[idx].id_video; cliente.videos[idx] = videoData; } } else { videoData.id_video = Date.now(); cliente.videos.push(videoData); }
-    guardarDatos(datos); window.cerrarModalVideo(); window.abrirPanelCliente(clienteActualId);
+    
+    const videoData = { 
+        numero_video: parseInt(document.getElementById('v-numero').value) || 1, 
+        nombre, 
+        estado: document.getElementById('v-estado').value, 
+        fecha_recibido: document.getElementById('v-f-recibido').value, 
+        fecha_entrega: document.getElementById('v-f-entrega').value, 
+        fecha_subido: document.getElementById('v-f-subido').value, 
+        fecha_pago: document.getElementById('v-f-pago').value, 
+        tiempo_trabajo: document.getElementById('v-tiempo').value, 
+        palabras_guion: parseInt(document.getElementById('v-palabras').value) || 0, 
+        finanzas: { inversion: parseFloat(document.getElementById('v-inversion').value) || 0, bono: parseFloat(document.getElementById('v-bono').value) || 0 }, 
+        redes: { youtube: getRed('yt'), facebook: getRed('fb'), tiktok: getRed('tk'), instagram: getRed('ig') }, 
+        ultima_edicion: new Date().toISOString() 
+    };
+    
+    if (idEdit) { 
+        const idx = cliente.videos.findIndex(v => v.id_video == idEdit); 
+        if (idx !== -1) { 
+            videoData.id_video = cliente.videos[idx].id_video; 
+            // Conservamos el proyecto actual al que pertenece el video editado
+            videoData.id_proyecto = cliente.videos[idx].id_proyecto || proyectoActualId; 
+            cliente.videos[idx] = videoData; 
+        } 
+    } else { 
+        videoData.id_video = Date.now(); 
+        // Asignamos el video al proyecto que actualmente está en pantalla
+        videoData.id_proyecto = proyectoActualId; 
+        cliente.videos.push(videoData); 
+    }
+    
+    guardarDatos(datos); 
+    window.cerrarModalVideo(); 
+    window.abrirPanelCliente(clienteActualId);
 };
+
 window.borrarVideo = function (idVideo) { if (!confirm('¿Eliminar este video?')) return; const datos = cargarDatos(); const cliente = datos.clientes.find(c => c.id === clienteActualId); cliente.videos = cliente.videos.filter(v => v.id_video !== idVideo); guardarDatos(datos); window.abrirPanelCliente(clienteActualId); };

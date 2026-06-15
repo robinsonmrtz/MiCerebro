@@ -99,6 +99,9 @@
         </div>
     </div>
 
+    <div id="tabs-proyectos-container" class="notion-filter-bar" style="margin-bottom: 16px; overflow-x: auto; flex-wrap: nowrap; gap: 8px;">
+        </div>
+
     <div class="notion-filter-bar">
         <div class="notion-search-wrapper">
             <input type="text" id="buscar-video-notion" placeholder="Buscar video por título…"
@@ -216,6 +219,7 @@
                 </label>
                 <label class="modal-video-label">
                     Estado
+                    <input type="select" id="v-estado" class="input-minimalista" style="display:none;">
                     <select id="v-estado" class="input-minimalista">
                         <option value="sin_empezar">Sin empezar</option>
                         <option value="en_curso">En curso</option>
@@ -351,6 +355,23 @@
         </div>
         <div class="modal-botones-row" style="margin-top:16px">
             <button class="btn-secondary" onclick="window.cerrarHistorialPagos()">Cerrar historial</button>
+        </div>
+    </div>
+</div>
+
+<div id="modal-proyecto" class="modal-overlay" style="display:none;z-index:2000">
+    <div class="modal-caja" style="max-width:400px;width:90%">
+        <h3 id="modal-proyecto-titulo">Nuevo Proyecto / Canal</h3>
+        <div class="modal-cliente-grid">
+            <label>
+                Nombre del proyecto
+                <input type="hidden" id="p-id-edit">
+                <input type="text" id="p-nombre" class="input-minimalista" placeholder="Ej. Canal Secundario YouTube">
+            </label>
+        </div>
+        <div class="modal-botones-row" style="margin-top:22px">
+            <button class="btn-secondary" onclick="document.getElementById('modal-proyecto').style.display='none'">Cancelar</button>
+            <button class="btn-primary" onclick="window.guardarProyecto()">Guardar proyecto</button>
         </div>
     </div>
 </div>

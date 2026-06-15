@@ -5,7 +5,7 @@
             <span id="ini-dolar-pill">Cargando...</span>
         </div>
         <h2 id="ini-saludo">👋 Hola</h2>
-        <p class="ini-subtitulo">Centro de mandos · trabajo, hábitos y finanzas</p>
+        <p class="ini-subtitulo">Centro de mandos · trabajo, clientes y finanzas</p>
     </div>
 
     <div class="ini-controls-wrapper">
@@ -19,7 +19,6 @@
 
 <div class="ini-dashboard-grid">
 
-    <!-- FINANZAS -->
     <div class="ini-card ini-card-finanzas">
         <div class="ini-card-header">
             <span class="ini-card-icon-wrap">💰</span>
@@ -35,7 +34,6 @@
         </div>
     </div>
 
-    <!-- PRODUCTIVIDAD -->
     <div class="ini-card">
         <div class="ini-card-header">
             <span class="ini-card-icon-wrap">🔥</span>
@@ -51,30 +49,66 @@
         </div>
     </div>
 
-    <!-- CONSISTENCIA -->
-    <div class="ini-card ini-card-sm">
+    <div class="ini-card">
         <div class="ini-card-header">
-            <span class="ini-card-icon-wrap">⚡</span>
-            <span class="ini-card-title">Consistencia</span>
+            <span class="ini-card-icon-wrap">🎬</span>
+            <span class="ini-card-title">Trabajos Entregados</span>
+            <span id="ini-videos-badge" class="ini-badge">--</span>
         </div>
         <div class="ini-card-body">
-            <h3 id="ini-habitos-porcentaje">0%</h3>
-            <span class="ini-card-sub">Hábitos completados</span>
+            <h3 id="ini-videos-count">0</h3>
+            <span id="ini-videos-promedio" class="ini-card-meta">Promedio Diario: 0.0/día</span>
         </div>
-        <div class="ini-placeholder-bar">
-            <div class="ini-bar-fill" style="width: 80%;"></div>
+        <div class="ini-sparkline-container">
+            <canvas id="ini-chart-videos"></canvas>
         </div>
     </div>
 
-    <!-- PROYECTOS -->
-    <div class="ini-card ini-card-sm">
-        <div class="ini-card-header">
-            <span class="ini-card-icon-wrap">💼</span>
-            <span class="ini-card-title">Proyectos</span>
+
+    <div class="ini-card-invisible" style="visibility: hidden; pointer-events: none; min-height: 100px;"></div>
+
+    <div class="ini-card-invisible" style="visibility: hidden; pointer-events: none; min-height: 100px;"></div>
+
+    <div class="ini-card" style="display: flex; flex-direction: column; justify-content: space-between;">
+        <div class="ini-card-header" style="margin-bottom: 12px;">
+            <span class="ini-card-icon-wrap">📈</span>
+            <span class="ini-card-title">Portafolio Clientes</span>
+            <span id="ini-resumen-ingresos-badge" class="ini-badge">--</span>
         </div>
-        <div class="ini-card-body">
-            <h3 id="ini-clientes-count">0</h3>
-            <span class="ini-card-sub">Clientes activos</span>
+        <div class="ini-card-body" style="margin-bottom: 0;">
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 100%;">
+                
+                <div style="background: transparent; border: 1px solid rgba(128, 128, 128, 0.15); border-radius: 12px; padding: 12px; display: flex; justify-content: space-between; align-items: center;">
+                    <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 3px;">
+                        <span style="font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.02em; color: var(--text-mutado, #888); font-weight: 700; line-height: 1;">Pendientes</span>
+                        <h3 id="ini-resumen-pendientes" style="margin: 0; font-size: 19px; font-weight: 800; color: var(--text-base, #111); line-height: 1;">0</h3>
+                    </div>
+                    <div style="width: 30px; height: 30px; border-radius: 8px; background: rgba(239, 68, 68, 0.1); color: #ef4444; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0;">
+                        ⏳
+                    </div>
+                </div>
+
+                <div style="background: transparent; border: 1px solid rgba(128, 128, 128, 0.15); border-radius: 12px; padding: 12px; display: flex; justify-content: space-between; align-items: center;">
+                    <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 3px;">
+                        <span style="font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.02em; color: var(--text-mutado, #888); font-weight: 700; line-height: 1;">Clientes</span>
+                        <h3 id="ini-resumen-clientes" style="margin: 0; font-size: 19px; font-weight: 800; color: var(--text-base, #111); line-height: 1;">0</h3>
+                    </div>
+                    <div style="width: 30px; height: 30px; border-radius: 8px; background: rgba(139, 92, 246, 0.1); color: #8b5cf6; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0;">
+                        👥
+                    </div>
+                </div>
+
+                <div style="background: transparent; border: 1px solid rgba(128, 128, 128, 0.15); border-radius: 12px; padding: 12px; display: flex; justify-content: space-between; align-items: center;">
+                    <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 3px; max-width: calc(100% - 36px);">
+                        <span style="font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.02em; color: var(--text-mutado, #888); font-weight: 700; line-height: 1;">Ingresos</span>
+                        <h3 id="ini-resumen-ingresos" style="margin: 0; font-size: 16px; font-weight: 800; color: var(--text-base, #111); line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;">$0.00</h3>
+                    </div>
+                    <div style="width: 30px; height: 30px; border-radius: 8px; background: rgba(16, 185, 129, 0.1); color: #10b981; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0;">
+                        💵
+                    </div>
+                </div>
+
+            </div>
         </div>
     </div>
 
