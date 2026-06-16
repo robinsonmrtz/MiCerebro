@@ -1,14 +1,15 @@
 // ====================================================
-// CORE COMPONENT: inicio.js (Motor Mensual Acumulativo Profesional v4.0)
+// CORE COMPONENT: inicio.js (Motor Mensual Acumulativo Profesional v5.0)
 // FILTROS: Ejes Visuales Completos + Indicadores de Promedio en Color
 // CORRECCIÓN HISTÓRICA: Balance de dinero amarrado al cierre exacto del mes consultado
-// DISEÑO SECTORIZADO: Diseño exacto de KPI Cards con flexbox e iconos
+// INTERACCIÓN DOPAMINA: Integración de rachas continuas por tarjeta
 // ====================================================
 
 let fz_fechaFiltroGlobal = new Date(); 
 let fz_graficaSparklineInstancia = null;
 let fz_graficaProductividadInstancia = null;
 let fz_graficaVideosInstancia = null;
+let fz_graficaDopaminaInstancia = null; // NUEVO GRÁFICO DOPAMINA
 
 function inicializarDashboard() {
     console.log("🧠 Inicializando Dashboard Mensual Avanzado...");
@@ -20,6 +21,7 @@ function inicializarDashboard() {
     fz_renderizarProductividadDashboard();
     fz_renderizarVideosDashboard(); 
     fz_renderizarResumenClientesDashboard();
+    fz_renderizarDopaminaDashboard(); // LLAMADA AL NUEVO GRÁFICO
 }
 
 function fz_renderizarSaludo() {
@@ -71,6 +73,184 @@ function fz_navegarMes(direccion) {
     fz_renderizarProductividadDashboard();
     fz_renderizarVideosDashboard(); 
     fz_renderizarResumenClientesDashboard();
+    fz_renderizarDopaminaDashboard(); // LLAMADA AL NAVEGAR
+}
+
+// ─── LÓGICA DEL NUEVO MÓDULO DOPAMINA EN DASHBOARD ───────────────
+function fz_renderizarDopaminaDashboard() {
+    const datos = cargarDatos();
+    const acciones = datos.dopamina?.acciones || [];
+    const select = document.getElementById('ini-dopamina-select');
+
+    if (!select) return;
+
+    // Llenar el select la primera vez si está vacío
+    if (select.options.length === 0) {
+        if (acciones.length === 0) {
+            select.innerHTML = '<option value="">Sin acciones</option>';
+        } else {
+            select.innerHTML = acciones.map(a => `<option value="${a.id}">${a.icono} ${a.nombre}</option>`).join('');
+        }
+    }
+
+    const idSeleccionado = select.value;
+    const accion = acciones.find(a => a.id == idSeleccionado);
+
+    const rachaElement = document.getElementById('ini-dopamina-racha');
+    const promElement = document.getElementById('ini-dopamina-promedio');
+
+    if (!accion || !accion.fechaInicio) {
+        if (rachaElement) rachaElement.innerText = '0d';
+        if (promElement) promElement.innerText = 'Promedio: 0.0d';
+        fz_dibujarSparklineDopamina([], 0, 0);
+        return;
+    }
+
+    const intervalos = fz_obtenerLimitesFechasMensuales();
+    if (!intervalos) return;
+
+    // 1. Calcular el Promedio Histórico Real
+    let puntosReset = [];
+    puntosReset.push(new Date(accion.fechaInicio).getTime());
+    accion.historialRecaidas.forEach(r => puntosReset.push(new Date(r).getTime()));
+    puntosReset.sort();
+
+    let duraciones = [];
+    for (let i = 1; i < puntosReset.length; i++) {
+        duraciones.push(puntosReset[i] - puntosReset[i-1]);
+    }
+    let promMs = duraciones.length > 0 ? (duraciones.reduce((a,b)=>a+b,0) / duraciones.length) : 0;
+    let promDias = promMs / 86400000;
+
+    // 2. Extraer puntos para la gráfica diaria del mes
+    let puntosGrafica = [];
+    let cursor = new Date(intervalos.inicioAct);
+    const hoyMax = new Date();
+    hoyMax.setHours(23, 59, 59, 999);
+
+    let rachaActualMes = 0;
+
+    while (cursor <= intervalos.finAct && cursor <= hoyMax) {
+        let finDia = new Date(cursor);
+        finDia.setHours(23, 59, 59, 999);
+        let timeDia = finDia.getTime();
+
+        // Buscar la última recaída que ocurrió ANTES del final de este día
+        let lastR = -1;
+        for (let i = 0; i < puntosReset.length; i++) {
+            if (puntosReset[i] <= timeDia) lastR = puntosReset[i];
+            else break;
+        }
+
+        let rachaDia = 0;
+        if (lastR !== -1) {
+            rachaDia = (timeDia - lastR) / 86400000; // Exacto en decimales
+        }
+        
+        puntosGrafica.push(Math.round(rachaDia * 10) / 10);
+        rachaActualMes = rachaDia; // Se queda con el último valor válido
+        cursor.setDate(cursor.getDate() + 1);
+    }
+
+    // 3. Pintar en el DOM
+    if (rachaElement) {
+        rachaElement.innerText = Math.floor(rachaActualMes) + 'd';
+    }
+    if (promElement) {
+        promElement.innerText = `Promedio: ${promDias.toFixed(1)}d`;
+        
+        // Logica de colores: Si supera o iguala el promedio histórico -> Verde Victoria
+        if (rachaActualMes >= promDias && rachaActualMes > 0) {
+            promElement.style.color = '#10b981'; 
+        } else if (rachaActualMes < promDias) {
+            promElement.style.color = '#ef4444'; 
+        } else {
+            promElement.style.color = 'var(--text-mutado, #999)';
+        }
+    }
+
+    fz_dibujarSparklineDopamina(puntosGrafica, rachaActualMes, promDias);
+}
+
+function fz_dibujarSparklineDopamina(puntos, rachaActual, promDias) {
+    const canvasElement = document.getElementById('ini-chart-dopamina');
+    if (!canvasElement) return;
+
+    const ctx = canvasElement.getContext('2d');
+    if (fz_graficaDopaminaInstancia) {
+        try { fz_graficaDopaminaInstancia.destroy(); } catch(e) {}
+    }
+
+    let colorLinea = '#ef4444'; 
+    let colorFondo = 'rgba(239, 68, 68, 0.20)';
+
+    // La gráfica entera asume la victoria (verde) si cruzamos el promedio
+    if ((rachaActual >= promDias && rachaActual > 0) || (promDias === 0 && rachaActual > 0)) {
+        colorLinea = '#10b981'; 
+        colorFondo = 'rgba(16, 185, 129, 0.20)';
+    }
+
+    const gradienteFondo = ctx.createLinearGradient(0, 0, 0, 140);
+    gradienteFondo.addColorStop(0, colorFondo);
+    gradienteFondo.addColorStop(1, 'rgba(255, 255, 255, 0)');
+
+    try {
+        fz_graficaDopaminaInstancia = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: Array.from({length: puntos.length}, (_, i) => i + 1),
+                datasets: [{
+                    data: puntos,
+                    borderColor: colorLinea,
+                    borderWidth: 2.5,
+                    pointRadius: 3, 
+                    pointBackgroundColor: '#ffffff',
+                    pointBorderColor: colorLinea,
+                    pointBorderWidth: 1.5,
+                    pointHoverRadius: 6,
+                    fill: true,
+                    backgroundColor: gradienteFondo,
+                    tension: 0.15 // Pequeña tensión visual para que se vea el "diente de sierra" fluido
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                layout: { padding: { top: 10, bottom: 5, left: 5, right: 10 } },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        enabled: true,
+                        intersect: false,
+                        backgroundColor: 'rgba(0,0,0,0.8)',
+                        padding: 10,
+                        cornerRadius: 8,
+                        callbacks: { label: c => ` Día ${c.label}: ${c.parsed.y} días de racha` }
+                    }
+                },
+                scales: {
+                    x: { 
+                        display: true,
+                        grid: { display: true, color: 'rgba(128, 128, 128, 0.12)', drawBorder: false },
+                        ticks: { color: 'var(--text-mutado, #999)', font: { size: 9, weight: '600' }, maxTicksLimit: 31, autoSkip: false }
+                    },
+                    y: {
+                        display: true,
+                        position: 'left',
+                        min: 0,
+                        suggestedMax: Math.max(...puntos) > 0 ? Math.max(...puntos) + 2 : 5,
+                        grid: { display: true, color: 'rgba(128, 128, 128, 0.08)', drawBorder: false },
+                        ticks: {
+                            color: 'var(--text-mutado, #999)', font: { size: 8, weight: '600' }, maxTicksLimit: 5,
+                            callback: function(value) { return value.toFixed(0) + 'd'; }
+                        }
+                    }
+                }
+            }
+        });
+    } catch(e) {
+        console.error("❌ Error al crear gráfica dopamina:", e);
+    }
 }
 
 // ─── LÓGICA DE FINANZAS COMPROMETIDA CON EL CIERRE MENSUAL ─────────
@@ -507,7 +687,6 @@ function fz_renderizarResumenClientesDashboard() {
     const elPend = document.getElementById('ini-resumen-pendientes');
     if (elPend) {
         elPend.innerText = trabajosPendientes;
-        // Pinta el número de rojo si hay pendientes, sino usa el color base.
         elPend.style.color = trabajosPendientes > 0 ? '#ef4444' : 'var(--text-base, #111)';
     }
 
@@ -517,7 +696,6 @@ function fz_renderizarResumenClientesDashboard() {
     const elIng = document.getElementById('ini-resumen-ingresos');
     if (elIng) elIng.innerText = `$${ingresosAct.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 
-    // 🔥 CÁLCULO COMPARATIVO EN LA ESQUINA SUPERIOR (CARD HEADER)
     const badgeCont = document.getElementById('ini-resumen-ingresos-badge');
     if (badgeCont) {
         const delta = ingresosAct - ingresosAnt;

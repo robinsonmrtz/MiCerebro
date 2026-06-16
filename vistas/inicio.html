@@ -64,8 +64,23 @@
         </div>
     </div>
 
-
-    <div class="ini-card-invisible" style="visibility: hidden; pointer-events: none; min-height: 100px;"></div>
+    <div class="ini-card">
+        <div class="ini-card-header" style="justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 7px;">
+                <span class="ini-card-icon-wrap">🧠</span>
+                <span class="ini-card-title">Dopamina</span>
+            </div>
+            <select id="ini-dopamina-select" onchange="fz_renderizarDopaminaDashboard()" style="background: transparent; border: 1px solid rgba(128, 128, 128, 0.2); border-radius: 6px; font-size: 10.5px; font-weight: 600; color: var(--text-base); padding: 3px 6px; outline: none; cursor: pointer; max-width: 120px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+            </select>
+        </div>
+        <div class="ini-card-body">
+            <h3 id="ini-dopamina-racha">0d</h3>
+            <span id="ini-dopamina-promedio" class="ini-card-meta">Promedio: 0.0d</span>
+        </div>
+        <div class="ini-sparkline-container">
+            <canvas id="ini-chart-dopamina"></canvas>
+        </div>
+    </div>
 
     <div class="ini-card-invisible" style="visibility: hidden; pointer-events: none; min-height: 100px;"></div>
 
