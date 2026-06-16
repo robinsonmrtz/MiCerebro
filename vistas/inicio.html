@@ -8,11 +8,15 @@
         <p class="ini-subtitulo">Centro de mandos · trabajo, clientes y finanzas</p>
     </div>
 
-    <div class="ini-controls-wrapper">
+    <div class="ini-controls-wrapper" style="display: flex; gap: 10px; align-items: center;">
         <div class="ini-switch-container">
-            <button class="ini-btn-switch" onclick="fz_navegarMes(-1)">◀</button>
+            <button class="ini-btn-switch" id="btn-vista-mes" onclick="fz_setModoVista('mes')" style="color: var(--text-base, #111); font-weight: bold;">Mes</button>
+            <button class="ini-btn-switch" id="btn-vista-ano" onclick="fz_setModoVista('ano')">Año</button>
+        </div>
+        <div class="ini-switch-container">
+            <button class="ini-btn-switch" onclick="fz_navegar(-1)">◀</button>
             <span id="ini-mes-filtro-label"></span>
-            <button class="ini-btn-switch" onclick="fz_navegarMes(1)">▶</button>
+            <button class="ini-btn-switch" onclick="fz_navegar(1)">▶</button>
         </div>
     </div>
 </div>
@@ -49,9 +53,9 @@
         </div>
     </div>
 
-    <div class="ini-card">
+        <div class="ini-card">
         <div class="ini-card-header">
-            <span class="ini-card-icon-wrap">🎬</span>
+            <span class="ini-card-icon-wrap">💼</span>
             <span class="ini-card-title">Trabajos Entregados</span>
             <span id="ini-videos-badge" class="ini-badge">--</span>
         </div>
@@ -64,7 +68,7 @@
         </div>
     </div>
 
-    <div class="ini-card">
+        <div class="ini-card">
         <div class="ini-card-header" style="justify-content: space-between;">
             <div style="display: flex; align-items: center; gap: 7px;">
                 <span class="ini-card-icon-wrap">🧠</span>
@@ -82,15 +86,33 @@
         </div>
     </div>
 
-    <div class="ini-card-invisible" style="visibility: hidden; pointer-events: none; min-height: 100px;"></div>
+    <div class="ini-card">
+        <div class="ini-card-header">
+            <span class="ini-card-icon-wrap">⚡</span>
+            <span class="ini-card-title">Hábitos Diarios</span>
+            <span id="ini-habitos-badge" class="ini-badge">--</span>
+        </div>
+        <div class="ini-card-body">
+            <h3 id="ini-habitos-count" style="transition: color 0.3s;">0</h3>
+            <span id="ini-habitos-promedio" class="ini-card-meta">Promedio Diario: 0.0/día</span>
+        </div>
+        <div class="ini-sparkline-container">
+            <canvas id="ini-chart-habitos"></canvas>
+        </div>
+    </div>
 
-    <div class="ini-card" style="display: flex; flex-direction: column; justify-content: space-between;">
-        <div class="ini-card-header" style="margin-bottom: 12px;">
+    <div class="ini-card">
+        <div class="ini-card-header" style="margin-bottom: 5px;">
             <span class="ini-card-icon-wrap">📈</span>
             <span class="ini-card-title">Portafolio Clientes</span>
             <span id="ini-resumen-ingresos-badge" class="ini-badge">--</span>
         </div>
-        <div class="ini-card-body" style="margin-bottom: 0;">
+
+        <div class="ini-sparkline-container" style="margin-top: 0; height: 110px; margin-bottom: 18px;">
+            <canvas id="ini-chart-clientes"></canvas>
+        </div>
+
+        <div class="ini-card-body" style="margin-bottom: 0; padding-top: 0;">
             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 100%;">
                 
                 <div style="background: transparent; border: 1px solid rgba(128, 128, 128, 0.15); border-radius: 12px; padding: 12px; display: flex; justify-content: space-between; align-items: center;">
@@ -98,7 +120,7 @@
                         <span style="font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.02em; color: var(--text-mutado, #888); font-weight: 700; line-height: 1;">Pendientes</span>
                         <h3 id="ini-resumen-pendientes" style="margin: 0; font-size: 19px; font-weight: 800; color: var(--text-base, #111); line-height: 1;">0</h3>
                     </div>
-                    <div style="width: 30px; height: 30px; border-radius: 8px; background: rgba(239, 68, 68, 0.1); color: #ef4444; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0;">
+                    <div id="ini-icon-pendientes" style="width: 30px; height: 30px; border-radius: 8px; background: rgba(16, 185, 129, 0.1); color: #10b981; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0;">
                         ⏳
                     </div>
                 </div>
