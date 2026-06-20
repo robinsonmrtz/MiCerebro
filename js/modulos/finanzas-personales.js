@@ -542,16 +542,89 @@ window.fz_filtrarDropdownDescripciones = function() {
     if (!query) { dropdown.classList.remove('visible'); return; }
     dropdown.classList.add('visible');
 
-    const all = (datos.transacciones || []).map(t => t.descripcion).filter(Boolean);
-    const uniques = [...new Set(all)];
-    uniques.filter(d => d.toLowerCase().includes(query)).slice(0, 8).forEach(desc => {
-        const item = document.createElement('div');
-        item.className = 'fz-autocomplete-option';
-        item.innerHTML = `<i class="ti ti-file-text" style="color:var(--text-lo)"></i> <span>${desc}</span>`;
-        item.onclick = () => { input.value = desc; dropdown.classList.remove('visible'); };
-        dropdown.appendChild(item);
-    });
+    const all = (datos.transacciones || []).filter(t => !t.archivada && t.tipo !== 'transferencia');
+    const uniques = [...new Set(all.map(t => t.descripcion).filter(Boolean))];
+
+    uniques
+        .filter(d => d.toLowerCase().includes(query))
+        .slice(0, 8)
+        .forEach(desc => {
+            // Buscar la última transacción que usó esta descripción
+            const ultimaTrans = all
+                .filter(t => t.descripcion === desc)
+                .sort((a, b) => b.id - a.id)[0]; // La más reciente por id
+
+            const item = document.createElement('div');
+            item.className = 'fz-autocomplete-option';
+            item.innerHTML = `<i class="ti ti-file-text" style="color:var(--text-lo)"></i> <span>${desc}</span>`;
+            item.onclick = () => {
+                input.value = desc;
+                dropdown.classList.remove('visible');
+                // Autocompletar con datos de la última transacción
+                if (ultimaTrans) fz_autocompletarDesdeHistorico(ultimaTrans);
+            };
+            dropdown.appendChild(item);
+        });
 };
+
+function fz_autocompletarDesdeHistorico(trans) {
+    const datos = fz_obtenerDatos();
+
+    // --- CATEGORÍA ---
+    const categoria = datos.categorias.find(c => c.id == trans.categoria_id && !c.archivada);
+    if (categoria) {
+        document.getElementById('fz-trans-cat-input').value = categoria.nombre;
+        document.getElementById('fz-trans-categoria').value = categoria.id;
+    }
+
+    // --- COMERCIO ---
+    const inputComercio = document.getElementById('fz-trans-comercio-input');
+    if (inputComercio && trans.comercio) {
+        inputComercio.value = trans.comercio;
+    }
+
+    // --- CUENTA DE ORIGEN ---
+    const selectCuenta = document.getElementById('fz-trans-cuenta');
+    if (selectCuenta && trans.cuenta_id) {
+        // Verificamos que la cuenta siga existiendo y activa
+        const cuentaExiste = datos.cuentas.find(c => c.id == trans.cuenta_id && !c.archivada);
+        if (cuentaExiste) selectCuenta.value = trans.cuenta_id;
+    }
+
+    // Toast visual sutil de confirmación
+    fz_mostrarToastAutocompletado();
+}
+
+function fz_mostrarToastAutocompletado() {
+    // Evitar duplicados
+    const existente = document.getElementById('fz-toast-autocomplete');
+    if (existente) existente.remove();
+
+    const toast = document.createElement('div');
+    toast.id = 'fz-toast-autocomplete';
+    toast.innerHTML = `<i class="ti ti-sparkles"></i> Campos completados desde el historial`;
+    toast.style.cssText = `
+        position: fixed;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--accent);
+        color: #fff;
+        padding: 10px 20px;
+        border-radius: 30px;
+        font-size: 13px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        z-index: 9999;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+        animation: fzFadeIn 0.25s ease-out;
+        pointer-events: none;
+    `;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 2800);
+}
 
 function fz_cerrarTodosLosDropdownsAutoComplete() {
     document.getElementById('fz-drop-unidad').classList.remove('visible');
