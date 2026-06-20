@@ -415,13 +415,22 @@ window.fz_establecerFechaRapida = function(periodo) {
     btnAyer.classList.remove('activa');
     
     const d = new Date();
+    
+    // Construir fecha local sin conversión UTC
+    const toLocalDateStr = (fecha) => {
+        const y = fecha.getFullYear();
+        const m = String(fecha.getMonth() + 1).padStart(2, '0');
+        const dia = String(fecha.getDate()).padStart(2, '0');
+        return `${y}-${m}-${dia}`;
+    };
+
     if (periodo === 'hoy') {
         btnHoy.classList.add('activa');
-        inputFecha.value = d.toISOString().split('T')[0];
+        inputFecha.value = toLocalDateStr(d);
     } else if (periodo === 'ayer') {
         btnAyer.classList.add('activa');
         d.setDate(d.getDate() - 1);
-        inputFecha.value = d.toISOString().split('T')[0];
+        inputFecha.value = toLocalDateStr(d);
     }
 };
 
@@ -1770,8 +1779,12 @@ window.fz_abrirModalTransferencia = function(id = null) {
         document.getElementById('fz-transf-id').value = '';
         if(cuentasActivas.length > 1) document.getElementById('fz-transf-destino').selectedIndex = 1;
         document.getElementById('fz-transf-monto').value = '';
-        document.getElementById('fz-transf-fecha').value = new Date().toISOString().split('T')[0];
-    }
+        const hoyTransf = new Date();
+        const y = hoyTransf.getFullYear();
+        const m = String(hoyTransf.getMonth() + 1).padStart(2, '0');
+        const d = String(hoyTransf.getDate()).padStart(2, '0');
+        document.getElementById('fz-transf-fecha').value = `${y}-${m}-${d}`;
+            }
 
     document.getElementById('fz-trans-add-menu')?.classList.remove('visible');
     document.getElementById('fz-modal-transferencia').classList.add('visible');
