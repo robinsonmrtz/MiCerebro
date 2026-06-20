@@ -1019,3 +1019,200 @@ input:checked + .fz-slider-exacto:before { transform: translateX(18px); }
     .fz-cuentas-resumen { flex-direction: column; }
     .fz-cuentas-grid { grid-template-columns: 1fr; }
 }
+
+/* =========================================
+   MODAL DE FILTROS AVANZADOS
+   ========================================= */
+
+.fz-filtros-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border-card);
+}
+
+.fz-filtros-tab {
+    flex: 1;
+    padding: 14px;
+    text-align: center;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: var(--text-lo);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: color 0.2s, border-color 0.2s;
+    margin-bottom: -1px;
+}
+
+.fz-filtros-tab.activa {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+}
+
+.fz-filtros-tab:hover:not(.activa) {
+    color: var(--text-base);
+}
+
+/* Chips de selección múltiple */
+.fz-filtro-chips-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 4px 0;
+}
+
+.fz-filtro-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 7px 14px;
+    border-radius: 30px;
+    border: 1.5px solid var(--border-card);
+    background: var(--bg-input);
+    color: var(--text-lo);
+    font-size: 12.5px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    user-select: none;
+    white-space: nowrap;
+}
+
+.fz-filtro-chip i {
+    font-size: 13px;
+}
+
+.fz-filtro-chip:hover {
+    border-color: var(--accent);
+    color: var(--text-base);
+}
+
+.fz-filtro-chip.activa {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #ffffff;
+    font-weight: 600;
+}
+
+/* Indicador visual en el botón cuando hay filtros activos */
+.fz-cat-icon-btn.filtro-activo {
+    background: var(--accent) !important;
+    color: #fff !important;
+    border-color: transparent !important;
+    position: relative;
+}
+
+.fz-cat-icon-btn.filtro-activo::after {
+    content: '';
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #fff;
+}
+
+/* Filtros guardados */
+.fz-filtro-guardado-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 16px;
+    border-radius: 12px;
+    border: 1px solid var(--border-card);
+    background: var(--bg-card);
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+}
+
+.fz-filtro-guardado-item:hover {
+    border-color: var(--accent);
+    background: var(--bg-hover);
+}
+
+.fz-filtro-guardado-nombre {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text-hi);
+}
+
+.fz-filtro-guardado-desc {
+    font-size: 11.5px;
+    color: var(--text-lo);
+    margin-top: 3px;
+}
+
+/* Panel lateral de filtros */
+#fz-modal-filtros .fz-modal-content-exacto {
+    overflow-y: auto;
+    max-height: calc(100vh - 140px);
+}
+
+/* Dropdown trigger (el botón que abre el cajón) */
+.fz-filtro-dropdown-trigger {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--bg-input);
+    border: 1px solid var(--border-card);
+    border-radius: 10px;
+    padding: 11px 14px;
+    cursor: pointer;
+    font-size: 13.5px;
+    color: var(--text-base);
+    transition: border-color 0.2s;
+    user-select: none;
+}
+
+.fz-filtro-dropdown-trigger:hover {
+    border-color: var(--accent);
+}
+
+.fz-filtro-dropdown-trigger i {
+    font-size: 16px;
+    color: var(--text-lo);
+    transition: transform 0.2s;
+}
+
+.fz-filtro-dropdown-trigger.abierto {
+    border-color: var(--accent);
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.fz-filtro-dropdown-trigger.abierto i {
+    transform: rotate(180deg);
+}
+
+/* Panel colapsable */
+.fz-filtro-dropdown-panel {
+    display: none;
+    background: var(--bg-input);
+    border: 1px solid var(--accent);
+    border-top: none;
+    border-bottom-left-radius: 10px;
+    border-bottom-right-radius: 10px;
+    padding: 12px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.fz-filtro-dropdown-panel.abierto {
+    display: block;
+}
+
+/* Chips dentro del panel — más compactos */
+.fz-filtro-dropdown-panel .fz-filtro-chips-container {
+    flex-direction: column;
+    gap: 2px;
+}
+
+.fz-filtro-dropdown-panel .fz-filtro-chip {
+    font-size: 13px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    width: 100%;
+    box-sizing: border-box;
+    justify-content: flex-start;
+}

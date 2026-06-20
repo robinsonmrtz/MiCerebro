@@ -144,6 +144,8 @@
 
             <div class="fz-cat-actions-right">
                 <button class="fz-cat-icon-btn" title="Buscar" onclick="fz_toggleBuscadorTrans()"><i class="ti ti-search"></i></button>
+                <button class="fz-cat-icon-btn" title="Filtros avanzados" id="fz-btn-filtros-avanzados" onclick="fz_abrirModalFiltros()"><i class="ti ti-adjustments-horizontal"></i></button>
+
                 <div class="fz-cat-tipo-dropdown-wrap">
                     <button class="fz-cat-icon-btn fz-cat-add-pill" id="fz-btn-add-trans" title="Nuevo movimiento" onclick="fz_toggleAddTransMenu()"><i class="ti ti-plus"></i></button>
                     <div class="fz-cat-tipo-menu" id="fz-trans-add-menu" style="right: 0; left: auto; min-width: 170px;">
@@ -677,6 +679,138 @@
         <div class="fz-modal-footer-exacto">
             <button class="fz-btn-secundario-izq" onclick="document.getElementById('fz-modal-mover-cat').classList.remove('visible')">Cancelar</button>
             <button class="fz-btn-primario-der" style="background: var(--accent);" onclick="fz_ejecutarMoverYEliminar()">Confirmar y Mover</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL FILTROS AVANZADOS -->
+<!-- DESPUÉS -->
+<div class="modal-overlay" id="fz-modal-filtros" style="align-items: flex-start; justify-content: flex-end; padding: 0;">
+    <div class="modal-caja fz-modal-premium" style="max-width: 420px !important; width: 420px; height: 100vh; max-height: 100vh; border-radius: 20px 0 0 20px !important; overflow-y: auto; margin: 0;">
+        <div class="fz-modal-header-exacto">
+            <h3 style="color: var(--text-hi);">Filtros de Transacciones</h3>
+            <button class="btn-ghost fz-btn-cerrar-exacto" onclick="fz_cerrarModalFiltros()">
+                <i class="ti ti-x"></i>
+            </button>
+        </div>
+
+        <!-- TABS -->
+        <div class="fz-filtros-tabs">
+            <div class="fz-filtros-tab activa" id="fz-ftab-nuevo" onclick="fz_switchFiltroTab('nuevo')">FILTRO NUEVO</div>
+            <div class="fz-filtros-tab" id="fz-ftab-guardados" onclick="fz_switchFiltroTab('guardados')">FILTROS GUARDADOS</div>
+        </div>
+
+        <!-- PANEL: FILTRO NUEVO -->
+        <div id="fz-filtros-panel-nuevo" class="fz-modal-content-exacto" style="gap: 20px;">
+
+            <!-- Rango de fechas -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                <div class="fz-group-exacto">
+                    <label class="fz-label-exacto">De</label>
+                    <div style="position: relative;">
+                        <input type="date" id="fz-filtro-fecha-desde" class="fz-input-exacto fz-input-date-custom">
+                        <i class="ti ti-calendar fz-icon-inside-date"></i>
+                    </div>
+                </div>
+                <div class="fz-group-exacto">
+                    <label class="fz-label-exacto">Hasta</label>
+                    <div style="position: relative;">
+                        <input type="date" id="fz-filtro-fecha-hasta" class="fz-input-exacto fz-input-date-custom">
+                        <i class="ti ti-calendar fz-icon-inside-date"></i>
+                    </div>
+                </div>
+            </div>
+
+<div class="fz-group-exacto">
+    <label class="fz-label-exacto">Categorías</label>
+    <div class="fz-filtro-dropdown-trigger" onclick="fz_toggleFiltroDropdown('categorias')">
+        <span id="fz-filtro-label-categorias">Todas las categorías</span>
+        <i class="ti ti-chevron-down" id="fz-filtro-arrow-categorias"></i>
+    </div>
+    <div class="fz-filtro-dropdown-panel" id="fz-filtro-panel-categorias">
+        <div class="fz-filtro-chips-container" id="fz-filtro-chips-categorias"></div>
+    </div>
+</div>
+
+<!-- Cuentas -->
+<div class="fz-group-exacto">
+    <label class="fz-label-exacto">Cuentas</label>
+    <div class="fz-filtro-dropdown-trigger" onclick="fz_toggleFiltroDropdown('cuentas')">
+        <span id="fz-filtro-label-cuentas">Todas las cuentas</span>
+        <i class="ti ti-chevron-down" id="fz-filtro-arrow-cuentas"></i>
+    </div>
+    <div class="fz-filtro-dropdown-panel" id="fz-filtro-panel-cuentas">
+        <div class="fz-filtro-chips-container" id="fz-filtro-chips-cuentas"></div>
+    </div>
+</div>
+
+<!-- Comercios -->
+<div class="fz-group-exacto">
+    <label class="fz-label-exacto">Comercios</label>
+    <div class="fz-filtro-dropdown-trigger" onclick="fz_toggleFiltroDropdown('comercios')">
+        <span id="fz-filtro-label-comercios">Todos los comercios</span>
+        <i class="ti ti-chevron-down" id="fz-filtro-arrow-comercios"></i>
+    </div>
+    <div class="fz-filtro-dropdown-panel" id="fz-filtro-panel-comercios">
+        <div class="fz-filtro-chips-container" id="fz-filtro-chips-comercios"></div>
+    </div>
+</div>
+        <!-- Situación -->
+        <div class="fz-group-exacto">
+            <label class="fz-label-exacto">Situación</label>
+            <div class="fz-filtro-dropdown-trigger" onclick="fz_toggleFiltroDropdown('situacion')">
+                <span id="fz-filtro-label-situacion">Todas las situaciones</span>
+                <i class="ti ti-chevron-down" id="fz-filtro-arrow-situacion"></i>
+            </div>
+            <div class="fz-filtro-dropdown-panel" id="fz-filtro-panel-situacion">
+                <div class="fz-filtro-chips-container" id="fz-filtro-chips-situacion">
+                    <div class="fz-filtro-chip activa" data-value="todas" onclick="fz_toggleFiltroChip(this, 'situacion')">
+                        Todas las situaciones
+                    </div>
+                    <div class="fz-filtro-chip" data-value="pagado" onclick="fz_toggleFiltroChip(this, 'situacion')">
+                        <i class="ti ti-circle-check"></i> Realizada
+                    </div>
+                    <div class="fz-filtro-chip" data-value="pendiente" onclick="fz_toggleFiltroChip(this, 'situacion')">
+                        <i class="ti ti-clock"></i> Pendiente
+                    </div>
+                    <div class="fz-filtro-chip" data-value="fija" onclick="fz_toggleFiltroChip(this, 'situacion')">
+                        <i class="ti ti-repeat"></i> Fija
+                    </div>
+                </div>
+            </div>
+        </div>
+
+            <!-- Guardar filtro -->
+            <div class="fz-toggle-box-exacto">
+                <div class="fz-toggle-textos">
+                    <span class="fz-toggle-titulo">Guardar filtro personalizado</span>
+                    <span class="fz-toggle-sub" id="fz-filtro-guardar-sub">Se guardará para uso futuro</span>
+                </div>
+                <label class="fz-switch-exacto">
+                    <input type="checkbox" id="fz-filtro-guardar-toggle" onchange="fz_toggleGuardarFiltroUI()">
+                    <span class="fz-slider-exacto"></span>
+                </label>
+            </div>
+
+            <!-- Nombre del filtro (oculto por defecto) -->
+            <div class="fz-group-exacto" id="fz-filtro-nombre-group" style="display: none;">
+                <label class="fz-label-exacto">Nombre del filtro</label>
+                <input type="text" id="fz-filtro-nombre-input" class="fz-input-exacto" placeholder="Ej: Gastos fijos de junio..." autocomplete="off">
+            </div>
+        </div>
+
+        <!-- PANEL: FILTROS GUARDADOS -->
+        <div id="fz-filtros-panel-guardados" style="display: none; padding: 20px; min-height: 180px;">
+            <div id="fz-filtros-guardados-lista"></div>
+        </div>
+
+        <div class="fz-modal-footer-exacto">
+            <button class="fz-btn-secundario-izq" onclick="fz_limpiarFiltrosAvanzados()">
+                <i class="ti ti-refresh"></i> Limpiar
+            </button>
+            <button class="fz-btn-primario-der" onclick="fz_aplicarFiltrosAvanzados()">
+                Aplicar filtros
+            </button>
         </div>
     </div>
 </div>

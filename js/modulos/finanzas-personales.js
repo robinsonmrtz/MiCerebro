@@ -131,22 +131,54 @@ function fz_pintarTransacciones() {
     const transActivas = datos.transacciones.filter(t => !t.archivada);
     const query = (document.getElementById('fz-trans-search-input')?.value || '').toLowerCase();
 
-    const year = fz_fechaActual.getFullYear();
-    const month = String(fz_fechaActual.getMonth() + 1).padStart(2, '0');
-    const mesFiltro = `${year}-${month}`;
+    // 1. Rango de fechas — usa filtros avanzados si están activos, si no el mes navegado
+    const fa = window.fz_filtrosAvanzados || {};
+    let transDelMes;
 
-    // 1. Filtrar por mes
-    let transDelMes = transActivas.filter(t => t.fecha.startsWith(mesFiltro));
+    if (fa.activos && (fa.fechaDesde || fa.fechaHasta)) {
+        transDelMes = transActivas.filter(t => {
+            const ok1 = !fa.fechaDesde || t.fecha >= fa.fechaDesde;
+            const ok2 = !fa.fechaHasta || t.fecha <= fa.fechaHasta;
+            return ok1 && ok2;
+        });
+    } else {
+        const year = fz_fechaActual.getFullYear();
+        const month = String(fz_fechaActual.getMonth() + 1).padStart(2, '0');
+        const mesFiltro = `${year}-${month}`;
+        transDelMes = transActivas.filter(t => t.fecha.startsWith(mesFiltro));
+    }
 
-    // 2. Filtro por tipo (gasto, ingreso, todos, transferencias)
+    // 2. Filtro por tipo (pill existente)
     if (window.fz_filtroTransTipoActual !== 'todos') {
         transDelMes = transDelMes.filter(t => t.tipo === window.fz_filtroTransTipoActual);
     }
 
-    // 3. Búsqueda por texto (Descripción o Comercio)
+    // 3. Filtros avanzados adicionales
+    if (fa.activos) {
+        if (fa.categorias?.length > 0) {
+            transDelMes = transDelMes.filter(t => fa.categorias.some(id => String(id) === String(t.categoria_id)));
+        }
+        if (fa.cuentas?.length > 0) {
+            transDelMes = transDelMes.filter(t =>
+                fa.cuentas.some(id => String(id) === String(t.cuenta_id)) ||
+                fa.cuentas.some(id => String(id) === String(t.cuenta_destino_id))
+            );
+        }
+        if (fa.comercios?.length > 0) {
+            transDelMes = transDelMes.filter(t => fa.comercios.includes(t.comercio));
+        }
+        if (fa.situacion?.length > 0) {
+            const sit = fa.situacion[0];
+            if (sit === 'pagado')    transDelMes = transDelMes.filter(t => t.pagado === true);
+            if (sit === 'pendiente') transDelMes = transDelMes.filter(t => t.pagado === false);
+            if (sit === 'fija')      transDelMes = transDelMes.filter(t => t.gasto_fijo === true);
+        }
+    }
+
+    // 4. Búsqueda por texto (descripción o comercio)
     if (query) {
-        transDelMes = transDelMes.filter(t => 
-            t.descripcion.toLowerCase().includes(query) || 
+        transDelMes = transDelMes.filter(t =>
+            t.descripcion.toLowerCase().includes(query) ||
             (t.comercio && t.comercio.toLowerCase().includes(query))
         );
     }
@@ -156,7 +188,7 @@ function fz_pintarTransacciones() {
         return;
     }
 
-    // 4. Agrupar por fecha
+    // 5. Agrupar por fecha
     const grupos = {};
     transDelMes.forEach(t => {
         if (!grupos[t.fecha]) grupos[t.fecha] = [];
@@ -165,10 +197,9 @@ function fz_pintarTransacciones() {
 
     let html = '';
 
-    // 5. Renderizar ordenado (de más reciente a más antiguo)
+    // 6. Renderizar ordenado (de más reciente a más antiguo)
     Object.keys(grupos).sort((a, b) => new Date(b) - new Date(a)).forEach(fecha => {
-        
-        // Formateador de Fecha "Viernes, 21 de Mayo"
+
         const objFecha = new Date(fecha + 'T00:00:00');
         const opciones = { weekday: 'long', day: 'numeric', month: 'long' };
         let fechaTexto = objFecha.toLocaleDateString('es-ES', opciones);
@@ -195,8 +226,9 @@ function fz_pintarTransacciones() {
                 nombreCat = categoria ? categoria.nombre : 'Sin categoría';
             }
 
-            // Función de Edición Dinámica
-            const editFn = t.tipo === 'transferencia' ? `fz_abrirModalTransferencia(${t.id})` : `fz_abrirModalTransaccion('${t.tipo}', ${t.id})`;
+            const editFn = t.tipo === 'transferencia'
+                ? `fz_abrirModalTransferencia(${t.id})`
+                : `fz_abrirModalTransaccion('${t.tipo}', ${t.id})`;
 
             html += `
             <div class="fz-trans-row">
@@ -2030,3 +2062,336 @@ function fz_migrarColoresSubcategorias() {
 
     if (huboCambios) guardarDatos(datos);
 }
+
+// ==========================================
+// MÓDULO: FILTROS AVANZADOS DE TRANSACCIONES
+// ==========================================
+
+// Estado actual de los filtros aplicados
+window.fz_filtrosAvanzados = {
+    activos: false,
+    fechaDesde: null,
+    fechaHasta: null,
+    categorias: [],     // ids seleccionados, vacío = todas
+    cuentas: [],        // ids seleccionados, vacío = todas
+    comercios: [],      // strings seleccionados, vacío = todos
+    situacion: []       // 'pagado', 'pendiente', 'fija' — vacío = todas
+};
+
+window.fz_abrirModalFiltros = function() {
+    const datos = fz_obtenerDatos();
+
+    // Establecer fechas por defecto: mes actual
+    const hoy = new Date();
+    const primerDia = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-01`;
+    const ultimoDia = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0);
+    const ultimoDiaStr = `${ultimoDia.getFullYear()}-${String(ultimoDia.getMonth() + 1).padStart(2, '0')}-${String(ultimoDia.getDate()).padStart(2, '0')}`;
+
+    const filtros = window.fz_filtrosAvanzados;
+    document.getElementById('fz-filtro-fecha-desde').value = filtros.fechaDesde || primerDia;
+    document.getElementById('fz-filtro-fecha-hasta').value = filtros.fechaHasta || ultimoDiaStr;
+
+    // Renderizar chips de Categorías
+    fz_renderizarChipsFiltro(
+        'categorias',
+        datos.categorias.filter(c => !c.archivada && !c.parent_id && c.nombre !== 'Reajuste*').map(c => ({
+            value: c.id,
+            label: `${c.emoji || '🏷️'} ${c.nombre}`
+        })),
+        filtros.categorias
+    );
+
+    // Renderizar chips de Cuentas
+    fz_renderizarChipsFiltro(
+        'cuentas',
+        datos.cuentas.filter(c => !c.archivada).map(c => ({
+            value: c.id,
+            label: c.nombre
+        })),
+        filtros.cuentas
+    );
+
+    // Renderizar chips de Comercios
+    const datosCerebro = cargarDatos();
+    const comercios = datosCerebro.finanzas_personales.comercios || [];
+    fz_renderizarChipsFiltro(
+        'comercios',
+        comercios.map(c => ({ value: c, label: c })),
+        filtros.comercios
+    );
+
+    // Restaurar chips de situación
+    fz_restaurarChipsSituacion(filtros.situacion);
+
+    // Reset toggle guardar
+    document.getElementById('fz-filtro-guardar-toggle').checked = false;
+    document.getElementById('fz-filtro-nombre-group').style.display = 'none';
+
+    // Panel: filtro nuevo por defecto
+    fz_switchFiltroTab('nuevo');
+
+    document.getElementById('fz-modal-filtros').classList.add('visible');
+};
+
+window.fz_cerrarModalFiltros = function() {
+    document.getElementById('fz-modal-filtros').classList.remove('visible');
+};
+
+// Renderiza los chips dinámicos (categorías, cuentas, comercios)
+function fz_renderizarChipsFiltro(tipo, opciones, seleccionados) {
+    const contenedor = document.getElementById(`fz-filtro-chips-${tipo}`);
+    if (!contenedor) return;
+
+    const haySeleccion = seleccionados && seleccionados.length > 0;
+
+    let html = `<div class="fz-filtro-chip${!haySeleccion ? ' activa' : ''}" data-value="todas" onclick="fz_toggleFiltroChip(this, '${tipo}')">
+        Todos${tipo === 'cuentas' ? ' las cuentas' : tipo === 'categorias' ? ' las categorías' : ' los comercios'}
+    </div>`;
+
+    opciones.sort((a, b) => a.label.localeCompare(b.label, 'es')).forEach(op => {
+        const estaActivo = seleccionados && seleccionados.some(s => String(s) === String(op.value));
+        html += `<div class="fz-filtro-chip${estaActivo ? ' activa' : ''}" data-value="${op.value}" onclick="fz_toggleFiltroChip(this, '${tipo}')">
+            ${op.label}
+        </div>`;
+    });
+
+    contenedor.innerHTML = html;
+}
+
+function fz_restaurarChipsSituacion(seleccionados) {
+    const contenedor = document.getElementById('fz-filtro-chips-situacion');
+    if (!contenedor) return;
+    const chips = contenedor.querySelectorAll('.fz-filtro-chip');
+    const haySeleccion = seleccionados && seleccionados.length > 0;
+    chips.forEach(chip => {
+        const val = chip.getAttribute('data-value');
+        chip.classList.remove('activa');
+        if (val === 'todas' && !haySeleccion) chip.classList.add('activa');
+        if (val !== 'todas' && seleccionados && seleccionados.includes(val)) chip.classList.add('activa');
+    });
+}
+
+// Toggle de chips — lógica de selección múltiple con "Todas" como reset
+
+window.fz_toggleFiltroChip = function(elemento, tipo) {
+    const valor = elemento.getAttribute('data-value');
+    const contenedor = document.getElementById(`fz-filtro-chips-${tipo}`);
+    const todos = contenedor.querySelectorAll('.fz-filtro-chip');
+
+    if (valor === 'todas') {
+        todos.forEach(c => c.classList.remove('activa'));
+        elemento.classList.add('activa');
+    } else if (tipo === 'situacion') {
+        todos.forEach(c => c.classList.remove('activa'));
+        elemento.classList.add('activa');
+    } else {
+        const chipTodas = contenedor.querySelector('[data-value="todas"]');
+        if (chipTodas) chipTodas.classList.remove('activa');
+        elemento.classList.toggle('activa');
+
+        const hayAlgunoActivo = [...todos].some(c =>
+            c.classList.contains('activa') && c.getAttribute('data-value') !== 'todas'
+        );
+        if (!hayAlgunoActivo && chipTodas) chipTodas.classList.add('activa');
+    }
+
+    // Actualizar el label del trigger para Categorías, Cuentas y Comercios
+if (['categorias', 'cuentas', 'comercios', 'situacion'].includes(tipo)) {
+    const labelEl = document.getElementById(`fz-filtro-label-${tipo}`);
+    if (!labelEl) return;
+
+    const seleccionados = [...todos].filter(c =>
+        c.classList.contains('activa') && c.getAttribute('data-value') !== 'todas'
+    );
+
+    const defaultLabels = {
+        categorias: 'Todas las categorías',
+        cuentas: 'Todas las cuentas',
+        comercios: 'Todos los comercios',
+        situacion: 'Todas las situaciones'
+    };
+
+        if (seleccionados.length === 0) {
+            labelEl.textContent = defaultLabels[tipo];
+        } else if (seleccionados.length === 1) {
+            labelEl.textContent = seleccionados[0].textContent.trim();
+        } else {
+            labelEl.textContent = `${seleccionados.length} seleccionados`;
+        }
+    }
+};
+
+window.fz_switchFiltroTab = function(tab) {
+    document.getElementById('fz-ftab-nuevo').classList.toggle('activa', tab === 'nuevo');
+    document.getElementById('fz-ftab-guardados').classList.toggle('activa', tab === 'guardados');
+    document.getElementById('fz-filtros-panel-nuevo').style.display = tab === 'nuevo' ? 'flex' : 'none';
+    document.getElementById('fz-filtros-panel-guardados').style.display = tab === 'guardados' ? 'block' : 'none';
+    if (tab === 'guardados') fz_pintarFiltrosGuardados();
+};
+
+window.fz_toggleGuardarFiltroUI = function() {
+    const activo = document.getElementById('fz-filtro-guardar-toggle').checked;
+    document.getElementById('fz-filtro-nombre-group').style.display = activo ? 'flex' : 'none';
+};
+
+// Limpiar todos los filtros avanzados
+window.fz_limpiarFiltrosAvanzados = function() {
+    window.fz_filtrosAvanzados = {
+        activos: false,
+        fechaDesde: null,
+        fechaHasta: null,
+        categorias: [],
+        cuentas: [],
+        comercios: [],
+        situacion: []
+    };
+
+    // Actualizar indicador visual del botón
+    const btnFiltros = document.getElementById('fz-btn-filtros-avanzados');
+    if (btnFiltros) btnFiltros.classList.remove('filtro-activo');
+
+    document.getElementById('fz-modal-filtros').classList.remove('visible');
+    fz_pintarTransacciones();
+};
+
+// Aplicar los filtros seleccionados
+window.fz_aplicarFiltrosAvanzados = function() {
+    const fechaDesde = document.getElementById('fz-filtro-fecha-desde').value;
+    const fechaHasta = document.getElementById('fz-filtro-fecha-hasta').value;
+
+    // Leer chips seleccionados
+    const leerChips = (tipo) => {
+        const contenedor = document.getElementById(`fz-filtro-chips-${tipo}`);
+        const chipTodas = contenedor?.querySelector('[data-value="todas"]');
+        if (!contenedor || chipTodas?.classList.contains('activa')) return [];
+        return [...contenedor.querySelectorAll('.fz-filtro-chip.activa')]
+            .map(c => c.getAttribute('data-value'));
+    };
+
+    const situacionChip = document.querySelector('#fz-filtro-chips-situacion .fz-filtro-chip.activa');
+    const situacionVal = situacionChip?.getAttribute('data-value');
+    const situacion = (!situacionVal || situacionVal === 'todas') ? [] : [situacionVal];
+
+    window.fz_filtrosAvanzados = {
+        activos: true,
+        fechaDesde: fechaDesde || null,
+        fechaHasta: fechaHasta || null,
+        categorias: leerChips('categorias').map(v => parseInt(v) || v),
+        cuentas: leerChips('cuentas').map(v => parseInt(v) || v),
+        comercios: leerChips('comercios'),
+        situacion: situacion
+    };
+
+    // Guardar filtro si el toggle está activo
+    const guardar = document.getElementById('fz-filtro-guardar-toggle').checked;
+    if (guardar) {
+        const nombre = document.getElementById('fz-filtro-nombre-input').value.trim();
+        if (!nombre) return alert("Escribe un nombre para guardar el filtro.");
+        fz_guardarFiltroPersonalizado(nombre, window.fz_filtrosAvanzados);
+    }
+
+    // Indicador visual en el botón
+    const btnFiltros = document.getElementById('fz-btn-filtros-avanzados');
+    const hayFiltros = fechaDesde || fechaHasta ||
+        window.fz_filtrosAvanzados.categorias.length > 0 ||
+        window.fz_filtrosAvanzados.cuentas.length > 0 ||
+        window.fz_filtrosAvanzados.comercios.length > 0 ||
+        window.fz_filtrosAvanzados.situacion.length > 0;
+
+    if (btnFiltros) btnFiltros.classList.toggle('filtro-activo', !!hayFiltros);
+
+    document.getElementById('fz-modal-filtros').classList.remove('visible');
+    fz_pintarTransacciones();
+};
+
+// ==========================================
+// FILTROS GUARDADOS (persistidos en storage)
+// ==========================================
+
+function fz_guardarFiltroPersonalizado(nombre, filtro) {
+    let datos = cargarDatos();
+    if (!datos.finanzas_personales.filtros_guardados) datos.finanzas_personales.filtros_guardados = [];
+    datos.finanzas_personales.filtros_guardados.push({
+        id: Date.now(),
+        nombre: nombre,
+        filtro: { ...filtro, activos: true }
+    });
+    guardarDatos(datos);
+}
+
+function fz_pintarFiltrosGuardados() {
+    const contenedor = document.getElementById('fz-filtros-guardados-lista');
+    if (!contenedor) return;
+
+    let datos = cargarDatos();
+    const guardados = datos.finanzas_personales.filtros_guardados || [];
+
+    if (guardados.length === 0) {
+        contenedor.innerHTML = `<div style="text-align:center; color: var(--text-lo); padding: 30px 0; font-size: 13px;">
+            <i class="ti ti-bookmark" style="font-size: 28px; display: block; margin-bottom: 10px; opacity: 0.4;"></i>
+            No tienes filtros guardados aún.
+        </div>`;
+        return;
+    }
+
+    contenedor.innerHTML = guardados.map(fg => {
+        const f = fg.filtro;
+        const partes = [];
+        if (f.fechaDesde || f.fechaHasta) partes.push(`📅 ${f.fechaDesde || '...'} → ${f.fechaHasta || '...'}`);
+        if (f.categorias?.length) partes.push(`🏷️ ${f.categorias.length} categoría(s)`);
+        if (f.cuentas?.length) partes.push(`🏦 ${f.cuentas.length} cuenta(s)`);
+        if (f.comercios?.length) partes.push(`🏪 ${f.comercios.join(', ')}`);
+        if (f.situacion?.length) partes.push(`📌 ${f.situacion.join(', ')}`);
+
+        return `
+        <div class="fz-filtro-guardado-item" onclick="fz_aplicarFiltroGuardado(${fg.id})">
+            <div>
+                <div class="fz-filtro-guardado-nombre">${fg.nombre}</div>
+                <div class="fz-filtro-guardado-desc">${partes.join(' · ') || 'Sin restricciones'}</div>
+            </div>
+            <button class="fz-cat-action-btn" style="color: var(--status-danger); flex-shrink: 0;" 
+                title="Eliminar" onclick="fz_eliminarFiltroGuardado(event, ${fg.id})">
+                <i class="ti ti-trash"></i>
+            </button>
+        </div>`;
+    }).join('');
+}
+
+window.fz_aplicarFiltroGuardado = function(id) {
+    let datos = cargarDatos();
+    const fg = (datos.finanzas_personales.filtros_guardados || []).find(f => f.id === id);
+    if (!fg) return;
+
+    window.fz_filtrosAvanzados = { ...fg.filtro };
+
+    const btnFiltros = document.getElementById('fz-btn-filtros-avanzados');
+    if (btnFiltros) btnFiltros.classList.add('filtro-activo');
+
+    document.getElementById('fz-modal-filtros').classList.remove('visible');
+    fz_pintarTransacciones();
+};
+
+window.fz_eliminarFiltroGuardado = function(e, id) {
+    e.stopPropagation();
+    if (!confirm('¿Eliminar este filtro guardado?')) return;
+    let datos = cargarDatos();
+    datos.finanzas_personales.filtros_guardados = (datos.finanzas_personales.filtros_guardados || []).filter(f => f.id !== id);
+    guardarDatos(datos);
+    fz_pintarFiltrosGuardados();
+};
+
+window.fz_toggleFiltroDropdown = function(tipo) {
+    const panel = document.getElementById(`fz-filtro-panel-${tipo}`);
+    const trigger = document.querySelector(`[onclick="fz_toggleFiltroDropdown('${tipo}')"]`);
+    const estaAbierto = panel.classList.contains('abierto');
+
+    ['categorias', 'cuentas', 'comercios', 'situacion'].forEach(t => {
+        document.getElementById(`fz-filtro-panel-${t}`)?.classList.remove('abierto');
+        document.querySelector(`[onclick="fz_toggleFiltroDropdown('${t}')"]`)?.classList.remove('abierto');
+    });
+
+    if (!estaAbierto) {
+        panel.classList.add('abierto');
+        trigger.classList.add('abierto');
+    }
+};

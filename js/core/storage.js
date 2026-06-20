@@ -22,6 +22,7 @@ function cargarDatos() {
         } else {
             if (!parseado.finanzas_personales.comercios) parseado.finanzas_personales.comercios = [];
             if (!parseado.finanzas_personales.recurrentes) parseado.finanzas_personales.recurrentes = [];
+            if (!parseado.finanzas_personales.filtros_guardados) parseado.finanzas_personales.filtros_guardados = [];
         }
         return parseado;
     }
