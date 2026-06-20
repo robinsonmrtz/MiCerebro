@@ -494,15 +494,19 @@
             </div>
 
         </div>
-
-        <div class="fz-modal-footer-exacto">
-            <button class="fz-btn-secundario-izq" onclick="document.getElementById('fz-modal-transaccion').classList.remove('visible')">
-                Cancelar
-            </button>
-            <button class="fz-btn-primario-der" id="fz-btn-guardar-trans-premium" onclick="fz_guardarFormularioTransaccion()">
-                Confirmar movimiento
-            </button>
-        </div>
+            <div class="fz-modal-footer-exacto">
+                <button class="fz-btn-secundario-izq" onclick="document.getElementById('fz-modal-transaccion').classList.remove('visible')">
+                    Cancelar
+                </button>
+                <div style="display: flex; gap: 8px;">
+                    <button class="fz-btn-secundario-izq" style="border-color: var(--accent); color: var(--accent);" onclick="fz_guardarFormularioTransaccion(true)">
+                        <i class="ti ti-arrow-right"></i> Confirmar y continuar
+                    </button>
+                    <button class="fz-btn-primario-der" id="fz-btn-guardar-trans-premium" onclick="fz_guardarFormularioTransaccion()">
+                        Confirmar movimiento
+                    </button>
+                </div>
+            </div>
     </div>
 </div>
 

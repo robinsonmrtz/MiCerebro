@@ -813,7 +813,7 @@ function fz_generarInstanciasRecurrentesParaMes(targetDate) {
 }
 
 // --- GUARDAR FORMULARIO DE TRANSACCIONES ---
-window.fz_guardarFormularioTransaccion = function() {
+window.fz_guardarFormularioTransaccion = function(continuar = false) {
     const idInput = document.getElementById('fz-trans-id').value;
     const tipo = document.getElementById('fz-trans-tipo').value;
     const monto = parseFloat(document.getElementById('fz-trans-monto').value);
@@ -890,8 +890,31 @@ window.fz_guardarFormularioTransaccion = function() {
         try { fz_generarInstanciasRecurrentesHasta(12); } catch(e) { console.error(e); }
     }
 
-    document.getElementById('fz-modal-transaccion').classList.remove('visible');
-    
+    if (continuar) {
+        // Limpiar campos pero conservar cuenta, comercio y fecha
+        document.getElementById('fz-trans-monto').value = '';
+        document.getElementById('fz-trans-desc').value = '';
+        document.getElementById('fz-trans-cat-input').value = '';
+        document.getElementById('fz-trans-categoria').value = '';
+        document.getElementById('fz-trans-observacion').value = '';
+        if (document.getElementById('fz-trans-unidad')) document.getElementById('fz-trans-unidad').value = '';
+        if (document.getElementById('fz-trans-cantidad')) document.getElementById('fz-trans-cantidad').value = '';
+        document.getElementById('fz-trans-id').value = '';
+        document.getElementById('fz-trans-pagado').checked = true;
+        if (document.getElementById('fz-trans-gasto-fijo')) document.getElementById('fz-trans-gasto-fijo').checked = false;
+
+        // Restaurar los campos conservados
+        document.getElementById('fz-trans-cuenta').value = cuenta_id;
+        document.getElementById('fz-trans-comercio-input').value = comercio;
+        document.getElementById('fz-trans-fecha').value = fecha;
+        fz_alCambiarFechaManual();
+
+        // Foco en monto para agilizar el siguiente registro
+        setTimeout(() => document.getElementById('fz-trans-monto')?.focus(), 100);
+    } else {
+        document.getElementById('fz-modal-transaccion').classList.remove('visible');
+    }
+
     if (fz_tabActual === 'transacciones') fz_pintarTransacciones();
     if (fz_tabActual === 'resumen') fz_pintarResumen();
 };
