@@ -44,7 +44,7 @@
     </div>
 </div>
 
-<div class="analitica-trabajo">
+<div class="analitica-trabajo" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; margin-bottom: 20px;">
     <div class="grafico-contenedor">
         <div class="grafico-header">
             <span class="grafico-titulo">Historial de Recaídas</span>
@@ -53,10 +53,17 @@
             <canvas id="graficoDopamina"></canvas>
         </div>
     </div>
+    <div class="grafico-contenedor">
+        <div class="grafico-header">
+            <span class="grafico-titulo">Días Limpio</span>
+        </div>
+        <div class="canvas-wrapper">
+            <canvas id="graficoDopaminaDias"></canvas>
+        </div>
+    </div>
 </div>
 
-<div class="dopamina-grid" id="lista-acciones-dopamina">
-    </div>
+<div class="dopamina-grid" id="lista-acciones-dopamina"></div>
 
 <div id="modal-dopamina" class="modal-overlay">
     <div class="modal-caja modal-ancho" style="max-width: 360px;">

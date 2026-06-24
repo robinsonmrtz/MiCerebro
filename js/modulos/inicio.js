@@ -325,6 +325,33 @@ function fz_dibujarSparklineHabitos(puntos, habitosHoy, tipo) {
 }
 
 // ─── LÓGICA DE DOPAMINA ───────────────
+function fz_obtenerDiasLimpioEnPunto_Inicio(acc, evalTime) {
+    if (!acc.fechaInicio && acc.historialRecaidas.length === 0) return 0;
+    
+    let recaidasAnteriores = acc.historialRecaidas
+        .map(iso => new Date(iso).getTime())
+        .filter(t => t <= evalTime)
+        .sort((a, b) => a - b);
+
+    let inicioRacha;
+
+    if (recaidasAnteriores.length > 0) {
+        inicioRacha = recaidasAnteriores[recaidasAnteriores.length - 1];
+    } else {
+        if (acc.historialRecaidas.length === 0) {
+            if (!acc.fechaInicio) return 0;
+            inicioRacha = new Date(acc.fechaInicio).getTime();
+        } else {
+            let primerRecaida = new Date(acc.historialRecaidas[0]).getTime();
+            inicioRacha = Math.max(acc.id, primerRecaida - (acc.mejorRachaMs || 0));
+        }
+    }
+
+    if (evalTime < inicioRacha) return 0;
+    
+    return Math.round((evalTime - inicioRacha) / 86400000);
+}
+
 function fz_renderizarDopaminaDashboard() {
     const datos = cargarDatos();
     const acciones = datos.dopamina?.acciones || [];
@@ -346,7 +373,7 @@ function fz_renderizarDopaminaDashboard() {
     const rachaElement = document.getElementById('ini-dopamina-racha');
     const promElement = document.getElementById('ini-dopamina-promedio');
 
-    if (!accion || !accion.fechaInicio) {
+    if (!accion) {
         if (rachaElement) rachaElement.innerText = '0d';
         if (promElement) promElement.innerText = 'Promedio: 0.0d';
         fz_dibujarSparklineDopamina([], 0, 0, 'mes');
@@ -356,79 +383,50 @@ function fz_renderizarDopaminaDashboard() {
     const intervalos = fz_obtenerLimitesFechas();
     if (!intervalos) return;
 
-    let puntosReset = [];
-    puntosReset.push(new Date(accion.fechaInicio).getTime());
-    accion.historialRecaidas.forEach(r => puntosReset.push(new Date(r).getTime()));
-    puntosReset.sort();
-
-    let duraciones = [];
-    for (let i = 1; i < puntosReset.length; i++) {
-        duraciones.push(puntosReset[i] - puntosReset[i-1]);
-    }
-    let promMs = duraciones.length > 0 ? (duraciones.reduce((a,b)=>a+b,0) / duraciones.length) : 0;
-    let promDias = promMs / 86400000;
-
     let puntosGrafica = [];
-    let rachaActualVista = 0;
+    let diasLimpioActual = 0;
     const hoyMax = new Date();
     hoyMax.setHours(23, 59, 59, 999);
 
     if (intervalos.tipo === 'mes') {
         let cursor = new Date(intervalos.inicioAct);
         while (cursor <= intervalos.finAct && cursor <= hoyMax) {
-            let timeDia = cursor.getTime();
-            let lastR = -1;
-            for (let i = 0; i < puntosReset.length; i++) {
-                if (puntosReset[i] <= timeDia) lastR = puntosReset[i];
-                else break;
-            }
-            let rachaDia = lastR !== -1 ? (timeDia - lastR) / 86400000 : 0;
-            puntosGrafica.push(Math.round(rachaDia * 10) / 10);
-            rachaActualVista = rachaDia;
+            let endOfDay = new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate(), 23, 59, 59, 999).getTime();
+            let diasLimpio = fz_obtenerDiasLimpioEnPunto_Inicio(accion, endOfDay);
+            puntosGrafica.push(diasLimpio);
+            diasLimpioActual = diasLimpio;
             cursor.setDate(cursor.getDate() + 1);
         }
     } else {
-        // Modo Anual
+        // Modo Anual - máximo días limpio del mes
         for (let m = 0; m < 12; m++) {
             if (intervalos.inicioAct.getFullYear() === hoyMax.getFullYear() && m > hoyMax.getMonth()) break;
             
             let inicioM = new Date(intervalos.inicioAct.getFullYear(), m, 1);
             let finM = new Date(intervalos.inicioAct.getFullYear(), m + 1, 0, 23, 59, 59, 999);
             
-            let maxRachaMes = 0;
+            let maxDiasMes = 0;
             for (let d = new Date(inicioM); d <= finM && d <= hoyMax; d.setDate(d.getDate()+1)) {
-                let timeDia = d.getTime();
-                let lastR = -1;
-                for (let i = 0; i < puntosReset.length; i++) {
-                    if (puntosReset[i] <= timeDia) lastR = puntosReset[i];
-                    else break;
-                }
-                let rachaDia = lastR !== -1 ? (timeDia - lastR) / 86400000 : 0;
-                if(rachaDia > maxRachaMes) maxRachaMes = rachaDia;
-                rachaActualVista = rachaDia; 
+                let endOfDay = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999).getTime();
+                let diasLimpio = fz_obtenerDiasLimpioEnPunto_Inicio(accion, endOfDay);
+                if (diasLimpio > maxDiasMes) maxDiasMes = diasLimpio;
+                diasLimpioActual = diasLimpio; 
             }
-            puntosGrafica.push(Math.round(maxRachaMes * 10) / 10);
+            puntosGrafica.push(maxDiasMes);
         }
     }
 
     if (rachaElement) {
-        rachaElement.innerText = Math.floor(rachaActualVista) + 'd';
+        rachaElement.innerText = diasLimpioActual + 'd';
     }
     if (promElement) {
-        promElement.innerText = `Promedio: ${promDias.toFixed(1)}d`;
-        if (rachaActualVista >= promDias && rachaActualVista > 0) {
-            promElement.style.color = '#10b981'; 
-        } else if (rachaActualVista < promDias) {
-            promElement.style.color = '#ef4444'; 
-        } else {
-            promElement.style.color = 'var(--text-mutado, #999)';
-        }
+        promElement.innerText = `Días limpio`;
     }
 
-    fz_dibujarSparklineDopamina(puntosGrafica, rachaActualVista, promDias, intervalos.tipo);
+    fz_dibujarSparklineDopamina(puntosGrafica, diasLimpioActual, intervalos.tipo);
 }
 
-function fz_dibujarSparklineDopamina(puntos, rachaActual, promDias, tipo) {
+function fz_dibujarSparklineDopamina(puntos, diasLimpioActual, tipo) {
     const canvasElement = document.getElementById('ini-chart-dopamina');
     if (!canvasElement) return;
 
@@ -437,14 +435,15 @@ function fz_dibujarSparklineDopamina(puntos, rachaActual, promDias, tipo) {
         try { fz_graficaDopaminaInstancia.destroy(); } catch(e) {}
     }
 
-    let colorLinea = '#ef4444'; 
-    let colorFondo = 'rgba(239, 68, 68, 0.20)';
-
-    if ((rachaActual >= promDias && rachaActual > 0) || (promDias === 0 && rachaActual > 0)) {
-        colorLinea = '#10b981'; 
-        colorFondo = 'rgba(16, 185, 129, 0.20)';
+    // Lógica de color: Basada en el ÚLTIMO estado (días limpio actual)
+    let colorLinea = '#e74c3c'; // Rojo si hoy estás en 0
+    if (diasLimpioActual >= 1 && diasLimpioActual <= 5) {
+        colorLinea = '#f59e0b'; // Amarillo 1 a 5
+    } else if (diasLimpioActual > 5) {
+        colorLinea = '#10b981'; // Verde más de 5
     }
 
+    let colorFondo = colorLinea + '22';
     const gradienteFondo = ctx.createLinearGradient(0, 0, 0, 140);
     gradienteFondo.addColorStop(0, colorFondo);
     gradienteFondo.addColorStop(1, 'rgba(255, 255, 255, 0)');
@@ -480,7 +479,7 @@ function fz_dibujarSparklineDopamina(puntos, rachaActual, promDias, tipo) {
                     legend: { display: false },
                     tooltip: {
                         enabled: true, intersect: false, backgroundColor: 'rgba(0,0,0,0.8)', padding: 10, cornerRadius: 8,
-                        callbacks: { label: c => ` ${tipo === 'mes' ? 'Día ' : ''}${c.label}: ${c.parsed.y} días max` }
+                        callbacks: { label: c => ` ${tipo === 'mes' ? 'Día ' : ''}${c.label}: ${c.parsed.y} días limpio` }
                     }
                 },
                 scales: {
@@ -489,7 +488,7 @@ function fz_dibujarSparklineDopamina(puntos, rachaActual, promDias, tipo) {
                         ticks: { color: 'var(--text-mutado, #999)', font: { size: 9, weight: '600' }, maxTicksLimit: 31, autoSkip: false }
                     },
                     y: {
-                        display: true, position: 'left', min: 0, suggestedMax: Math.max(...puntos) > 0 ? Math.max(...puntos) + 2 : 5,
+                        display: true, position: 'left', min: 0, suggestedMax: Math.max(...puntos, 6) + 2,
                         grid: { display: true, color: 'rgba(128, 128, 128, 0.08)', drawBorder: false },
                         ticks: {
                             color: 'var(--text-mutado, #999)', font: { size: 8, weight: '600' }, maxTicksLimit: 5,
@@ -821,13 +820,10 @@ function fz_dibujarSparklineVideos(puntos, totalTrabajosMes, tipo) {
         try { fz_graficaVideosInstancia.destroy(); } catch(e) {}
     }
 
-    let colorLinea = '#ef4444'; 
-    let colorFondo = 'rgba(239, 68, 68, 0.20)';
-
-    if (totalTrabajosMes >= 1) {
-        colorLinea = '#10b981'; 
-        colorFondo = 'rgba(16, 185, 129, 0.20)';
-    }
+    // Determinar si hay algún día con 0 trabajos
+    const tieneAlgunCero = puntos.some(p => p === 0);
+    const colorLinea = tieneAlgunCero ? '#ef4444' : '#10b981'; // Rojo si hay algún 0, verde si todos tienen 1+
+    let colorFondo = colorLinea + '22';
 
     const gradienteFondo = ctx.createLinearGradient(0, 0, 0, 140);
     gradienteFondo.addColorStop(0, colorFondo);
@@ -843,7 +839,17 @@ function fz_dibujarSparklineVideos(puntos, totalTrabajosMes, tipo) {
             data: {
                 labels: labels,
                 datasets: [{
-                    data: puntos, borderColor: colorLinea, borderWidth: 2.5, pointRadius: 3, pointBackgroundColor: '#ffffff', pointBorderColor: colorLinea, pointBorderWidth: 1.5, pointHoverRadius: 6, fill: true, backgroundColor: gradienteFondo, tension: 0.4
+                    data: puntos, 
+                    borderColor: colorLinea, 
+                    borderWidth: 2.5, 
+                    pointRadius: 3, 
+                    pointBackgroundColor: '#ffffff', 
+                    pointBorderColor: colorLinea, 
+                    pointBorderWidth: 1.5, 
+                    pointHoverRadius: 6, 
+                    fill: true, 
+                    backgroundColor: gradienteFondo, 
+                    tension: 0.4
                 }]
             },
             options: {
