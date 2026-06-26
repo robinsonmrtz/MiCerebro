@@ -1664,93 +1664,162 @@ let fz_graficoInstancia = null; // Guardará el gráfico para destruirlo/crearlo
 function fz_pintarResumen() {
     const datos = fz_obtenerDatos();
     const transActivas = datos.transacciones.filter(t => !t.archivada);
-
-    const year = fz_fechaActual.getFullYear();
+ 
+    const year  = fz_fechaActual.getFullYear();
     const month = String(fz_fechaActual.getMonth() + 1).padStart(2, '0');
     const mesFiltro = `${year}-${month}`;
-
-    // Todas las transacciones del mes seleccionado, sin importar si son futuras o pendientes
+ 
     const transDelMes = transActivas.filter(t => t.fecha.startsWith(mesFiltro));
-
+ 
     let ingresosMes = 0;
-    let gastosMes = 0;
-
+    let gastosMes   = 0;
     transDelMes.forEach(t => {
         if (t.tipo === 'ingreso') ingresosMes += t.monto;
-        if (t.tipo === 'gasto') gastosMes += t.monto;
+        if (t.tipo === 'gasto')   gastosMes   += t.monto;
     });
-
-    // Saldo General: SIEMPRE el dinero real a hoy, nunca incluye el futuro
-    document.getElementById('fz-saldo-general').textContent = formatearDinero(fz_calcularSaldoTotal());
-
-    // Ingresos y Gastos: muestran el total del mes navegado (proyectado si es futuro)
-    document.getElementById('fz-ingresos-mes').textContent = `+${formatearDinero(ingresosMes)}`;
-    document.getElementById('fz-gastos-mes').textContent = `-${formatearDinero(gastosMes)}`;
-
-    fz_renderizarGraficoGastos(transDelMes, datos.categorias);
+ 
+    // KPIs
+    const saldoEl    = document.getElementById('fz-saldo-general');
+    const ingresosEl = document.getElementById('fz-ingresos-mes');
+    const gastosEl   = document.getElementById('fz-gastos-mes');
+ 
+    if (saldoEl)    saldoEl.textContent    = formatearDinero(fz_calcularSaldoTotal());
+    if (ingresosEl) ingresosEl.textContent = `+${formatearDinero(ingresosMes)}`;
+    if (gastosEl)   gastosEl.textContent   = `-${formatearDinero(gastosMes)}`;
+ 
+    // Subtotales en cabecera de cada dona
+    const totalGastosEl    = document.getElementById('fz-res-total-gastos');
+    const totalIngresosEl  = document.getElementById('fz-res-total-ingresos');
+    if (totalGastosEl)   totalGastosEl.textContent   = formatearDinero(gastosMes);
+    if (totalIngresosEl) totalIngresosEl.textContent = formatearDinero(ingresosMes);
+ 
+    // Donas
+    const gastosDelMes   = transDelMes.filter(t => t.tipo === 'gasto');
+    const ingresosDelMes = transDelMes.filter(t => t.tipo === 'ingreso');
+ 
+    fz_res_renderDona('gastos',   gastosDelMes,   datos.categorias);
+    fz_res_renderDona('ingresos', ingresosDelMes, datos.categorias);
 }
 
 // 4. Genera el gráfico de dona de Chart.js
 function fz_renderizarGraficoGastos(transDelMes, categorias) {
-    const canvas = document.getElementById('fz-grafico-gastos');
-    const emptyMsg = document.getElementById('fz-grafico-vacio');
-    
-    const gastos = transDelMes.filter(t => t.tipo === 'gasto');
-    
-    if (gastos.length === 0) {
+    // Delegamos al nuevo renderer
+    fz_res_renderDona('gastos', transDelMes.filter(t => t.tipo === 'gasto'), categorias);
+}
+
+// [NUEVO] Renderer de dona individual
+// tipo: 'gastos' | 'ingresos'
+// ==========================================
+ 
+// Guardamos las dos instancias de gráfico
+const fz_res_graficos = { gastos: null, ingresos: null };
+ 
+function fz_res_renderDona(tipo, trans, categorias) {
+    const canvasId    = tipo === 'gastos' ? 'fz-grafico-gastos'   : 'fz-grafico-ingresos';
+    const vacioId     = tipo === 'gastos' ? 'fz-grafico-vacio'    : 'fz-grafico-ingresos-vacio';
+    const centerValId = tipo === 'gastos' ? 'fz-res-center-gastos-val' : 'fz-res-center-ingresos-val';
+    const catListId   = tipo === 'gastos' ? 'fz-res-cat-gastos'   : 'fz-res-cat-ingresos';
+    const colorMonto  = tipo === 'gastos' ? 'var(--status-danger)' : 'var(--status-ok)';
+ 
+    const canvas    = document.getElementById(canvasId);
+    const vacioEl   = document.getElementById(vacioId);
+    const centerVal = document.getElementById(centerValId);
+    const catList   = document.getElementById(catListId);
+ 
+    if (!canvas) return;
+ 
+    // Destruir instancia previa
+    if (fz_res_graficos[tipo]) { fz_res_graficos[tipo].destroy(); fz_res_graficos[tipo] = null; }
+ 
+    const total = trans.reduce((s, t) => s + t.monto, 0);
+ 
+    if (total === 0) {
         canvas.style.display = 'none';
-        emptyMsg.style.display = 'block';
-        if (fz_graficoInstancia) fz_graficoInstancia.destroy();
+        if (vacioEl)   { vacioEl.style.display = 'block'; }
+        if (centerVal) { centerVal.textContent = formatearDinero(0); }
+        if (catList)   { catList.innerHTML = `<div style="color:var(--text-lo);font-size:12px;padding:10px 0;">Sin movimientos este mes.</div>`; }
         return;
     }
-    
+ 
     canvas.style.display = 'block';
-    emptyMsg.style.display = 'none';
-
-    // Agrupar gastos por categoría
-    let totalesCat = {};
-    gastos.forEach(g => {
-        const cat = categorias.find(c => c.id == g.categoria_id);
-        const idAgrupador = (cat && cat.parent_id) ? cat.parent_id : g.categoria_id;
-        totalesCat[idAgrupador] = (totalesCat[idAgrupador] || 0) + g.monto;
+    if (vacioEl) vacioEl.style.display = 'none';
+    if (centerVal) centerVal.textContent = formatearDinero(total);
+ 
+    // Agrupar por categoría padre
+    const accum = {};
+    trans.forEach(t => {
+        const cat    = categorias.find(c => c.id == t.categoria_id);
+        const padreId = (cat && cat.parent_id) ? cat.parent_id : (cat ? cat.id : '__sin__');
+        accum[padreId] = (accum[padreId] || 0) + t.monto;
     });
-
-    const labels = [];
-    const data = [];
-    const bgColors = [];
-
-    Object.keys(totalesCat).forEach(catId => {
-        const cat = categorias.find(c => c.id == catId);
-        labels.push(cat ? cat.nombre : 'Sin Categoría');
-        data.push(totalesCat[catId]);
-        bgColors.push(cat ? cat.color : 'var(--text-lo)');
-    });
-
-    if (fz_graficoInstancia) fz_graficoInstancia.destroy();
-
-    const colorTexto = getComputedStyle(document.body).getPropertyValue('--text-lo').trim() || '#888';
-
-    fz_graficoInstancia = new Chart(canvas, {
+ 
+    const items = Object.keys(accum).map(pid => {
+        const cat = categorias.find(c => c.id == pid);
+        return {
+            nombre: cat ? cat.nombre : 'Sin categoría',
+            color:  cat ? (cat.color || '#888') : '#888',
+            emoji:  cat ? (cat.emoji || '🏷️')   : '🏷️',
+            total:  accum[pid],
+            pct:    total > 0 ? (accum[pid] / total * 100) : 0
+        };
+    }).sort((a, b) => b.total - a.total);
+ 
+    const borderColor = getComputedStyle(document.body).getPropertyValue('--bg-card').trim() || '#fff';
+ 
+    fz_res_graficos[tipo] = new Chart(canvas, {
         type: 'doughnut',
         data: {
-            labels: labels,
+            labels: items.map(i => i.nombre),
             datasets: [{
-                data: data,
-                backgroundColor: bgColors,
-                borderWidth: 0,
-                hoverOffset: 4
+                data:            items.map(i => i.total),
+                backgroundColor: items.map(i => i.color),
+                borderWidth: 3,
+                borderColor: borderColor,
+                hoverOffset: 5
             }]
         },
         options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            cutout: '70%',
+            responsive: false,
+            cutout: '68%',
             plugins: {
-                legend: { position: 'right', labels: { color: colorTexto, font: {family: 'Inter, sans-serif'} } }
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => ` ${formatearDinero(ctx.raw)} (${(ctx.raw / total * 100).toFixed(1)}%)`
+                    }
+                }
             }
         }
     });
+ 
+    // Leyenda compacta
+    if (catList) {
+        catList.innerHTML = items.map(item => `
+            <div class="fz-res-cat-item">
+                <span class="fz-res-cat-dot" style="background:${item.color};"></span>
+                <span class="fz-res-cat-nombre">${item.nombre}</span>
+                <span class="fz-res-cat-monto" style="color:${colorMonto};">${formatearDinero(item.total)}</span>
+                <span class="fz-res-cat-pct">${item.pct.toFixed(1)}%</span>
+            </div>
+        `).join('');
+    }
 }
+ 
+// ==========================================
+// [NUEVO] Modal de Acciones Rápidas
+// ==========================================
+window.fz_abrirModalAccionesRapidas = function() {
+    document.getElementById('fz-modal-acciones-rapidas')?.classList.add('visible');
+};
+ 
+window.fz_accRap = function(tipo) {
+    document.getElementById('fz-modal-acciones-rapidas')?.classList.remove('visible');
+    if (tipo === 'transferencia') {
+        fz_abrirModalTransferencia();
+    } else {
+        fz_abrirModalTransaccion(tipo);
+    }
+};
 
 // Funciones Modal Transferencia
 window.fz_abrirModalTransferencia = function(id = null) {

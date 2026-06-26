@@ -1521,3 +1521,284 @@ input:checked + .fz-slider-exacto:before { transform: translateX(18px); }
     .fz-inf-type-btn span { display: none; }
     .fz-inf-agrupacion-btn { display: none; }
 }
+
+
+.fz-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    /* Anula el padding-bottom del seccion-titulo si existe */
+    padding-bottom: 0 !important;
+    margin-bottom: 16px !important;
+}
+
+/* Quitamos el <p> del header directamente desde CSS como seguro extra */
+.fz-header-row p { display: none; }
+
+.fz-fab-acciones {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 40px;
+    padding: 0 20px;
+    border-radius: 30px;
+    background: var(--accent);
+    border: none;
+    color: #fff;
+    font-size: 13.5px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: filter .2s, transform .15s;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.fz-fab-acciones i { font-size: 18px; }
+.fz-fab-acciones:hover { filter: brightness(1.1); transform: scale(1.02); }
+.fz-fab-acciones:active { transform: scale(0.97); }
+
+/* En mobile: solo icono */
+@media (max-width: 768px) {
+    .fz-fab-acciones span { display: none; }
+    .fz-fab-acciones { width: 40px; padding: 0; justify-content: center; border-radius: 50%; }
+}
+
+/* ---- Modal acciones rápidas: botones ---- */
+.fz-accion-rapida-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    height: 52px;
+    border-radius: 14px;
+    border: none;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: filter .2s, transform .15s;
+}
+.fz-accion-rapida-btn i { font-size: 20px; }
+.fz-accion-rapida-btn:hover { filter: brightness(1.08); transform: translateY(-1px); }
+.fz-accion-rapida-btn:active { transform: scale(0.98); }
+
+.fz-accion-rapida-btn.gasto {
+    background: var(--status-danger);
+    color: #fff;
+}
+.fz-accion-rapida-btn.ingreso {
+    background: var(--status-ok);
+    color: #fff;
+}
+.fz-accion-rapida-btn.transferencia {
+    background: var(--bg-input);
+    border: 1.5px solid var(--border-card);
+    color: var(--text-base);
+}
+.fz-accion-rapida-btn.transferencia:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--bg-hover);
+    filter: none;
+}
+
+/* ---- KPI Grid rediseñado ---- */
+.fz-res-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-bottom: 20px;
+}
+
+.fz-res-kpi-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: 16px;
+    padding: 16px 18px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    transition: box-shadow .2s;
+}
+.fz-res-kpi-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,.1); }
+
+.fz-res-kpi-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 22px;
+}
+
+.fz-res-kpi-info {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+}
+.fz-res-kpi-label {
+    font-size: 11.5px;
+    font-weight: 500;
+    color: var(--text-lo);
+    white-space: nowrap;
+}
+.fz-res-kpi-valor {
+    font-size: 17px;
+    font-weight: 800;
+    color: var(--text-hi);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ---- Grid de donas ---- */
+.fz-res-donas-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+}
+
+.fz-res-dona-card {
+    padding: 22px 28px;
+}
+
+/* Cabecera de cada dona */
+.fz-res-dona-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 18px;
+}
+.fz-res-dona-titulo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-hi);
+}
+.fz-res-dona-badge {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.fz-res-dona-badge.gasto   { background: var(--status-danger); }
+.fz-res-dona-badge.ingreso { background: var(--status-ok); }
+
+.fz-res-dona-subtotal {
+    font-size: 15px;
+    font-weight: 800;
+}
+
+/* Cuerpo dona + leyenda */
+.fz-res-dona-body {
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    gap: 16px;
+    align-items: center;
+}
+
+.fz-res-chart-wrap {
+    position: relative;
+    width: 180px;
+    height: 180px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.fz-res-chart-wrap canvas {
+    width: 180px !important;
+    height: 180px !important;
+}
+
+.fz-res-dona-center {
+    position: absolute;
+    text-align: center;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.fz-res-dona-center-val {
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--text-hi);
+    line-height: 1.2;
+}
+.fz-res-dona-center-lbl {
+    font-size: 10px;
+    color: var(--text-lo);
+    margin-top: 2px;
+}
+
+/* Lista de categorías de cada dona */
+.fz-res-cat-list {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    overflow-y: auto;
+    max-height: 180px;
+}
+
+.fz-res-cat-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 8px;
+    border-radius: 8px;
+    transition: background .15s;
+    cursor: default;
+}
+.fz-res-cat-item:hover { background: var(--bg-hover); }
+
+.fz-res-cat-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.fz-res-cat-nombre {
+    flex: 1;
+    font-size: 12px;
+    color: var(--text-base);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.fz-res-cat-monto {
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+.fz-res-cat-pct {
+    font-size: 10.5px;
+    color: var(--text-lo);
+    min-width: 36px;
+    text-align: right;
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 960px) {
+    .fz-res-kpi-grid { grid-template-columns: 1fr 1fr; }
+    .fz-res-kpi-card:last-child { grid-column: 1 / -1; }
+}
+
+@media (max-width: 768px) {
+    .fz-res-donas-grid { grid-template-columns: 1fr; }
+    .fz-res-dona-card { padding: 18px; }
+    .fz-res-dona-body { grid-template-columns: 150px 1fr; }
+    .fz-res-chart-wrap { width: 150px; height: 150px; }
+    .fz-res-chart-wrap canvas { width: 150px !important; height: 150px !important; }
+    .fz-res-kpi-grid { grid-template-columns: 1fr; }
+    .fz-res-kpi-card:last-child { grid-column: auto; }
+}
+
+@media (max-width: 480px) {
+    .fz-res-dona-body { grid-template-columns: 1fr; justify-items: center; }
+    .fz-res-cat-list { max-height: 160px; width: 100%; }
+}

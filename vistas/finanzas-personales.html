@@ -1,6 +1,8 @@
-<div class="seccion-titulo">
-    <h2>💵 Finanzas Personales</h2>
-    <p>Controla tus ingresos, gastos, cuentas y patrimonio neto.</p>
+<div class="seccion-titulo fz-header-row">
+    <button class="fz-fab-acciones" onclick="fz_abrirModalAccionesRapidas()" title="Acciones rápidas">
+        <i class="ti ti-plus"></i>
+        <span>Acción rápida</span>
+    </button>
 </div>
 
 <nav class="finanzas-nav" id="finanzas-tabs">
@@ -32,45 +34,90 @@
 
 <div id="finanzas-contenido-dinamico">
     
-    <div id="pantalla-resumen">
-        <div class="kpi-grid">
-            <div class="widget">
-                <h4>Saldo General</h4>
-                <p id="fz-saldo-general" style="color: var(--accent);">$0.00</p>
+ 
+<div id="pantalla-resumen">
+ 
+    <!-- KPIs -->
+    <div class="fz-res-kpi-grid">
+        <div class="fz-res-kpi-card">
+            <div class="fz-res-kpi-icon" style="background: rgba(var(--accent-rgb), 0.12); color: var(--accent);">
+                <i class="ti ti-wallet"></i>
             </div>
-            <div class="widget">
-                <h4>Ingresos</h4>
-                <p id="fz-ingresos-mes" style="color: var(--status-ok);">+$0.00</p>
-            </div>
-            <div class="widget">
-                <h4>Gastos</h4>
-                <p id="fz-gastos-mes" style="color: var(--status-danger);">-$0.00</p>
+            <div class="fz-res-kpi-info">
+                <span class="fz-res-kpi-label">Saldo General</span>
+                <span class="fz-res-kpi-valor" id="fz-saldo-general" style="color: var(--accent);">$0.00</span>
             </div>
         </div>
-
-        <div class="finanzas-grid">
-            <div class="card-surface" style="padding: 20px;">
-                <h3 style="color: var(--text-hi); font-size: 15px; margin-bottom: 16px;">Gastos por Categoría</h3>
-                <div style="height: 250px; display: flex; align-items: center; justify-content: center; position: relative;">
-                    <p id="fz-grafico-vacio" style="color: var(--text-lo); font-size: 13px; display: none;">No hay gastos registrados en este mes.</p>
-                    <canvas id="fz-grafico-gastos"></canvas>
-                </div>
+        <div class="fz-res-kpi-card">
+            <div class="fz-res-kpi-icon" style="background: rgba(46,204,113,0.12); color: var(--status-ok);">
+                <i class="ti ti-trending-up"></i>
             </div>
-
-            <div class="card-surface" style="padding: 20px; display: flex; flex-direction: column; gap: 12px;">
-                <h3 style="color: var(--text-hi); font-size: 15px; margin-bottom: 8px;">Acciones Rápidas</h3>
-                <button class="btn-primario" style="background: var(--status-danger); border-color: transparent;" onclick="abrirModalTransaccion('gasto')">
-                    <i class="ti ti-minus"></i> Registrar Gasto
-                </button>
-                <button class="btn-primario" style="background: var(--status-ok); border-color: transparent;" onclick="abrirModalTransaccion('ingreso')">
-                    <i class="ti ti-plus"></i> Registrar Ingreso
-                </button>
-                <button class="btn-secundario" onclick="fz_abrirModalTransferencia()">
-                    <i class="ti ti-arrows-exchange"></i> Transferencia
-                </button>
+            <div class="fz-res-kpi-info">
+                <span class="fz-res-kpi-label">Ingresos del mes</span>
+                <span class="fz-res-kpi-valor" id="fz-ingresos-mes" style="color: var(--status-ok);">+$0.00</span>
+            </div>
+        </div>
+        <div class="fz-res-kpi-card">
+            <div class="fz-res-kpi-icon" style="background: rgba(231,76,60,0.12); color: var(--status-danger);">
+                <i class="ti ti-trending-down"></i>
+            </div>
+            <div class="fz-res-kpi-info">
+                <span class="fz-res-kpi-label">Gastos del mes</span>
+                <span class="fz-res-kpi-valor" id="fz-gastos-mes" style="color: var(--status-danger);">-$0.00</span>
             </div>
         </div>
     </div>
+ 
+    <!-- Dos donas: Gastos | Ingresos -->
+    <div class="fz-res-donas-grid">
+ 
+        <!-- Dona Gastos -->
+        <div class="card-surface fz-res-dona-card">
+            <div class="fz-res-dona-header">
+                <span class="fz-res-dona-titulo">
+                    <span class="fz-res-dona-badge gasto"></span>
+                    Gastos por Categoría
+                </span>
+                <span class="fz-res-dona-subtotal" id="fz-res-total-gastos" style="color: var(--status-danger);">$0</span>
+            </div>
+            <div class="fz-res-dona-body">
+                <div class="fz-res-chart-wrap">
+                    <canvas id="fz-grafico-gastos" role="img" aria-label="Gráfico de dona de gastos por categoría"></canvas>
+                    <div class="fz-res-dona-center" id="fz-res-center-gastos">
+                        <span class="fz-res-dona-center-val" id="fz-res-center-gastos-val">$0</span>
+                        <span class="fz-res-dona-center-lbl">Total</span>
+                    </div>
+                    <p id="fz-grafico-vacio" style="display:none; position:absolute; color:var(--text-lo); font-size:12px; text-align:center;">Sin gastos este mes.</p>
+                </div>
+                <div class="fz-res-cat-list" id="fz-res-cat-gastos"></div>
+            </div>
+        </div>
+ 
+        <!-- Dona Ingresos -->
+        <div class="card-surface fz-res-dona-card">
+            <div class="fz-res-dona-header">
+                <span class="fz-res-dona-titulo">
+                    <span class="fz-res-dona-badge ingreso"></span>
+                    Ingresos por Categoría
+                </span>
+                <span class="fz-res-dona-subtotal" id="fz-res-total-ingresos" style="color: var(--status-ok);">$0</span>
+            </div>
+            <div class="fz-res-dona-body">
+                <div class="fz-res-chart-wrap">
+                    <canvas id="fz-grafico-ingresos" role="img" aria-label="Gráfico de dona de ingresos por categoría"></canvas>
+                    <div class="fz-res-dona-center" id="fz-res-center-ingresos">
+                        <span class="fz-res-dona-center-val" id="fz-res-center-ingresos-val">$0</span>
+                        <span class="fz-res-dona-center-lbl">Total</span>
+                    </div>
+                    <p id="fz-grafico-ingresos-vacio" style="display:none; position:absolute; color:var(--text-lo); font-size:12px; text-align:center;">Sin ingresos este mes.</p>
+                </div>
+                <div class="fz-res-cat-list" id="fz-res-cat-ingresos"></div>
+            </div>
+        </div>
+ 
+    </div>
+</div>
+
 
 <div id="pantalla-cuentas" style="display: none;">
     <div id="fz-lista-cuentas"></div>
@@ -896,6 +943,33 @@
             <button class="fz-btn-primario-der" onclick="fz_aplicarFiltrosAvanzados()">
                 Aplicar filtros
             </button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="fz-modal-acciones-rapidas">
+    <div class="modal-caja fz-modal-premium" style="max-width: 360px !important;">
+        <div class="fz-modal-header-exacto">
+            <h3 style="color: var(--text-hi); margin:0; font-size:15px;">Registrar movimiento</h3>
+            <button class="btn-ghost fz-btn-cerrar-exacto" onclick="document.getElementById('fz-modal-acciones-rapidas').classList.remove('visible')">
+                <i class="ti ti-x"></i>
+            </button>
+        </div>
+        <div class="fz-modal-content-exacto" style="gap: 10px; padding: 20px;">
+ 
+            <button class="fz-accion-rapida-btn gasto" onclick="fz_accRap('gasto')">
+                <i class="ti ti-minus"></i>
+                Registrar Gasto
+            </button>
+            <button class="fz-accion-rapida-btn ingreso" onclick="fz_accRap('ingreso')">
+                <i class="ti ti-plus"></i>
+                Registrar Ingreso
+            </button>
+            <button class="fz-accion-rapida-btn transferencia" onclick="fz_accRap('transferencia')">
+                <i class="ti ti-arrows-exchange"></i>
+                Transferencia
+            </button>
+ 
         </div>
     </div>
 </div>
