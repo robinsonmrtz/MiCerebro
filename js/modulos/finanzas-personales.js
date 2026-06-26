@@ -115,6 +115,7 @@ function renderizarPantallaActual() {
     else if (fz_tabActual === 'categorias') fz_pintarCategorias();
     else if (fz_tabActual === 'transacciones') fz_pintarTransacciones();
     else if (fz_tabActual === 'comercios') fz_pintarComercios();
+    else if (fz_tabActual === 'informes') fz_inf_pintarInformes();
     // Las nuevas vistas no tienen función aún, así que no llaman a nada y muestran el letrero "En construcción"
 }
 // ==========================================
@@ -2431,3 +2432,489 @@ window.fz_toggleFiltroDropdown = function(tipo) {
         trigger.classList.add('abierto');
     }
 };
+
+// ==========================================
+// MÓDULO: INFORMES — js/modulos/finanzas-personales.js
+// INSTRUCCIONES DE INTEGRACIÓN:
+//   1. Pegar este bloque al final del archivo finanzas-personales.js
+//   2. En la función renderizarPantallaActual(), agregar la línea:
+//        else if (fz_tabActual === 'informes') fz_inf_pintarInformes();
+// ==========================================
+
+// --- Estado del módulo Informes ---
+let fz_inf_tipo       = 'gasto';       // 'gasto' | 'ingreso' | 'balance'
+let fz_inf_agrupacion = 'categoria';   // 'categoria' | 'cuenta' | 'comercio'
+let fz_inf_grafico    = null;          // instancia Chart.js
+let fz_inf_catSel     = null;          // categoría padre actualmente seleccionada
+
+// ==========================================
+// ENTRADA PRINCIPAL
+// ==========================================
+window.fz_inf_pintarInformes = function () {
+    // Asegurar que el gráfico anterior no quede vivo si se cambia de pestaña
+    fz_inf_destruirGrafico();
+    fz_inf_renderizar();
+};
+
+// ==========================================
+// RENDERIZADO MAESTRO
+// ==========================================
+function fz_inf_renderizar() {
+    if (fz_inf_tipo === 'balance') {
+        fz_inf_renderizarBalance();
+    } else {
+        fz_inf_renderizarPorTipo(fz_inf_tipo);
+    }
+}
+
+// ==========================================
+// RENDERER: GASTOS / INGRESOS
+// ==========================================
+function fz_inf_renderizarPorTipo(tipo) {
+    const datos = fz_obtenerDatos();
+    const year  = fz_fechaActual.getFullYear();
+    const month = String(fz_fechaActual.getMonth() + 1).padStart(2, '0');
+    const mesFiltro = `${year}-${month}`;
+
+    const trans = (datos.transacciones || []).filter(t =>
+        !t.archivada &&
+        t.tipo === tipo &&
+        t.fecha.startsWith(mesFiltro)
+    );
+
+    // --- AGRUPACIÓN ---
+    if (fz_inf_agrupacion === 'categoria') {
+        fz_inf_renderCategoria(tipo, trans, datos.categorias || []);
+    } else if (fz_inf_agrupacion === 'cuenta') {
+        fz_inf_renderCuenta(tipo, trans, datos.cuentas || []);
+    } else {
+        fz_inf_renderComercio(tipo, trans);
+    }
+}
+
+// ==========================================
+// RENDERER: AGRUPADO POR CATEGORÍA PADRE + HIJOS
+// ==========================================
+function fz_inf_renderCategoria(tipo, trans, categorias) {
+    const total = trans.reduce((s, t) => s + t.monto, 0);
+
+    if (total === 0) {
+        fz_inf_mostrarVacio();
+        return;
+    }
+
+    // Acumular por categoría (padre o hijo)
+    const accum = {};
+    trans.forEach(t => {
+        const cid = t.categoria_id;
+        accum[cid] = (accum[cid] || 0) + t.monto;
+    });
+
+    // Construir árbol padre → hijos
+    const padresMap = {};
+
+    Object.keys(accum).forEach(catId => {
+        const cat = categorias.find(c => c.id == catId);
+        if (!cat) {
+            // Sin categoría → agrupar en un bucket especial
+            if (!padresMap['__sin__']) {
+                padresMap['__sin__'] = {
+                    id: '__sin__', nombre: 'Sin categoría',
+                    emoji: '🏷️', color: '#888787',
+                    total: 0, subs: []
+                };
+            }
+            padresMap['__sin__'].total += accum[catId];
+            return;
+        }
+
+        const padreId = cat.parent_id || cat.id;
+        const padre   = categorias.find(c => c.id == padreId) || cat;
+
+        if (!padresMap[padreId]) {
+            padresMap[padreId] = {
+                id: padreId,
+                nombre: padre.nombre,
+                emoji:  padre.emoji  || '🏷️',
+                color:  padre.color  || '#888787',
+                total: 0, subs: []
+            };
+        }
+
+        if (cat.parent_id) {
+            // Es un hijo → agregar a subs
+            const subExist = padresMap[padreId].subs.find(s => s.id == cat.id);
+            if (subExist) {
+                subExist.total += accum[catId];
+            } else {
+                padresMap[padreId].subs.push({
+                    id:     cat.id,
+                    nombre: cat.nombre,
+                    color:  padre.color || cat.color || '#888787',
+                    total:  accum[catId]
+                });
+            }
+        }
+
+        padresMap[padreId].total += accum[catId];
+    });
+
+    // Convertir a array y ordenar desc por total
+    const items = Object.values(padresMap).sort((a, b) => b.total - a.total);
+
+    // Calcular porcentajes
+    items.forEach(item => {
+        item.pct = total > 0 ? (item.total / total * 100) : 0;
+        item.subs.sort((a, b) => b.total - a.total);
+        item.subs.forEach(s => { s.pct = item.total > 0 ? (s.total / item.total * 100) : 0; });
+    });
+
+    // Renderizar cabecera dona + lista
+    fz_inf_pintar(items, total, tipo);
+
+    // Seleccionar el primero por defecto
+    if (items.length > 0 && !fz_inf_catSel) fz_inf_catSel = items[0];
+    fz_inf_pintarDetalle(fz_inf_catSel, total, tipo);
+}
+
+// ==========================================
+// RENDERER: AGRUPADO POR CUENTA
+// ==========================================
+function fz_inf_renderCuenta(tipo, trans, cuentas) {
+    const total = trans.reduce((s, t) => s + t.monto, 0);
+    if (total === 0) { fz_inf_mostrarVacio(); return; }
+
+    const map = {};
+    trans.forEach(t => {
+        const cid = t.cuenta_id;
+        if (!map[cid]) {
+            const cuenta = cuentas.find(c => c.id == cid);
+            map[cid] = {
+                id: cid,
+                nombre: cuenta ? cuenta.nombre : 'Desconocida',
+                emoji:  '🏦',
+                color:  cuenta ? (cuenta.color || '#3498db') : '#3498db',
+                total: 0, subs: []
+            };
+        }
+        map[cid].total += t.monto;
+    });
+
+    const items = Object.values(map).sort((a, b) => b.total - a.total);
+    items.forEach(i => { i.pct = total > 0 ? (i.total / total * 100) : 0; });
+
+    if (!fz_inf_catSel) fz_inf_catSel = items[0];
+    fz_inf_pintar(items, total, tipo);
+    fz_inf_pintarDetalle(fz_inf_catSel, total, tipo);
+}
+
+// ==========================================
+// RENDERER: AGRUPADO POR COMERCIO
+// ==========================================
+function fz_inf_renderComercio(tipo, trans) {
+    const total = trans.reduce((s, t) => s + t.monto, 0);
+    if (total === 0) { fz_inf_mostrarVacio(); return; }
+
+    const map = {};
+    trans.forEach(t => {
+        const key = t.comercio || '(Sin comercio)';
+        map[key] = (map[key] || 0) + t.monto;
+    });
+
+    const items = Object.keys(map).map(nombre => ({
+        id: nombre, nombre,
+        emoji: nombre === '(Sin comercio)' ? '❓' : '🏪',
+        color: '#3498db',
+        total: map[nombre], subs: [],
+        pct: total > 0 ? (map[nombre] / total * 100) : 0
+    })).sort((a, b) => b.total - a.total);
+
+    if (!fz_inf_catSel) fz_inf_catSel = items[0];
+    fz_inf_pintar(items, total, tipo);
+    fz_inf_pintarDetalle(fz_inf_catSel, total, tipo);
+}
+
+// ==========================================
+// RENDERER: BALANCE (INGRESOS vs GASTOS)
+// ==========================================
+function fz_inf_renderizarBalance() {
+    const datos = fz_obtenerDatos();
+    const year  = fz_fechaActual.getFullYear();
+    const month = String(fz_fechaActual.getMonth() + 1).padStart(2, '0');
+    const mesFiltro = `${year}-${month}`;
+
+    const transDelMes = (datos.transacciones || []).filter(t =>
+        !t.archivada && t.fecha.startsWith(mesFiltro)
+    );
+
+    const ingresos = transDelMes.filter(t => t.tipo === 'ingreso').reduce((s, t) => s + t.monto, 0);
+    const gastos   = transDelMes.filter(t => t.tipo === 'gasto').reduce((s, t) => s + t.monto, 0);
+    const balance  = ingresos - gastos;
+    const total    = ingresos + gastos;
+
+    if (total === 0) { fz_inf_mostrarVacio(); return; }
+
+    const items = [
+        { id: 'ingresos', nombre: 'Ingresos',  emoji: '💚', color: '#2ecc71', total: ingresos, pct: total > 0 ? ingresos/total*100 : 0, subs: [] },
+        { id: 'gastos',   nombre: 'Gastos',    emoji: '❤️', color: '#e74c3c', total: gastos,   pct: total > 0 ? gastos/total*100   : 0, subs: [] },
+    ];
+
+    // Mostrar balance en el centro de la dona
+    const totalEl = document.getElementById('fz-inf-total-val');
+    if (totalEl) {
+        totalEl.textContent = formatearDinero(balance);
+        totalEl.style.color = balance >= 0 ? 'var(--status-ok)' : 'var(--status-danger)';
+    }
+
+    if (!fz_inf_catSel) fz_inf_catSel = items[0];
+    fz_inf_pintar(items, total, 'balance');
+    fz_inf_pintarDetalle(fz_inf_catSel, total, 'balance');
+}
+
+// ==========================================
+// PINTAR DONA + LISTA DE CATEGORÍAS PADRE
+// ==========================================
+function fz_inf_pintar(items, total, tipo) {
+    // ---- Dona ----
+    const canvas = document.getElementById('fz-inf-dona');
+    const emptyEl = document.getElementById('fz-inf-grafico-vacio');
+    const centerEl = document.getElementById('fz-inf-dona-center');
+    const totalEl  = document.getElementById('fz-inf-total-val');
+
+    if (!canvas) return;
+
+    canvas.style.display = 'block';
+    if (emptyEl) emptyEl.style.display = 'none';
+    if (centerEl) centerEl.style.display = 'flex';
+
+    if (totalEl && tipo !== 'balance') {
+        totalEl.textContent = formatearDinero(total);
+        totalEl.style.color = '';
+    }
+
+    fz_inf_destruirGrafico();
+
+    const colorTexto = getComputedStyle(document.body).getPropertyValue('--text-lo').trim() || '#888';
+
+    fz_inf_grafico = new Chart(canvas, {
+        type: 'doughnut',
+        data: {
+            labels: items.map(i => i.nombre),
+            datasets: [{
+                data: items.map(i => i.total),
+                backgroundColor: items.map(i => i.color),
+                borderWidth: 3,
+                borderColor: getComputedStyle(document.body).getPropertyValue('--bg-card').trim() || '#fff',
+                hoverOffset: 6,
+                hoverBorderWidth: 3
+            }]
+        },
+        options: {
+            responsive: false,
+            cutout: '70%',
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => {
+                            const pct = total > 0 ? (ctx.raw / total * 100).toFixed(2) : '0.00';
+                            return ` ${formatearDinero(ctx.raw)} (${pct}%)`;
+                        }
+                    }
+                }
+            },
+            onClick: (_, els) => {
+                if (els.length) {
+                    const idx = els[0].index;
+                    fz_inf_seleccionarCat(idx, items, total, tipo);
+                }
+            }
+        }
+    });
+
+    // ---- Lista de categorías padre ----
+    const lista = document.getElementById('fz-inf-cat-list');
+    if (!lista) return;
+
+    lista.innerHTML = items.map((item, idx) => {
+        const colorMonto = tipo === 'gasto' ? 'var(--status-danger)' :
+                           tipo === 'ingreso' ? 'var(--status-ok)' :
+                           (item.id === 'ingresos' ? 'var(--status-ok)' : 'var(--status-danger)');
+        return `
+        <div class="fz-inf-cat-item${idx === 0 ? ' seleccionada' : ''}"
+             id="fz-inf-cat-item-${idx}"
+             onclick="fz_inf_seleccionarCat(${idx}, null, null, null)">
+            <div class="fz-inf-cat-icon" style="background:${item.color}22; color:${item.color};">
+                ${item.emoji}
+            </div>
+            <div class="fz-inf-cat-info">
+                <div class="fz-inf-cat-nombre">${item.nombre}</div>
+                <div class="fz-inf-cat-sub">${item.pct.toFixed(2)}%</div>
+            </div>
+            <div>
+                <div class="fz-inf-cat-monto" style="color:${colorMonto};">${formatearDinero(item.total)}</div>
+            </div>
+        </div>`;
+    }).join('');
+
+    // Guardamos los items en el DOM para usarlos en seleccionarCat
+    lista.dataset.items  = JSON.stringify(items);
+    lista.dataset.total  = String(total);
+    lista.dataset.tipo   = tipo;
+}
+
+// ==========================================
+// SELECCIONAR UNA CATEGORÍA
+// ==========================================
+window.fz_inf_seleccionarCat = function(idx, items, total, tipo) {
+    const lista = document.getElementById('fz-inf-cat-list');
+    if (!lista) return;
+
+    // Recuperar desde DOM si no se pasaron como parámetro
+    if (!items) {
+        try { items = JSON.parse(lista.dataset.items || '[]'); } catch { items = []; }
+        total = parseFloat(lista.dataset.total || '0');
+        tipo  = lista.dataset.tipo || 'gasto';
+    }
+
+    if (!items[idx]) return;
+
+    // Quitar selección previa
+    lista.querySelectorAll('.fz-inf-cat-item').forEach(el => el.classList.remove('seleccionada'));
+    const el = document.getElementById(`fz-inf-cat-item-${idx}`);
+    if (el) el.classList.add('seleccionada');
+
+    fz_inf_catSel = items[idx];
+    fz_inf_pintarDetalle(items[idx], total, tipo);
+};
+
+// ==========================================
+// PINTAR TABLA DE DETALLE (padre + hijos)
+// ==========================================
+function fz_inf_pintarDetalle(item, totalGlobal, tipo) {
+    const panel = document.getElementById('fz-inf-sub-list');
+    if (!panel || !item) return;
+
+    const pctGlobal = totalGlobal > 0 ? (item.total / totalGlobal * 100).toFixed(2) : '0.00';
+    const colorMonto = tipo === 'gasto' ? 'var(--status-danger)' :
+                       tipo === 'ingreso' ? 'var(--status-ok)' :
+                       (item.id === 'ingresos' ? 'var(--status-ok)' : 'var(--status-danger)');
+
+    let html = `
+    <div class="fz-inf-sub-row padre">
+        <div class="fz-inf-sub-nombre" style="font-weight:700;">
+            <span style="font-size:18px;">${item.emoji}</span>
+            <span class="fz-inf-sub-nombre-txt">${item.nombre}</span>
+        </div>
+        <div class="fz-inf-sub-pct" style="font-weight:600;">${pctGlobal}%</div>
+        <div class="fz-inf-sub-monto" style="color:${colorMonto}; font-weight:800;">${formatearDinero(item.total)}</div>
+    </div>`;
+
+    if (item.subs && item.subs.length > 0) {
+        html += item.subs.map(sub => {
+            const pctSub = item.total > 0 ? (sub.total / item.total * 100).toFixed(2) : '0.00';
+            return `
+            <div class="fz-inf-sub-row">
+                <div class="fz-inf-sub-nombre">
+                    <span class="fz-inf-sub-arrow">↳</span>
+                    <span class="fz-inf-sub-dot" style="background:${sub.color};"></span>
+                    <span class="fz-inf-sub-nombre-txt">${sub.nombre}</span>
+                </div>
+                <div class="fz-inf-sub-pct">${pctSub}%</div>
+                <div class="fz-inf-sub-monto" style="color:${colorMonto};">${formatearDinero(sub.total)}</div>
+            </div>`;
+        }).join('');
+    } else {
+        html += `
+        <div style="padding:14px 16px; font-size:12px; color:var(--text-lo);">
+            Esta categoría no tiene subcategorías registradas.
+        </div>`;
+    }
+
+    panel.innerHTML = html;
+}
+
+// ==========================================
+// ESTADO VACÍO
+// ==========================================
+function fz_inf_mostrarVacio() {
+    fz_inf_destruirGrafico();
+
+    const canvas  = document.getElementById('fz-inf-dona');
+    const emptyEl = document.getElementById('fz-inf-grafico-vacio');
+    const centerEl = document.getElementById('fz-inf-dona-center');
+    const lista   = document.getElementById('fz-inf-cat-list');
+    const panel   = document.getElementById('fz-inf-sub-list');
+    const totalEl = document.getElementById('fz-inf-total-val');
+
+    if (canvas)  canvas.style.display  = 'none';
+    if (emptyEl) emptyEl.style.display = 'block';
+    if (centerEl) centerEl.style.display = 'none';
+    if (totalEl) { totalEl.textContent = formatearDinero(0); totalEl.style.color = ''; }
+    if (lista)   lista.innerHTML  = `<div style="color:var(--text-lo);font-size:13px;padding:20px;text-align:center;">Sin movimientos en este período.</div>`;
+    if (panel)   panel.innerHTML  = '';
+}
+
+// ==========================================
+// HELPERS UI
+// ==========================================
+function fz_inf_destruirGrafico() {
+    if (fz_inf_grafico) { fz_inf_grafico.destroy(); fz_inf_grafico = null; }
+}
+
+window.fz_inf_cambiarTipo = function(tipo) {
+    fz_inf_tipo = tipo;
+    fz_inf_catSel = null;
+
+    ['gastos', 'ingresos', 'balance'].forEach(t => {
+        document.getElementById(`fz-inf-btn-${t}`)?.classList.remove('activo');
+    });
+    document.getElementById(`fz-inf-btn-${tipo}s`)?.classList.add('activo');
+    if (tipo === 'balance') {
+        document.getElementById('fz-inf-btn-balances')?.classList.remove('activo');
+        document.getElementById('fz-inf-btn-balance')?.classList.add('activo');
+    }
+
+    // Actualizar label de agrupación
+    fz_inf_actualizarLabelAgrup();
+    fz_inf_renderizar();
+};
+
+window.fz_inf_toggleAgrupacion = function() {
+    const menu = document.getElementById('fz-inf-agrup-menu');
+    const btn  = document.querySelector('.fz-inf-agrupacion-btn');
+    menu?.classList.toggle('visible');
+    btn?.classList.toggle('abierto');
+};
+
+window.fz_inf_setAgrupacion = function(agrup) {
+    fz_inf_agrupacion = agrup;
+    fz_inf_catSel     = null;
+    fz_inf_actualizarLabelAgrup();
+    document.getElementById('fz-inf-agrup-menu')?.classList.remove('visible');
+    document.querySelector('.fz-inf-agrupacion-btn')?.classList.remove('abierto');
+    fz_inf_renderizar();
+};
+
+function fz_inf_actualizarLabelAgrup() {
+    const labelEl = document.getElementById('fz-inf-agrup-label');
+    if (!labelEl) return;
+    const nombres = {
+        categoria: { gasto:'Gastos por categoría', ingreso:'Ingresos por categoría', balance:'Balance por categoría' },
+        cuenta:    { gasto:'Gastos por cuenta',     ingreso:'Ingresos por cuenta',    balance:'Balance por cuenta' },
+        comercio:  { gasto:'Gastos por comercio',   ingreso:'Ingresos por comercio',  balance:'Balance por comercio' }
+    };
+    labelEl.textContent = (nombres[fz_inf_agrupacion] || {})[fz_inf_tipo] || 'Por categoría';
+}
+
+// Cerrar menú de agrupación al clicar afuera
+document.addEventListener('click', function(e) {
+    const menu = document.getElementById('fz-inf-agrup-menu');
+    const btn  = document.querySelector('.fz-inf-agrupacion-btn');
+    if (menu && menu.classList.contains('visible') &&
+        !e.target.closest('.fz-inf-agrupacion-wrap')) {
+        menu.classList.remove('visible');
+        btn?.classList.remove('abierto');
+    }
+});
+

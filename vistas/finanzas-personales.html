@@ -175,7 +175,88 @@
 
     <div id="pantalla-tarjetas" style="display: none;"><div class="card-surface" style="padding: 40px; text-align: center; color: var(--text-lo);">🚧 Módulo Tarjetas de Crédito en construcción 🚧</div></div>
     <div id="pantalla-presupuestos" style="display: none;"><div class="card-surface" style="padding: 40px; text-align: center; color: var(--text-lo);">🚧 Módulo Presupuestos en construcción 🚧</div></div>
-    <div id="pantalla-informes" style="display: none;"><div class="card-surface" style="padding: 40px; text-align: center; color: var(--text-lo);">🚧 Módulo Informes en construcción 🚧</div></div>
+   <div id="pantalla-informes" style="display: none;">
+ 
+    <!-- Selector de tipo de informe -->
+    <div class="fz-inf-type-bar">
+        <button class="fz-inf-type-btn activo" id="fz-inf-btn-gastos" onclick="fz_inf_cambiarTipo('gasto')">
+            <i class="ti ti-chart-pie-2"></i> <span>Gastos</span>
+        </button>
+        <button class="fz-inf-type-btn" id="fz-inf-btn-ingresos" onclick="fz_inf_cambiarTipo('ingreso')">
+            <i class="ti ti-trending-up"></i> <span>Ingresos</span>
+        </button>
+        <button class="fz-inf-type-btn" id="fz-inf-btn-balance" onclick="fz_inf_cambiarTipo('balance')">
+            <i class="ti ti-chart-bar"></i> <span>Balance</span>
+        </button>
+ 
+        <!-- Selector de agrupación (derecha) -->
+        <div class="fz-inf-agrupacion-wrap" style="margin-left: auto;">
+            <button class="fz-inf-agrupacion-btn" onclick="fz_inf_toggleAgrupacion()">
+                <i class="ti ti-chevron-down" id="fz-inf-agrup-arrow"></i>
+                <span id="fz-inf-agrup-label">Gastos por categoría</span>
+            </button>
+            <div class="fz-inf-agrupacion-menu" id="fz-inf-agrup-menu">
+                <div class="fz-inf-agrup-item" onclick="fz_inf_setAgrupacion('categoria')">
+                    <i class="ti ti-tags"></i> Por categoría
+                </div>
+                <div class="fz-inf-agrup-item" onclick="fz_inf_setAgrupacion('cuenta')">
+                    <i class="ti ti-building-bank"></i> Por cuenta
+                </div>
+                <div class="fz-inf-agrup-item" onclick="fz_inf_setAgrupacion('comercio')">
+                    <i class="ti ti-building-store"></i> Por comercio
+                </div>
+            </div>
+        </div>
+ 
+        <!-- Filtro rápido -->
+        <button class="fz-cat-icon-btn" title="Filtros" onclick="fz_abrirModalFiltros()" style="margin-left: 8px;">
+            <i class="ti ti-adjustments-horizontal"></i>
+        </button>
+    </div>
+ 
+    <!-- Card principal del informe -->
+    <div class="card-surface fz-inf-main-card">
+ 
+        <!-- Zona gráfico + leyenda -->
+        <div class="fz-inf-chart-area" id="fz-inf-chart-area">
+ 
+            <!-- Dona -->
+            <div class="fz-inf-dona-wrap">
+                <canvas id="fz-inf-dona" role="img" aria-label="Gráfico de dona de gastos por categoría"></canvas>
+                <div class="fz-inf-dona-center" id="fz-inf-dona-center">
+                    <div class="fz-inf-dona-total" id="fz-inf-total-val">$0</div>
+                    <div class="fz-inf-dona-lbl">Total</div>
+                </div>
+                <p class="fz-inf-empty-msg" id="fz-inf-grafico-vacio" style="display:none;">
+                    Sin movimientos en este período.
+                </p>
+            </div>
+ 
+            <!-- Lista de categorías padre (leyenda clickeable) -->
+            <div class="fz-inf-cat-list" id="fz-inf-cat-list">
+                <div style="color:var(--text-lo); font-size:13px; padding:20px; text-align:center;">Cargando...</div>
+            </div>
+        </div>
+ 
+        <hr class="fz-inf-divider">
+ 
+        <!-- Tabla detalle (padre + hijos) -->
+        <div id="fz-inf-sub-panel">
+            <div class="fz-inf-sub-header">
+                <span>Categoría</span>
+                <span style="text-align:right">%</span>
+                <span style="text-align:right">Monto</span>
+            </div>
+            <div id="fz-inf-sub-list">
+                <div style="color:var(--text-lo); font-size:13px; padding:20px; text-align:center;">
+                    Selecciona una categoría para ver el detalle.
+                </div>
+            </div>
+        </div>
+ 
+    </div>
+ 
+</div>
     <div id="pantalla-objetivos" style="display: none;"><div class="card-surface" style="padding: 40px; text-align: center; color: var(--text-lo);">🚧 Módulo Objetivos en construcción 🚧</div></div>
 <div id="pantalla-comercios" style="display: none;">
 

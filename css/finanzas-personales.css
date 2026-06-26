@@ -1216,3 +1216,308 @@ input:checked + .fz-slider-exacto:before { transform: translateX(18px); }
     box-sizing: border-box;
     justify-content: flex-start;
 }
+
+/* =========================================
+   MÓDULO: INFORMES — css/finanzas-personales.css
+   AGREGAR AL FINAL DEL ARCHIVO
+   ========================================= */
+
+/* ---- Barra de tipo de informe ---- */
+.fz-inf-type-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+}
+
+.fz-inf-type-btn {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    height: 40px;
+    padding: 0 20px;
+    border-radius: 30px;
+    border: 1.5px solid var(--border-card);
+    background: var(--bg-card);
+    color: var(--text-lo);
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .2s;
+}
+.fz-inf-type-btn i { font-size: 18px; }
+.fz-inf-type-btn:hover { background: var(--bg-hover); color: var(--text-base); }
+.fz-inf-type-btn.activo {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+}
+
+/* ---- Selector de agrupación ---- */
+.fz-inf-agrupacion-wrap { position: relative; }
+
+.fz-inf-agrupacion-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 40px;
+    padding: 0 16px;
+    border-radius: 10px;
+    border: 1px solid var(--border-card);
+    background: var(--bg-input);
+    color: var(--text-base);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: border-color .2s;
+    white-space: nowrap;
+}
+.fz-inf-agrupacion-btn:hover { border-color: var(--accent); }
+.fz-inf-agrupacion-btn i { font-size: 16px; color: var(--text-lo); transition: transform .2s; }
+.fz-inf-agrupacion-btn.abierto i { transform: rotate(180deg); }
+
+.fz-inf-agrupacion-menu {
+    display: none;
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.22);
+    z-index: 200;
+    min-width: 190px;
+    padding: 6px 0;
+}
+.fz-inf-agrupacion-menu.visible { display: block; }
+
+.fz-inf-agrup-item {
+    padding: 12px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-hi);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: background .15s;
+}
+.fz-inf-agrup-item i { font-size: 17px; }
+.fz-inf-agrup-item:hover { background: var(--bg-hover); color: var(--accent); }
+
+/* ---- Card principal ---- */
+.fz-inf-main-card { padding: 28px 32px; }
+
+/* ---- Zona gráfico ---- */
+.fz-inf-chart-area {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    gap: 28px;
+    align-items: center;
+    min-height: 220px;
+}
+
+.fz-inf-dona-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 220px;
+    height: 220px;
+    flex-shrink: 0;
+}
+
+#fz-inf-dona {
+    width: 220px !important;
+    height: 220px !important;
+}
+
+.fz-inf-dona-center {
+    position: absolute;
+    text-align: center;
+    pointer-events: none;
+}
+.fz-inf-dona-total {
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--text-hi);
+    line-height: 1.2;
+}
+.fz-inf-dona-lbl {
+    font-size: 11px;
+    color: var(--text-lo);
+    margin-top: 2px;
+}
+
+.fz-inf-empty-msg {
+    position: absolute;
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-lo);
+    padding: 20px;
+}
+
+/* ---- Lista de categorías (leyenda) ---- */
+.fz-inf-cat-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    overflow-y: auto;
+    max-height: 220px;
+    padding-right: 4px;
+}
+
+.fz-inf-cat-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background .15s;
+    border: 1.5px solid transparent;
+}
+.fz-inf-cat-item:hover { background: var(--bg-hover); }
+.fz-inf-cat-item.seleccionada {
+    background: var(--bg-hover);
+    border-color: var(--border-card);
+}
+
+.fz-inf-cat-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+}
+
+.fz-inf-cat-info { flex: 1; min-width: 0; }
+
+.fz-inf-cat-nombre {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-hi);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.fz-inf-cat-sub {
+    font-size: 11px;
+    color: var(--text-lo);
+    margin-top: 1px;
+}
+
+.fz-inf-cat-monto {
+    font-size: 13px;
+    font-weight: 700;
+    text-align: right;
+    white-space: nowrap;
+}
+.fz-inf-cat-pct {
+    font-size: 11px;
+    color: var(--text-lo);
+    text-align: right;
+}
+
+/* ---- Divisor ---- */
+.fz-inf-divider {
+    border: none;
+    border-top: 1px solid var(--border-card);
+    margin: 24px -32px;
+}
+
+/* ---- Tabla de detalle ---- */
+.fz-inf-sub-header {
+    display: grid;
+    grid-template-columns: 1fr 80px 140px;
+    gap: 12px;
+    align-items: center;
+    padding: 8px 20px 10px;
+    border-bottom: 1px solid var(--border-card);
+    margin-bottom: 4px;
+}
+.fz-inf-sub-header span {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-lo);
+    text-transform: uppercase;
+    letter-spacing: .05em;
+}
+
+.fz-inf-sub-row {
+    display: grid;
+    grid-template-columns: 1fr 80px 140px;
+    gap: 12px;
+    align-items: center;
+    padding: 10px 20px;
+    border-radius: 8px;
+    transition: background .15s;
+}
+.fz-inf-sub-row:hover { background: var(--bg-hover); }
+.fz-inf-sub-row.padre {
+    background: var(--bg-input);
+    border-radius: 10px;
+    margin-bottom: 4px;
+}
+
+.fz-inf-sub-nombre {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text-base);
+    overflow: hidden;
+}
+.fz-inf-sub-nombre-txt {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.fz-inf-sub-arrow { color: var(--text-lo); font-size: 12px; flex-shrink: 0; }
+
+.fz-inf-sub-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.fz-inf-sub-pct {
+    font-size: 12px;
+    color: var(--text-lo);
+    text-align: right;
+}
+.fz-inf-sub-monto {
+    font-size: 13px;
+    font-weight: 700;
+    text-align: right;
+    white-space: nowrap;
+}
+
+/* colores semánticos de monto según tipo */
+.fz-inf-color-gasto   { color: var(--status-danger); }
+.fz-inf-color-ingreso { color: var(--status-ok); }
+.fz-inf-color-balance-pos { color: var(--status-ok); }
+.fz-inf-color-balance-neg { color: var(--status-danger); }
+
+/* ---- Responsive ---- */
+@media (max-width: 700px) {
+    .fz-inf-main-card { padding: 16px; }
+    .fz-inf-chart-area {
+        grid-template-columns: 1fr;
+        justify-items: center;
+    }
+    .fz-inf-dona-wrap { width: 190px; height: 190px; }
+    #fz-inf-dona { width: 190px !important; height: 190px !important; }
+    .fz-inf-cat-list { max-height: none; width: 100%; }
+    .fz-inf-sub-header,
+    .fz-inf-sub-row { grid-template-columns: 1fr 55px 110px; padding-left: 10px; padding-right: 10px; }
+    .fz-inf-divider { margin-left: -16px; margin-right: -16px; }
+    .fz-inf-type-btn span { display: none; }
+    .fz-inf-agrupacion-btn { display: none; }
+}
