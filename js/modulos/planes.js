@@ -8,7 +8,7 @@
 
   // ── CONSTANTES ──────────────────────────────────────────────
   const NODO_W = 200;
-  const NODO_H = 135; // Altura ampliada para soportar 4 líneas + fecha límite
+  const NODO_H = 155; // Altura ampliada para soportar 4 líneas + fecha límite
   const HANDLE_R = 6;
   const GRID = 20;
 
@@ -219,7 +219,7 @@
 
     const lineas = editor.value.trim().split('\n');
     n.titulo = lineas[0] || '';
-    n.descripcion = lineas.slice(1).join(' ');
+    n.descripcion = lineas.slice(1).join('\n');
 
     guardarPlanos();
     renderTodo();
@@ -271,6 +271,38 @@
     });
 
     plano.nodos.forEach(n => renderNodo(g, n));
+  }
+
+  function dividirTextoEnLineas(texto, maxChars, maxLines) {
+    if (!texto) return [];
+
+    const lineas = [];
+    const bloques = texto.replace(/\r/g, '').split('\n');
+
+    bloques.forEach(bloque => {
+      const limpio = bloque.trim();
+      if (!limpio) {
+        if (lineas.length < maxLines) lineas.push('');
+        return;
+      }
+
+      const palabras = limpio.split(/\s+/);
+      let actual = '';
+
+      palabras.forEach(palabra => {
+        const prueba = actual ? `${actual} ${palabra}` : palabra;
+        if (prueba.length <= maxChars) {
+          actual = prueba;
+        } else {
+          if (actual) lineas.push(actual);
+          actual = palabra;
+        }
+      });
+
+      if (actual) lineas.push(actual);
+    });
+
+    return lineas.slice(0, maxLines);
   }
 
   function renderNodo(g, n) {
@@ -380,32 +412,20 @@
     grp.addEventListener('mouseenter', () => delG.setAttribute('opacity', '1'));
     grp.addEventListener('mouseleave', () => delG.setAttribute('opacity', '0'));
 
-    // Título
-    const titulo = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    titulo.setAttribute('x', n.x + 12);
-    titulo.setAttribute('y', n.y + 36);
-    titulo.setAttribute('fill', n.completado ? 'var(--status-ok)' : 'var(--text-hi)');
-    titulo.setAttribute('font-size', '13');
-    titulo.setAttribute('font-weight', '600');
-    titulo.setAttribute('font-family', 'Inter, sans-serif');
-    const tituloText = n.titulo || 'Sin título';
-    titulo.textContent = tituloText.length > 20 ? tituloText.slice(0, 20) + '…' : tituloText;
-    grp.appendChild(titulo);
+    const contenido = [n.titulo || 'Sin título', n.descripcion].filter(Boolean).join('\n');
+    const lineas = dividirTextoEnLineas(contenido, 26, 4);
 
-    // Descripción (Hasta 4 líneas)
-    if (n.descripcion) {
-      const lineas = partirTexto(n.descripcion, 28);
-      lineas.slice(0, 4).forEach((linea, i) => {
-        const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        t.setAttribute('x', n.x + 12);
-        t.setAttribute('y', n.y + 54 + i * 16);
-        t.setAttribute('fill', 'var(--text-base)');
-        t.setAttribute('font-size', '11');
-        t.setAttribute('font-family', 'Inter, sans-serif');
-        t.textContent = linea;
-        grp.appendChild(t);
-      });
-    }
+    lineas.forEach((linea, i) => {
+      const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      t.setAttribute('x', n.x + 12);
+      t.setAttribute('y', n.y + 36 + i * 16);
+      t.setAttribute('fill', n.completado ? 'var(--status-ok)' : 'var(--text-base)');
+      t.setAttribute('font-size', '11');
+      t.setAttribute('font-weight', '400');
+      t.setAttribute('font-family', 'Inter, sans-serif');
+      t.textContent = linea || ' ';
+      grp.appendChild(t);
+    });
 
     // Bloque rectangular de fecha límite (CRUD)
     const fechaBox = document.createElementNS('http://www.w3.org/2000/svg', 'g');
