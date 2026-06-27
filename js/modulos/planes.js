@@ -626,7 +626,11 @@
     if (modoCrear) return;
     const pt = svgPoint(e);
     const n = plano.nodos.find(n => n.id === nodoId);
-    arrastrandoNodo = { id: nodoId, offX: pt.x - n.x, offY: pt.y - n.y };
+    if (!n) return;
+
+    const offsetX = pt.x - n.x;
+    const offsetY = pt.y - n.y;
+    arrastrandoNodo = { id: nodoId, offsetX, offsetY };
   }
 
   function onMouseMove(e) {
@@ -634,8 +638,8 @@
       const pt = svgPoint(e);
       const n = plano.nodos.find(n => n.id === arrastrandoNodo.id);
       if (n) {
-        n.x = snap(pt.x - arrastrandoNodo.offX);
-        n.y = snap(pt.y - arrastrandoNodo.offY);
+        n.x = snap(pt.x - arrastrandoNodo.offsetX);
+        n.y = snap(pt.y - arrastrandoNodo.offsetY);
         renderTodo();
       }
     } else if (conectandoDesde && lineaTemporal) {
@@ -1022,7 +1026,10 @@
         const esInput = document.activeElement && ['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName);
 
         if (e.key === 'Escape') {
+          e.preventDefault();
           cerrarEditorNodo();
+          nodoSeleccionadoId = null;
+          renderTodo();
           if (modoCrear) {
             modoCrear = false;
             if (btnCrear) { btnCrear.classList.remove('activo'); btnCrear.textContent = '+ Agregar Paso'; }
