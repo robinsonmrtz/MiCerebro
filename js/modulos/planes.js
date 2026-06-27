@@ -29,6 +29,8 @@
   let planos = [];         // lista de planos
 
   let lienzo = null;       // SVG element
+  let nodoSeleccionadoId = null;
+  let portapapelesNodo = null;
   let contenedor = null;   // div wrapper
 
   // Interacción
@@ -305,10 +307,56 @@
     return lineas.slice(0, maxLines);
   }
 
+  function seleccionarNodo(nodoId) {
+    nodoSeleccionadoId = nodoId;
+    renderTodo();
+  }
+
+  function copiarNodoSeleccionado() {
+    if (!plano || !nodoSeleccionadoId) return;
+    const n = plano.nodos.find(nd => nd.id === nodoSeleccionadoId);
+    if (!n) return;
+
+    portapapelesNodo = {
+      titulo: n.titulo || '',
+      descripcion: n.descripcion || '',
+      fecha: n.fecha || '',
+      completado: false,
+    };
+  }
+
+  function pegarNodoDesdePortapapeles() {
+    if (!plano || !portapapelesNodo) return;
+
+    const base = plano.nodos.find(nd => nd.id === nodoSeleccionadoId);
+    const nuevoNodo = {
+      id: uid(),
+      x: snap((base ? base.x : 80) + 30),
+      y: snap((base ? base.y : 80) + 30),
+      titulo: portapapelesNodo.titulo,
+      descripcion: portapapelesNodo.descripcion,
+      fecha: portapapelesNodo.fecha,
+      completado: false,
+    };
+
+    plano.nodos.push(nuevoNodo);
+    guardarPlanos();
+    nodoSeleccionadoId = nuevoNodo.id;
+    renderTodo();
+    renderResumen();
+  }
+
+  function eliminarNodoSeleccionado() {
+    if (!plano || !nodoSeleccionadoId) return;
+    eliminarNodo(nodoSeleccionadoId);
+    nodoSeleccionadoId = null;
+  }
+
   function renderNodo(g, n) {
     const grp = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     grp.setAttribute('data-nid', n.id);
     grp.style.cursor = 'move';
+    const esSeleccionado = n.id === nodoSeleccionadoId;
 
     // Sombra/fondo
     const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
@@ -318,8 +366,8 @@
     rect.setAttribute('height', NODO_H);
     rect.setAttribute('rx', '10');
     rect.setAttribute('fill', 'var(--bg-card)');
-    rect.setAttribute('stroke', n.completado ? 'var(--status-ok)' : 'var(--border-card)');
-    rect.setAttribute('stroke-width', n.completado ? '2' : '1');
+    rect.setAttribute('stroke', esSeleccionado ? 'var(--accent)' : (n.completado ? 'var(--status-ok)' : 'var(--border-card)'));
+    rect.setAttribute('stroke-width', esSeleccionado || n.completado ? '2' : '1');
     grp.appendChild(rect);
 
     // Barra superior de color
@@ -411,6 +459,14 @@
 
     grp.addEventListener('mouseenter', () => delG.setAttribute('opacity', '1'));
     grp.addEventListener('mouseleave', () => delG.setAttribute('opacity', '0'));
+    grp.addEventListener('mousedown', (e) => {
+      if (e.target.closest('.handle') || e.target.closest('g[style*="cursor: pointer"]')) return;
+      seleccionarNodo(n.id);
+    });
+    grp.addEventListener('click', (e) => {
+      if (e.target.closest('.handle') || e.target.closest('g[style*="cursor: pointer"]')) return;
+      seleccionarNodo(n.id);
+    });
 
     const contenido = [n.titulo || 'Sin título', n.descripcion].filter(Boolean).join('\n');
     const lineas = dividirTextoEnLineas(contenido, 26, 4);
@@ -704,11 +760,11 @@
   }
 
   function eliminarNodo(nodoId) {
-    if (!confirm('¿Eliminar este nodo y sus conexiones?')) return;
     plano.nodos = plano.nodos.filter(n => n.id !== nodoId);
     plano.conexiones = plano.conexiones.filter(c =>
       c.desde.nodoId !== nodoId && c.hasta.nodoId !== nodoId
     );
+    if (nodoSeleccionadoId === nodoId) nodoSeleccionadoId = null;
     guardarPlanos();
     renderTodo();
     renderResumen();
@@ -963,12 +1019,39 @@
       if (btnCancelar) btnCancelar.addEventListener('click', cerrarEditorNodo);
 
       document.addEventListener('keydown', function handler(e) {
-        if (e.key === 'Escape') cerrarEditorNodo();
-        if (e.key === 'Escape' && modoCrear) {
-          modoCrear = false;
-          if (btnCrear) { btnCrear.classList.remove('activo'); btnCrear.textContent = '+ Agregar Paso'; }
-          lienzo.style.cursor = 'grab';
+        const esInput = document.activeElement && ['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName);
+
+        if (e.key === 'Escape') {
+          cerrarEditorNodo();
+          if (modoCrear) {
+            modoCrear = false;
+            if (btnCrear) { btnCrear.classList.remove('activo'); btnCrear.textContent = '+ Agregar Paso'; }
+            lienzo.style.cursor = 'grab';
+          }
         }
+
+        if (esInput) return;
+
+        if ((e.ctrlKey || e.metaKey) && (e.key === 'c' || e.key === 'C')) {
+          e.preventDefault();
+          copiarNodoSeleccionado();
+          return;
+        }
+
+        if ((e.ctrlKey || e.metaKey) && (e.key === 'v' || e.key === 'V')) {
+          e.preventDefault();
+          pegarNodoDesdePortapapeles();
+          return;
+        }
+
+        const key = e.key || e.code;
+        if (key === 'Delete' || key === 'Del' || key === 'Backspace' || e.code === 'Delete' || e.code === 'Backspace') {
+          e.preventDefault();
+          e.stopPropagation();
+          eliminarNodoSeleccionado();
+          return;
+        }
+
         if (!document.getElementById('planes-lienzo')) {
           document.removeEventListener('keydown', handler);
         }
