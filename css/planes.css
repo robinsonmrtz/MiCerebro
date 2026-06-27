@@ -1,0 +1,329 @@
+/* ============================================================
+   planes.css — Módulo de Hoja de Ruta Visual
+   Hereda variables de styles.css
+   ============================================================ */
+
+
+/* ── PANEL RESUMEN SUPERIOR ─────────────────────────────────── */
+.planes-resumen-panel {
+  padding: 16px 20px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  min-height: 62px;
+  position: relative;
+  z-index: 3;
+}
+
+.planes-resumen-stats {
+  display: flex;
+  gap: 20px;
+  flex-shrink: 0;
+}
+
+.planes-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.planes-stat-num {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-hi);
+  line-height: 1;
+}
+
+.planes-stat-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-lo);
+}
+
+.planes-proximos {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  flex: 1;
+  border-left: 1px solid var(--border-card);
+  padding-left: 20px;
+}
+
+.planes-proximos-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-lo);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.planes-tarea-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-card);
+  border-radius: 20px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.planes-tarea-chip:hover {
+  border-color: var(--accent);
+  background: var(--bg-hover);
+}
+
+.planes-chip-titulo {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-base);
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.planes-chip-fecha {
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+
+/* ── BARRA DE HERRAMIENTAS ──────────────────────────────────── */
+.planes-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.planes-toolbar-left,
+.planes-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.planes-hint {
+  font-size: 11px;
+  color: var(--text-lo);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.planes-hint i {
+  font-size: 13px;
+}
+
+/* Botón activo (modo crear) */
+#planes-btn-crear.activo {
+  background: var(--status-danger);
+  border-color: var(--status-danger);
+  color: #fff;
+}
+
+#planes-btn-crear.activo:hover {
+  opacity: 0.85;
+}
+
+
+/* ── LIENZO ─────────────────────────────────────────────────── */
+.planes-canvas-wrapper {
+  position: relative;
+  width: 100%;
+  height: calc(100vh - 340px);
+  min-height: 420px;
+  overflow: hidden;
+  padding: 0;
+  cursor: grab;
+}
+
+.planes-canvas-wrapper:active {
+  cursor: grabbing;
+}
+
+.planes-lienzo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Fondo de grilla decorativo */
+.planes-grid-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image:
+    linear-gradient(var(--border-card) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border-card) 1px, transparent 1px);
+  background-size: 40px 40px;
+  opacity: 0.4;
+}
+
+/* El SVG va encima del grid */
+.planes-lienzo {
+  position: relative;
+  z-index: 1;
+}
+
+.planes-date-editor {
+  position: absolute;
+  z-index: 20;
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  min-width: 210px;
+  border: 1px solid var(--border-card);
+  border-radius: 12px;
+  background: var(--bg-card);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.16);
+}
+
+.planes-date-editor-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--text-lo);
+}
+
+.planes-date-editor-input {
+  width: 100%;
+  border: 1px solid var(--border-card);
+  border-radius: 8px;
+  padding: 7px 8px;
+  background: var(--bg-input);
+  color: var(--text-base);
+}
+
+.planes-date-editor-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.planes-date-editor-actions button {
+  padding: 6px 8px;
+  font-size: 11px;
+  border-radius: 8px;
+}
+
+
+/* ── MODAL DE EDICIÓN ───────────────────────────────────────── */
+.planes-modal-nodo-caja {
+  text-align: left;
+  max-width: 420px;
+  width: 94%;
+}
+
+.planes-modal-nodo-caja h3 {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.planes-form-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 14px;
+}
+
+.planes-form-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-lo);
+}
+
+.planes-form-campo .input-base {
+  width: 100%;
+}
+
+
+/* ── RESPONSIVE ─────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .planes-canvas-wrapper {
+    height: calc(100vh - 420px);
+    min-height: 320px;
+  }
+
+  .planes-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .planes-toolbar-left,
+  .planes-toolbar-right {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .planes-hint {
+    display: none;
+  }
+
+  .planes-resumen-panel {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .planes-proximos {
+    border-left: none;
+    padding-left: 0;
+    border-top: 1px solid var(--border-card);
+    padding-top: 12px;
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .planes-resumen-stats {
+    gap: 12px;
+  }
+  .planes-stat-num {
+    font-size: 18px;
+  }
+}
+
+
+/* ── EDITOR FLOTANTE EN LÍNEA ───────────────────────────────── */
+.planes-editor-flotante {
+  position: absolute;
+  z-index: 100;
+  background: var(--bg-card);
+  color: var(--text-base);
+  border: 2px dashed var(--accent);
+  border-radius: 6px;
+  padding: 6px;
+  font-family: 'Inter', sans-serif;
+  resize: none;
+  outline: none;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  overflow-y: auto;
+  line-height: 1.4;
+  /* Transparencia leve para ver que está sobre el canvas */
+  background-color: rgba(255, 255, 255, 0.95);
+}
+
+/* Modo oscuro (si tu app usa una clase general) */
+body.dark-mode .planes-editor-flotante {
+  background-color: rgba(30, 30, 30, 0.95);
+}

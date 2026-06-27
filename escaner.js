@@ -154,6 +154,15 @@ const mapaModulos = {
         'js/core/app.js',
         'vistas/backup.html'
     ],
+        'planes': [
+        'vistas/planes.html',
+        'css/planes.css',
+        'js/modulos/planes.js',
+        'vistas/backup.html',
+        'js/core/storage.js',
+        'js/core/app.js',
+        'vistas/backup.html'
+    ],
 };
  
 let archivosAEscanear = [];

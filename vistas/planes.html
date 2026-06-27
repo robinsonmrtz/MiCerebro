@@ -1,0 +1,80 @@
+<!-- ================================================
+     VISTA: planes.html — Hoja de Ruta Visual
+     ================================================ -->
+
+<div class="seccion-titulo" style="margin-bottom: 14px;">
+  <h2>🗺️ Planes</h2>
+  <p>Tu hoja de ruta personal. Crea pasos, conéctalos y avanza.</p>
+</div>
+
+<!-- ── PANEL SUPERIOR: Resumen ──────────────────────── -->
+<div id="planes-resumen" class="planes-resumen-panel card-surface"></div>
+
+<!-- ── BARRA DE HERRAMIENTAS ────────────────────────── -->
+<div class="planes-toolbar card-surface">
+
+  <div class="planes-toolbar-left">
+    <select id="planes-selector" class="filtro-select" style="width: auto; min-width: 180px;"></select>
+    <button id="planes-btn-renombrar" class="btn-ghost" title="Renombrar plano">
+      <i class="ti ti-pencil"></i>
+    </button>
+    <button id="planes-btn-nuevo" class="btn-secondary">
+      <i class="ti ti-plus"></i> Nuevo plano
+    </button>
+    <button id="planes-btn-eliminar-plano" class="btn-borrar" title="Eliminar plano actual">
+      <i class="ti ti-trash"></i>
+    </button>
+  </div>
+
+  <div class="planes-toolbar-right">
+    <span class="planes-hint">
+      <i class="ti ti-mouse"></i> Rueda = zoom &nbsp;·&nbsp;
+      <i class="ti ti-hand-move"></i> Alt+arrastrar = mover vista &nbsp;·&nbsp;
+      <i class="ti ti-arrows-move"></i> Doble clic en flecha = eliminar
+    </span>
+    <button id="planes-btn-reset-zoom" class="btn-ghost" title="Restablecer zoom">
+      <i class="ti ti-zoom-reset"></i>
+    </button>
+    <button id="planes-btn-crear" class="btn-primary">
+      + Agregar Paso
+    </button>
+  </div>
+
+</div>
+
+<!-- ── LIENZO SVG ────────────────────────────────────── -->
+<div id="planes-canvas-wrapper" class="planes-canvas-wrapper card-surface">
+  <svg id="planes-lienzo" class="planes-lienzo"></svg>
+
+  <textarea id="planes-editor-flotante" class="planes-editor-flotante" style="display: none;"></textarea>
+
+  <div class="planes-grid-bg" aria-hidden="true"></div>
+</div>
+
+<!-- ── MODAL: EDITAR NODO ────────────────────────────── -->
+<div class="modal-overlay" id="planes-modal-nodo">
+  <div class="modal-caja planes-modal-nodo-caja">
+    <h3>✏️ Editar paso</h3>
+
+    <div class="planes-form-campo">
+      <label class="planes-form-label">Título</label>
+      <input id="planes-nodo-titulo" type="text" class="input-base" placeholder="Ej: Aprender diseño web" maxlength="60" />
+    </div>
+
+    <div class="planes-form-campo">
+      <label class="planes-form-label">Descripción</label>
+      <textarea id="planes-nodo-desc" class="input-base" rows="3"
+        placeholder="Detalla qué implica este paso…" style="resize: vertical;"></textarea>
+    </div>
+
+    <div class="planes-form-campo">
+      <label class="planes-form-label">Fecha límite</label>
+      <input id="planes-nodo-fecha" type="date" class="input-base" />
+    </div>
+
+    <div class="modal-botones-row" style="margin-top: 20px;">
+      <button id="planes-nodo-cancelar" class="btn-cancelar-modal">Cancelar</button>
+      <button id="planes-nodo-guardar"  class="btn-primary">Guardar</button>
+    </div>
+  </div>
+</div>

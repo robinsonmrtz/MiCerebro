@@ -33,6 +33,7 @@ async function cargarVista(nombreVista) {
                     if (typeof inicializarTemporizador === 'function') inicializarTemporizador();
                     if (typeof inicializarMetricas === 'function') inicializarMetricas();
                 }, 50);
+                
                 } else if (nombreVista === 'inicio') { // 👇 NUEVO: Conector para el Dashboard Principal
                 setTimeout(() => {
                     if (typeof inicializarDashboard === 'function') inicializarDashboard();
@@ -60,6 +61,10 @@ async function cargarVista(nombreVista) {
                 } else if (nombreVista === 'dopamina') {
                 setTimeout(() => {
                     if (typeof inicializarDopamina === 'function') inicializarDopamina();
+                }, 50);
+            } else if (nombreVista === 'planes') {
+                setTimeout(() => {
+                    if (typeof inicializarPlanes === 'function') inicializarPlanes();
                 }, 50);
             }
         } else {
