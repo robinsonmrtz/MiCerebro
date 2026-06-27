@@ -43,6 +43,8 @@
   let panX = 0, panY = 0;
   let panActivo = false;
   let panStart = null;
+  let dragFrame = null;
+  let dragMoveEvent = null;
 
   // ── STORAGE ──────────────────────────────────────────────────
   function cargarPlanos() {
@@ -635,13 +637,22 @@
 
   function onMouseMove(e) {
     if (arrastrandoNodo) {
-      const pt = svgPoint(e);
-      const n = plano.nodos.find(n => n.id === arrastrandoNodo.id);
-      if (n) {
-        n.x = snap(pt.x - arrastrandoNodo.offsetX);
-        n.y = snap(pt.y - arrastrandoNodo.offsetY);
-        renderTodo();
+      dragMoveEvent = e;
+      if (!dragFrame) {
+        dragFrame = requestAnimationFrame(() => {
+          dragFrame = null;
+          if (!dragMoveEvent || !arrastrandoNodo) return;
+          const pt = svgPoint(dragMoveEvent);
+          const n = plano?.nodos.find(nd => nd.id === arrastrandoNodo.id);
+          if (n) {
+            n.x = snap(pt.x - arrastrandoNodo.offsetX);
+            n.y = snap(pt.y - arrastrandoNodo.offsetY);
+            renderTodo();
+          }
+          dragMoveEvent = null;
+        });
       }
+      e.preventDefault();
     } else if (conectandoDesde && lineaTemporal) {
       const rect = lienzo.getBoundingClientRect();
       const mx = (e.clientX - rect.left - panX) / escala;
@@ -657,6 +668,12 @@
   }
 
   function onMouseUp() {
+    if (dragFrame) {
+      cancelAnimationFrame(dragFrame);
+      dragFrame = null;
+    }
+    dragMoveEvent = null;
+
     if (arrastrandoNodo) {
       guardarPlanos();
       arrastrandoNodo = null;
@@ -969,10 +986,11 @@
 
       crearOverlayFecha();
       lienzo.addEventListener('click',      onLienzoClick);
-      lienzo.addEventListener('mousemove',  onMouseMove);
-      lienzo.addEventListener('mouseup',    onMouseUp);
       lienzo.addEventListener('wheel',      onWheel, { passive: false });
       lienzo.addEventListener('mousedown',  onMiddleDown);
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup',   onMouseUp);
+      window.addEventListener('blur', onMouseUp);
       lienzo.style.cursor = 'grab';
 
       const btnCrear = document.getElementById('planes-btn-crear');
