@@ -221,7 +221,32 @@
     </div>
 
     <div id="pantalla-tarjetas" style="display: none;"><div class="card-surface" style="padding: 40px; text-align: center; color: var(--text-lo);">🚧 Módulo Tarjetas de Crédito en construcción 🚧</div></div>
-    <div id="pantalla-presupuestos" style="display: none;"><div class="card-surface" style="padding: 40px; text-align: center; color: var(--text-lo);">🚧 Módulo Presupuestos en construcción 🚧</div></div>
+   <div id="pantalla-presupuestos" style="display: none;">
+    <!-- Barra superior de acciones -->
+    <div class="fz-cat-topbar">
+        <div class="fz-cat-tipo-dropdown-wrap">
+            <button class="fz-cat-tipo-pill" style="background: var(--accent); cursor: default;">
+                <i class="ti ti-chart-pie"></i>
+                <span>Control de Presupuestos</span>
+            </button>
+        </div>
+        <div class="fz-cat-actions-right">
+            <button class="fz-cat-icon-btn fz-cat-add-pill" style="background: var(--accent) !important;" title="Nuevo Presupuesto" onclick="fz_abrirModalPresupuesto()">
+                <i class="ti ti-plus"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- KPIs Globales de Presupuesto -->
+    <div class="fz-res-kpi-grid" id="fz-presupuesto-kpis">
+        <!-- Se inyecta dinámicamente vía JS -->
+    </div>
+
+    <!-- Rejilla de tarjetas de presupuestos -->
+    <div id="fz-lista-presupuestos" class="fz-presupuestos-grid">
+        <!-- Se inyecta dinámicamente vía JS -->
+    </div>
+</div>
    <div id="pantalla-informes" style="display: none;">
  
     <!-- Selector de tipo de informe -->
@@ -970,6 +995,42 @@
                 Transferencia
             </button>
  
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: DEFINIR PRESUPUESTO -->
+<div class="modal-overlay" id="fz-modal-presupuesto">
+    <div class="modal-caja fz-modal-premium" style="max-width: 400px !important;">
+        <div class="fz-modal-header-exacto">
+            <h3 id="fz-modal-presupuesto-titulo">Definir Presupuesto</h3>
+            <button class="btn-ghost fz-btn-cerrar-exacto" onclick="document.getElementById('fz-modal-presupuesto').classList.remove('visible')">
+                <i class="ti ti-x"></i>
+            </button>
+        </div>
+        
+        <input type="hidden" id="fz-presupuesto-id">
+        
+        <div class="fz-modal-content-exacto">
+            <div class="fz-group-exacto">
+                <label class="fz-label-exacto">Categoría a controlar</label>
+                <select id="fz-presupuesto-categoria" class="fz-select-exacto"></select>
+                <span style="font-size: 11px; color: var(--text-lo); margin-top: 4px;">Los gastos de sus subcategorías se sumarán automáticamente a este presupuesto.</span>
+            </div>
+            
+            <div class="fz-monto-container-exacto" style="justify-content: center; margin-bottom: 4px;">
+                <span class="fz-monto-simbolo">$</span>
+                <input type="number" id="fz-presupuesto-monto" class="fz-monto-input-exacto" placeholder="0.00" step="0.01" autocomplete="off" style="text-align: left; width: 100%;" onblur="if(this.value) this.value = parseFloat(this.value).toFixed(2)">
+            </div>
+        </div>
+        
+        <div class="fz-modal-footer-exacto">
+            <button class="fz-btn-secundario-izq" id="fz-btn-eliminar-presupuesto" style="color: var(--status-danger); border-color: transparent; display: none;" onclick="fz_eliminarPresupuesto()">
+                <i class="ti ti-trash"></i> Eliminar
+            </button>
+            <button class="fz-btn-primario-der" style="background: var(--accent); margin-left: auto;" onclick="fz_guardarFormularioPresupuesto()">
+                Guardar Límite
+            </button>
         </div>
     </div>
 </div>

@@ -95,6 +95,7 @@ function configurarSubMenu() {
 }
 
 // 4. RENDERIZADO MAESTRO AMPLIADO
+// 4. RENDERIZADO MAESTRO AMPLIADO
 function renderizarPantallaActual() {
     // Array con TODAS las pantallas posibles
     const pantallas = ['resumen', 'cuentas', 'transacciones', 'tarjetas', 'presupuestos', 'informes', 'categorias', 'objetivos', 'comercios', 'calendario', 'actuacion'];
@@ -116,7 +117,7 @@ function renderizarPantallaActual() {
     else if (fz_tabActual === 'transacciones') fz_pintarTransacciones();
     else if (fz_tabActual === 'comercios') fz_pintarComercios();
     else if (fz_tabActual === 'informes') fz_inf_pintarInformes();
-    // Las nuevas vistas no tienen función aún, así que no llaman a nada y muestran el letrero "En construcción"
+    else if (fz_tabActual === 'presupuestos') fz_pintarPresupuestos();
 }
 // ==========================================
 // LÓGICA DE TRANSACCIONES
@@ -716,6 +717,7 @@ document.addEventListener('click', function(e) {
 });
 
 // === RECURRANCES: Generador de instancias mensuales ===
+// === RECURRANCES: Generador de instancias mensuales ===
 function fz_generarInstanciasRecurrentesHasta(monthsAhead = 12) {
     try {
         let datos = cargarDatos();
@@ -732,7 +734,6 @@ function fz_generarInstanciasRecurrentesHasta(monthsAhead = 12) {
             const start = rec.start_date ? new Date(rec.start_date + 'T00:00:00') : today;
             const dia = rec.dia || (start.getDate ? start.getDate() : 1);
 
-            // iteramos desde el mes de inicio hasta endDate
             let iter = new Date(start.getFullYear(), start.getMonth(), 1);
             while (iter <= endDate) {
                 const year = iter.getFullYear();
@@ -741,7 +742,12 @@ function fz_generarInstanciasRecurrentesHasta(monthsAhead = 12) {
                 const dayToSet = Math.min(dia, lastDay);
                 const fechaStr = `${year}-${String(month + 1).padStart(2,'0')}-${String(dayToSet).padStart(2,'0')}`;
 
-                const exists = datos.finanzas_personales.transacciones.some(t => t.recurrente_id === rec.id && t.fecha === fechaStr);
+                // SOLUCIÓN BUG 1: Filtrar por Mes/Año para evitar duplicados en el mismo mes
+                const mesFiltro = `${year}-${String(month + 1).padStart(2,'0')}`;
+                const exists = datos.finanzas_personales.transacciones.some(t => 
+                    t.recurrente_id === rec.id && t.fecha.startsWith(mesFiltro)
+                );
+
                 if (!exists) {
                     datos.finanzas_personales.transacciones.push({
                         id: Date.now() + Math.floor(Math.random() * 100000),
@@ -786,7 +792,6 @@ function fz_generarInstanciasRecurrentesParaMes(targetDate) {
 
         recurrentes.forEach(rec => {
             const start = rec.start_date ? new Date(rec.start_date + 'T00:00:00') : null;
-            // no generar si la plantilla empieza después del mes objetivo
             if (start && new Date(start.getFullYear(), start.getMonth(), 1) > new Date(year, month, 1)) return;
 
             const lastDay = new Date(year, month + 1, 0).getDate();
@@ -794,7 +799,12 @@ function fz_generarInstanciasRecurrentesParaMes(targetDate) {
             const dayToSet = Math.min(dia, lastDay);
             const fechaStr = `${year}-${String(month + 1).padStart(2,'0')}-${String(dayToSet).padStart(2,'0')}`;
 
-            const exists = datos.finanzas_personales.transacciones.some(t0 => t0.recurrente_id === rec.id && t0.fecha === fechaStr);
+            // SOLUCIÓN BUG 1: Filtrar por Mes/Año
+            const mesFiltro = `${year}-${String(month + 1).padStart(2,'0')}`;
+            const exists = datos.finanzas_personales.transacciones.some(t0 => 
+                t0.recurrente_id === rec.id && t0.fecha.startsWith(mesFiltro)
+            );
+
             if (!exists) {
                 datos.finanzas_personales.transacciones.push({
                     id: Date.now() + Math.floor(Math.random() * 100000),
@@ -821,7 +831,6 @@ function fz_generarInstanciasRecurrentesParaMes(targetDate) {
         console.error('Error generando instancia recurrente para mes:', err);
     }
 }
-
 // --- GUARDAR FORMULARIO DE TRANSACCIONES ---
 window.fz_guardarFormularioTransaccion = function(continuar = false) {
     const idInput = document.getElementById('fz-trans-id').value;
@@ -930,12 +939,59 @@ window.fz_guardarFormularioTransaccion = function(continuar = false) {
 };
 
 window.fz_eliminarTransaccionUI = function(id) {
-    if(confirm("¿Seguro que deseas ELIMINAR este movimiento? El dinero se ajustará inmediatamente en el saldo de tu cuenta y no podrás recuperarlo.")) {
-        fz_eliminarTransaccion(id);
-        fz_pintarTransacciones();
-        // Recalcular y pintar el resumen si estamos en esa pestaña
-        if (fz_tabActual === 'resumen') fz_pintarResumen();
+    const datosMem = fz_obtenerDatos();
+    const trans = datosMem.transacciones.find(t => t.id === id);
+
+    if (!trans) return;
+
+    // SOLUCIÓN BUG 2: Detectar si es recurrente e interceptar la acción
+    if (trans.recurrente_id) {
+        const borrarFuturos = confirm(
+            "📌 Este es un movimiento recurrente (fijo).\n\n" +
+            "[ACEPTAR] = Eliminar este y cancelar todos los futuros.\n" +
+            "[CANCELAR] = Ver opciones para borrar SOLO este mes."
+        );
+
+        if (borrarFuturos) {
+            let datos = cargarDatos();
+            
+            // 1. Desactivar la plantilla para que el generador no cree más
+            if (datos.finanzas_personales.recurrentes) {
+                const rec = datos.finanzas_personales.recurrentes.find(r => r.id === trans.recurrente_id);
+                if (rec) rec.activo = false; 
+            }
+            
+            // 2. Filtrar y eliminar esta transacción y todas las futuras
+            datos.finanzas_personales.transacciones = datos.finanzas_personales.transacciones.filter(t => {
+                // Elimina si comparten recurrente_id Y la fecha es igual o mayor
+                return !(t.recurrente_id === trans.recurrente_id && t.fecha >= trans.fecha);
+            });
+            
+            guardarDatos(datos);
+            alert("Movimiento y futuros cancelados correctamente.");
+            
+            fz_pintarTransacciones();
+            if (fz_tabActual === 'resumen') fz_pintarResumen();
+            if (fz_tabActual === 'cuentas') typeof fz_pintarCuentas === 'function' && fz_pintarCuentas();
+            return;
+        } else {
+            // Si le dio a cancelar, verificamos si quiere borrar únicamente el actual
+            if (!confirm("¿Seguro que deseas eliminar SOLO la instancia de este mes? Los futuros seguirán generándose.")) {
+                return; // Si cancela de nuevo, abortamos todo
+            }
+        }
+    } else {
+        // Flujo normal para movimientos de una sola vez
+        if (!confirm("¿Seguro que deseas ELIMINAR este movimiento? El dinero se ajustará inmediatamente en tu cuenta.")) {
+            return;
+        }
     }
+
+    // Si llega aquí, es porque quiere borrar SOLO un movimiento (recurrente o no)
+    fz_eliminarTransaccion(id);
+    fz_pintarTransacciones();
+    if (fz_tabActual === 'resumen') fz_pintarResumen();
+    if (fz_tabActual === 'cuentas') typeof fz_pintarCuentas === 'function' && fz_pintarCuentas();
 };
 
 // ==========================================
@@ -2987,3 +3043,232 @@ document.addEventListener('click', function(e) {
     }
 });
 
+// ==========================================
+// MÓDULO: PRESUPUESTOS (Control de Gastos)
+// ==========================================
+
+window.fz_pintarPresupuestos = function() {
+    const contenedor = document.getElementById('fz-lista-presupuestos');
+    const kpiContenedor = document.getElementById('fz-presupuesto-kpis');
+    if (!contenedor || !kpiContenedor) return;
+
+    const datos = fz_obtenerDatos();
+    const presupuestos = datos.presupuestos || [];
+    const categorias = datos.categorias || [];
+
+    // 1. Filtrar las transacciones del mes seleccionado (exactamente igual que el Resumen)
+    const year = fz_fechaActual.getFullYear();
+    const month = String(fz_fechaActual.getMonth() + 1).padStart(2, '0');
+    const mesFiltro = `${year}-${month}`;
+
+    const gastosDelMes = (datos.transacciones || []).filter(t =>
+        !t.archivada &&
+        t.tipo === 'gasto' &&
+        t.fecha.startsWith(mesFiltro)
+    );
+
+    // 2. Acumular gastos agrupándolos en las categorías padre
+    const gastosPorCat = {};
+    gastosDelMes.forEach(t => {
+        const cat = categorias.find(c => c.id === t.categoria_id);
+        if (cat) {
+            // Si es subcategoría, el gasto cuenta para el presupuesto del padre
+            const targetId = cat.parent_id || cat.id; 
+            gastosPorCat[targetId] = (gastosPorCat[targetId] || 0) + t.monto;
+        }
+    });
+
+    let totalPresupuestado = 0;
+    let totalGastadoEnPresupuestos = 0;
+    let htmlCards = '';
+
+    // 3. Renderizar vista vacía o tarjetas
+    if (presupuestos.length === 0) {
+        htmlCards = `
+        <div style="grid-column: 1 / -1; padding: 50px 20px; text-align: center; color: var(--text-lo); border: 2px dashed var(--border-card); border-radius: 16px; background: rgba(0,0,0,0.02);">
+            <i class="ti ti-target" style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;"></i>
+            <h3 style="color: var(--text-hi); margin-bottom: 8px;">Sin presupuestos definidos</h3>
+            <p style="font-size: 13.5px;">Controla tus finanzas estableciendo límites mensuales por categoría.</p>
+        </div>`;
+    } else {
+        presupuestos.forEach(p => {
+            const cat = categorias.find(c => c.id === p.categoria_id);
+            if(!cat || cat.archivada) return; // Omitir si la categoría ya no existe
+
+            const gastado = gastosPorCat[cat.id] || 0;
+            const limite = p.monto;
+            const porcentaje = limite > 0 ? (gastado / limite) * 100 : 0;
+
+            totalPresupuestado += limite;
+            totalGastadoEnPresupuestos += gastado;
+
+            // Determinar color semántico
+            let colorBarra = 'var(--status-ok)'; // Verde (Bien)
+            if (porcentaje >= 100) colorBarra = 'var(--status-danger)'; // Rojo (Excedido)
+            else if (porcentaje >= 80) colorBarra = '#f39c12'; // Naranja (Alerta)
+
+            const disponible = limite - gastado;
+            let textoEstado = '';
+            if (disponible > 0) {
+                textoEstado = `<span style="color: var(--text-lo);">${formatearDinero(disponible)} disponibles</span>`;
+            } else if (disponible === 0) {
+                textoEstado = `<span style="color: #f39c12; font-weight: 600;">Límite alcanzado</span>`;
+            } else {
+                textoEstado = `<span style="color: var(--status-danger); font-weight: 600;">Excedido por ${formatearDinero(Math.abs(disponible))}</span>`;
+            }
+
+            htmlCards += `
+            <div class="fz-presupuesto-card">
+                <div class="fz-presupuesto-header">
+                    <div class="fz-presupuesto-cat-info">
+                        <div class="fz-presupuesto-icon" style="background: ${cat.color}22; color: ${cat.color};">
+                            ${cat.emoji || '🏷️'}
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 3px;">
+                            <h4 style="margin:0; font-size:15px; font-weight:700; color:var(--text-hi);">${cat.nombre}</h4>
+                            <span style="font-size:12px;">${textoEstado}</span>
+                        </div>
+                    </div>
+                    <button class="fz-cat-icon-btn" style="border:none; width:34px; height:34px;" onclick="fz_abrirModalPresupuesto(${p.id})">
+                        <i class="ti ti-pencil"></i>
+                    </button>
+                </div>
+                <div style="margin-top: auto;">
+                    <div class="fz-presupuesto-montos">
+                        <div>
+                            <span style="font-weight:800; font-size:15px; color:var(--text-hi);">${formatearDinero(gastado)}</span>
+                            <span style="color:var(--text-lo);"> gastados</span>
+                        </div>
+                        <span style="font-weight:600; color:var(--text-lo);">/ ${formatearDinero(limite)}</span>
+                    </div>
+                    <div class="fz-pb-bg">
+                        <div class="fz-pb-fill" style="width: ${Math.min(porcentaje, 100)}%; background-color: ${colorBarra};"></div>
+                    </div>
+                </div>
+            </div>`;
+        });
+    }
+
+    contenedor.innerHTML = htmlCards;
+
+    // 4. Renderizar panel superior (KPIs de desempeño del mes)
+    if (presupuestos.length > 0) {
+        const pctGlobal = totalPresupuestado > 0 ? (totalGastadoEnPresupuestos / totalPresupuestado) * 100 : 0;
+        let colorKpi = 'var(--status-ok)';
+        if (pctGlobal >= 100) colorKpi = 'var(--status-danger)';
+        else if (pctGlobal >= 80) colorKpi = '#f39c12';
+
+        kpiContenedor.innerHTML = `
+        <div class="fz-res-kpi-card" style="grid-column: 1 / -1; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; align-items: center; background: var(--bg-card); padding: 24px;">
+            
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+                <span style="font-size: 11.5px; color: var(--text-lo); font-weight: 600; text-transform: uppercase;">Presupuesto Global</span>
+                <span style="font-size: 20px; font-weight: 800; color: var(--text-hi);">${formatearDinero(totalPresupuestado)}</span>
+            </div>
+            
+            <div style="display: flex; flex-direction: column; gap: 6px; flex-grow: 1;">
+                <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                    <span style="font-size: 11.5px; color: var(--text-lo); font-weight: 600; text-transform: uppercase;">Consumo</span>
+                    <span style="font-size: 18px; font-weight: 800; color: ${colorKpi};">${pctGlobal.toFixed(1)}%</span>
+                </div>
+                <div class="fz-pb-bg" style="height: 8px;">
+                    <div class="fz-pb-fill" style="width: ${Math.min(pctGlobal, 100)}%; background-color: ${colorKpi};"></div>
+                </div>
+            </div>
+            
+            <div style="display: flex; flex-direction: column; gap: 4px; text-align: right;">
+                <span style="font-size: 11.5px; color: var(--text-lo); font-weight: 600; text-transform: uppercase;">Total Gastado</span>
+                <span style="font-size: 20px; font-weight: 800; color: var(--text-hi);">${formatearDinero(totalGastadoEnPresupuestos)}</span>
+            </div>
+        </div>
+        `;
+        kpiContenedor.style.display = 'grid';
+    } else {
+        kpiContenedor.style.display = 'none';
+    }
+};
+
+window.fz_abrirModalPresupuesto = function(id = null) {
+    const datos = fz_obtenerDatos();
+    const presupuestos = datos.presupuestos || [];
+    
+    // Filtrar: Solo categorías padre que sean de tipo "gasto"
+    const categoriasGastos = (datos.categorias || []).filter(c => !c.archivada && c.tipo === 'gasto' && !c.parent_id && c.nombre !== 'Reajuste*');
+
+    if (categoriasGastos.length === 0) {
+        return alert("Primero debes crear al menos una categoría de gasto.");
+    }
+
+    const selectCat = document.getElementById('fz-presupuesto-categoria');
+    selectCat.innerHTML = categoriasGastos.map(c => `<option value="${c.id}">${c.emoji || '🏷️'} ${c.nombre}</option>`).join('');
+
+    document.getElementById('fz-presupuesto-id').value = id || '';
+    const btnEliminar = document.getElementById('fz-btn-eliminar-presupuesto');
+
+    if (id) {
+        const p = presupuestos.find(x => x.id === id);
+        if (p) {
+            selectCat.value = p.categoria_id;
+            document.getElementById('fz-presupuesto-monto').value = parseFloat(p.monto).toFixed(2);
+            document.getElementById('fz-modal-presupuesto-titulo').textContent = 'Editar Presupuesto';
+            btnEliminar.style.display = 'flex';
+        }
+    } else {
+        document.getElementById('fz-presupuesto-monto').value = '';
+        document.getElementById('fz-modal-presupuesto-titulo').textContent = 'Nuevo Presupuesto';
+        btnEliminar.style.display = 'none';
+    }
+
+    document.getElementById('fz-modal-presupuesto').classList.add('visible');
+    setTimeout(() => document.getElementById('fz-presupuesto-monto').focus(), 100);
+};
+
+window.fz_guardarFormularioPresupuesto = function() {
+    const idInput = document.getElementById('fz-presupuesto-id').value;
+    const catId = parseInt(document.getElementById('fz-presupuesto-categoria').value);
+    const monto = parseFloat(document.getElementById('fz-presupuesto-monto').value);
+
+    if (isNaN(monto) || monto <= 0) return alert("Por favor, ingresa un monto válido superior a cero.");
+    if (!catId) return alert("Selecciona una categoría válida.");
+
+    let datosBase = cargarDatos();
+    if (!datosBase.finanzas_personales.presupuestos) datosBase.finanzas_personales.presupuestos = [];
+
+    // Validar que no estemos duplicando presupuesto para la misma categoría (si es creación)
+    if (!idInput) {
+        const existe = datosBase.finanzas_personales.presupuestos.some(p => p.categoria_id === catId);
+        if (existe) return alert("Ya existe un presupuesto definido para esta categoría. Por favor edítalo en la lista.");
+    }
+
+    const presupObj = {
+        id: idInput ? parseInt(idInput) : Date.now(),
+        categoria_id: catId,
+        monto: monto
+    };
+
+    let idx = datosBase.finanzas_personales.presupuestos.findIndex(p => p.id === presupObj.id || p.categoria_id === presupObj.categoria_id);
+    if (idx > -1) {
+        datosBase.finanzas_personales.presupuestos[idx] = presupObj; // Actualiza
+    } else {
+        datosBase.finanzas_personales.presupuestos.push(presupObj); // Crea
+    }
+
+    guardarDatos(datosBase);
+    document.getElementById('fz-modal-presupuesto').classList.remove('visible');
+    fz_pintarPresupuestos();
+};
+
+window.fz_eliminarPresupuesto = function() {
+    const id = document.getElementById('fz-presupuesto-id').value;
+    if (!id) return;
+
+    if (confirm("¿Estás seguro de que deseas eliminar este presupuesto? Los gastos registrados no se verán afectados.")) {
+        let datosBase = cargarDatos();
+        if (datosBase.finanzas_personales.presupuestos) {
+            datosBase.finanzas_personales.presupuestos = datosBase.finanzas_personales.presupuestos.filter(p => p.id !== parseInt(id));
+            guardarDatos(datosBase);
+        }
+        document.getElementById('fz-modal-presupuesto').classList.remove('visible');
+        fz_pintarPresupuestos();
+    }
+};
