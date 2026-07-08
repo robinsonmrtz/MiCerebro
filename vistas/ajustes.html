@@ -1,0 +1,46 @@
+<div class="seccion-titulo">
+    <h2>⚙️ Ajustes del Sistema</h2>
+    <p>Administra las configuraciones globales del núcleo de datos de tu aplicación.</p>
+</div>
+
+<div class="card-surface" style="padding: 26px; max-width: 580px; margin: 0 auto; box-shadow: var(--shadow-card);">
+    <h3 style="font-size: 15px; font-weight: 600; margin-bottom: 8px; color: var(--text-hi); display: flex; align-items: center; gap: 8px;">
+        <i class="ti ti-trash" style="color: var(--status-danger);"></i> Purga y Destrucción Selectiva de Datos
+    </h3>
+    <p style="font-size: 12.5px; color: var(--text-lo); margin-bottom: 20px; line-height: 1.6;">
+        Selecciona un módulo individual para borrar de raíz toda su información almacenada en el sistema. 
+        <strong style="color: var(--status-danger);">Esta acción es irreversible</strong> y no afectará los registros de tus otros módulos de productividad.
+    </p>
+
+    <div style="margin-bottom: 22px;">
+        <label for="select-modulo-borrar" style="display: block; font-size: 11.5px; font-weight: 600; color: var(--text-lo); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">Módulo de Datos Destino:</label>
+        <select id="select-modulo-borrar" class="filtro-select" style="height: 38px;">
+            <option value="" disabled selected>-- Haz clic aquí para elegir un módulo --</option>
+            <option value="registro_trabajo">Tiempo de Trabajo (Métricas, Historial, Tiempos)</option>
+            <option value="habitos">Hábitos (Grupos, Calendarios y Cronómetros)</option>
+            <option value="clientes">Clientes (Base de datos de Clientes y Contratos)</option>
+            <option value="planes">Planes (Planificación y Hojas de Ruta)</option> 
+            <option value="finanzas_personales">Finanzas Personales (Cuentas, Categorías y Transacciones)</option>
+            <option value="dopamina">Dopamina (Historial de Acciones y Recompensas)</option>
+            <option value="calendario_tareas">Calendario y Tareas (Listas, Tareas y Eventos)</option>
+        </select>
+    </div>
+
+    <button onclick="window.confirmarBorradoModulo()" class="btn-peligro" style="width: 100%; height: 38px; font-size: 13px;">
+        <i class="ti ti-alert-triangle"></i> Eliminar Datos Permanentemente
+    </button>
+    
+    <div id="ajustes-status" style="margin-top: 16px; text-align: center; font-weight: 600; font-size: 12.5px; min-height: 20px;"></div>
+</div>
+
+<div class="modal-overlay" id="modal-confirmar-borrar">
+    <div class="modal-caja" style="max-width: 400px;">
+        <div style="font-size: 36px; margin-bottom: 12px; color: var(--status-warn);">⚠️</div>
+        <h3>¿Confirmas el formateo?</h3>
+        <p>Estás a punto de eliminar por completo toda la información del módulo seleccionado. No podrás recuperar estos registros bajo ninguna circunstancia.</p>
+        <div class="modal-botones-row">
+            <button onclick="window.cerrarModalBorrado()" class="btn-cancelar-modal" style="background: var(--bg-input); border: 1px solid var(--border-card); color: var(--text-lo);">Cancelar</button>
+            <button onclick="window.ejecutarBorradoModulo()" class="btn-confirmar-eliminar" style="background: var(--status-danger); color: #fff;">Sí, borrar por completo</button>
+        </div>
+    </div>
+</div>

@@ -3,7 +3,7 @@
 // MiCerebro — Cache offline básico
 // ==========================================
 
-const CACHE_NAME = 'micerebro-v1';
+const CACHE_NAME = 'micerebro-v2';
 
 // Archivos que se guardan offline
 const ARCHIVOS_CACHE = [
@@ -20,6 +20,7 @@ const ARCHIVOS_CACHE = [
     '/vistas/inicio.html',
     '/vistas/trabajo.html',
     '/vistas/habitos.html',
+    '/vistas/ajustes.html',
     '/vistas/backup.html',
     'https://cdn.jsdelivr.net/npm/chart.js'
 ];

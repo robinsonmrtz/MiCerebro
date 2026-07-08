@@ -76,11 +76,12 @@
                 </nav>
 
                 <!-- Bottom -->
-                <div class="sidebar-bottom">
-                    <div class="plan-box">
-                        <div class="plan-label">Plan activo</div>
-                        <div class="plan-name">Productividad Total</div>
-                    </div>
+<div class="sidebar-bottom">
+                    <button class="btn-secundario" id="btn-ajustes" onclick="document.querySelectorAll('#menu-principal li').forEach(i => i.classList.remove('activo')); window.cargarVista('ajustes'); document.getElementById('topbar-title').textContent = 'Ajustes';" style="width: 100%; margin-bottom: 8px; justify-content: flex-start; padding: 10px 11px; border-radius: 9px; gap: 9px; background: var(--bg-input); border-color: var(--border-card);">
+                        <i class="ti ti-settings" style="font-size: 16px; color: var(--accent);"></i>
+                        <span style="font-size: 12.5px; font-weight: 500; color: var(--text-base);">Ajustes del Sistema</span>
+                    </button>
+                    
                     <div class="theme-toggle-row">
                         <i class="ti ti-moon" id="theme-icon"></i>
                         <span class="theme-toggle-label" id="theme-label">Modo oscuro</span>

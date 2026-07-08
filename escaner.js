@@ -74,63 +74,67 @@ const CONTRATO = `
  
 // Mapa de módulos del proyecto
 const mapaModulos = {
+
+    'index': [
+        'index.html',
+        'css/styles.css',
+        'vistas/backup.html',
+        'js/core/storage.js',
+        'js/core/app.js',
+    ],
+    'calendario': [
+        'vistas/calendario.html',
+        'css/calendario.css',
+        'js/modulos/calendario.js',
+        'vistas/backup.html',
+        'js/core/storage.js',
+        'js/core/app.js',
+    ],
     'trabajo': [
         'vistas/trabajo.html',
         'css/trabajo.css',
         'js/modulos/temporizador.js',
         'js/modulos/metricas.js',
+        'vistas/backup.html',
         'js/core/storage.js',
         'js/core/app.js',
-        'vistas/backup.html'
     ],
     'clientes': [
         'vistas/clientes.html',
         'css/clientes.css',
         'js/modulos/clientes.js',
+        'vistas/backup.html',
         'js/core/storage.js',
         'js/core/app.js',
-        'vistas/backup.html'
     ],
     'finanzas-personales': [
         'vistas/finanzas-personales.html',
         'css/finanzas-personales.css',
         'js/modulos/finanzas-personales.js',
+        'vistas/backup.html',
         'js/core/storage.js',
         'js/core/app.js',
-        'vistas/backup.html'
+    ],
+    'planes': [
+        'vistas/planes.html',
+        'css/planes.css',
+        'js/modulos/planes.js',
+        'vistas/backup.html',
+        'js/core/storage.js',
+        'js/core/app.js',
     ],
     'habitos': [
         'vistas/habitos.html',
         'css/habitos.css',
         'js/modulos/habitos.js',
-        'js/core/storage.js',
-        'js/core/app.js',
-        'vistas/backup.html'
-    ],
-    'base': [
-        'index.html',
-        'css/styles.css',
-        'js/core/app.js',
-        'js/core/storage.js'
-    ],
-
-    'todo': [
-        'index.html',
-        'css/styles.css',
-        'css/trabajo.css',
-        'css/habitos.css',
-        'vistas/trabajo.html',
-        'vistas/habitos.html',
         'vistas/backup.html',
         'js/core/storage.js',
         'js/core/app.js',
-        'js/modulos/temporizador.js',
-        'js/modulos/metricas.js',
-        'js/modulos/habitos.js'
     ],
-    'index': [
-        'index.html',
-        'css/styles.css',
+    'dopamina': [
+        'vistas/dopamina.html',
+        'css/dopamina.css',
+        'js/modulos/dopamina.js',
         'vistas/backup.html',
         'js/core/storage.js',
         'js/core/app.js',
@@ -145,24 +149,54 @@ const mapaModulos = {
         'js/core/app.js',
         'vistas/backup.html'
     ],
-    'dopamina': [
-        'vistas/dopamina.html',
-        'css/dopamina.css',
-        'js/modulos/dopamina.js',
+    'todo': [
+
+        'index.html',
+        'css/styles.css',
         'vistas/backup.html',
         'js/core/storage.js',
         'js/core/app.js',
-        'vistas/backup.html'
-    ],
-        'planes': [
+
+
+        'vistas/calendario.html',
+        'css/calendario.css',
+        'js/modulos/calendario.js',
+
+
+        'vistas/trabajo.html',
+        'css/trabajo.css',
+        'js/modulos/temporizador.js',
+        'js/modulos/metricas.js',
+
+
+        'vistas/clientes.html',
+        'css/clientes.css',
+        'js/modulos/clientes.js',
+
+
+        'vistas/finanzas-personales.html',
+        'css/finanzas-personales.css',
+        'js/modulos/finanzas-personales.js',
+
+
         'vistas/planes.html',
         'css/planes.css',
         'js/modulos/planes.js',
-        'vistas/backup.html',
-        'js/core/storage.js',
-        'js/core/app.js',
-        'vistas/backup.html'
+
+
+        'vistas/habitos.html',
+        'css/habitos.css',
+        'js/modulos/habitos.js',
+
+        'vistas/dopamina.html',
+        'css/dopamina.css',
+        'js/modulos/dopamina.js',
+
+        'vistas/inicio.html',
+        'css/inicio.css',
+        'js/modulos/inicio.js',
     ],
+
 };
  
 let archivosAEscanear = [];

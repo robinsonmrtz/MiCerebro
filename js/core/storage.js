@@ -248,3 +248,59 @@ function fz_eliminarCategoriaDefinitiva(id, targetCategoriaId = null) {
     
     guardarDatos(datos);
 }
+
+// ====================================================
+// RUTA DEL ARCHIVO: js/core/storage.js
+// ====================================================
+// ... código previo de finanzas y eliminación definitiva ...
+
+// --- SISTEMA DE PURGA POR MÓDULO INDIVIDUAL ---
+function reiniciarModulo(modulo) {
+    let datos = cargarDatos();
+    
+    switch (modulo) {
+        case 'registro_trabajo':
+            datos.registro_trabajo = [];
+            break;
+        case 'habitos':
+            datos.habitos = [];
+            datos.registro_habitos = {};
+            datos.config_habitos = null;
+            break;
+        case 'clientes':
+            datos.clientes = [];
+            break;
+        case 'finanzas_personales':
+            datos.finanzas_personales = {
+                cuentas: [],
+                categorias: [],
+                transacciones: [],
+                comercios: [],
+                recurrentes: [],
+                filtros_guardados: []
+            };
+            break;
+        case 'dopamina':
+            datos.dopamina = { acciones: [], predeterminado: 'all' };
+            break;
+        case 'calendario_tareas':
+            datos.calendario_tareas = {
+                listas: [
+                    { id: 'lst-1', nombre: 'Tareas', editable: true },
+                    { id: 'lst-2', nombre: 'Trabajo', editable: true },
+                    { id: 'lst-3', nombre: 'Casa', editable: true }
+                ],
+                tareas: [],
+                eventos: []
+            };
+            break;
+        case 'planes':
+            datos.planes = []; // O la estructura inicial que use tu archivo planes.js
+            break;
+        default:
+            return false;
+    }
+    
+    guardarDatos(datos);
+    return true;
+}
