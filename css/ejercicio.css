@@ -1,0 +1,909 @@
+/* ============================================================
+   MICEREBRO — css/ejercicio.css
+   Módulo: Ejercicio
+   Hereda TODAS las variables de css/styles.css (--accent, --bg-*,
+   --text-*, --status-*, etc). Aquí solo se agregan variables
+   NUEVAS y exclusivas de este módulo, siempre ancladas dentro de
+   .vista-ejercicio para no pisar el sistema global.
+   ============================================================ */
+
+.vista-ejercicio {
+    /* Paleta propia del módulo, derivada del acento global */
+    --ej-piel-flaco:      color-mix(in srgb, var(--text-lo) 35%, var(--bg-input));
+    --ej-piel-normal:     color-mix(in srgb, var(--accent) 22%, var(--bg-input));
+    --ej-piel-sobrepeso:  color-mix(in srgb, var(--clr-warning) 26%, var(--bg-input));
+    --ej-piel-musculoso:  color-mix(in srgb, var(--accent) 55%, var(--bg-input));
+    --ej-piel-super:      color-mix(in srgb, var(--ej-power) 60%, var(--bg-input));
+    --ej-power:           #ff6a3d; /* energía / intensidad — solo para el estado "super musculoso" */
+    --ej-power-glow:      color-mix(in srgb, var(--ej-power) 35%, transparent);
+    --ej-linea-def:       color-mix(in srgb, var(--text-hi) 70%, transparent);
+    animation: ejFadeUp 0.25s ease;
+}
+
+@keyframes ejFadeUp {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ============================================================
+   TABS DE NAVEGACIÓN INTERNA DEL MÓDULO
+   ============================================================ */
+.ej-tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 22px;
+    padding: 4px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-card);
+    border-radius: 11px;
+    width: fit-content;
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+.ej-tab-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: var(--text-lo);
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s, color 0.15s;
+    font-family: inherit;
+}
+
+.ej-tab-btn i { font-size: 15px; }
+
+.ej-tab-btn:hover { color: var(--text-base); }
+
+.ej-tab-btn.activo {
+    background: var(--accent);
+    color: var(--clr-white);
+}
+
+.ej-panel { display: none; }
+.ej-panel.activo { display: block; animation: ejFadeUp 0.2s ease; }
+
+/* ============================================================
+   DASHBOARD — LAYOUT PRINCIPAL
+   ============================================================ */
+.ej-dashboard-grid {
+    display: grid;
+    grid-template-columns: minmax(280px, 380px) 1fr;
+    gap: 20px;
+    align-items: start;
+}
+
+@media (max-width: 900px) {
+    .ej-dashboard-grid { grid-template-columns: 1fr; }
+}
+
+/* ── Tarjeta de la figura humana ───────────────────────────── */
+.ej-figura-card {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.ej-figura-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.ej-figura-header h3 {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-hi);
+}
+
+.ej-toggle-vista {
+    display: flex;
+    background: var(--bg-input);
+    border: 1px solid var(--border-card);
+    border-radius: 8px;
+    padding: 3px;
+    gap: 2px;
+}
+
+.ej-toggle-vista button {
+    border: none;
+    background: transparent;
+    color: var(--text-lo);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 5px 11px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.ej-toggle-vista button.activo {
+    background: var(--accent);
+    color: var(--clr-white);
+}
+
+/* Selector de tipo de cuerpo (demo visual de diseño) */
+.ej-selector-tipo {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.ej-chip-tipo {
+    flex: 1;
+    min-width: 62px;
+    text-align: center;
+    padding: 7px 6px;
+    border-radius: 8px;
+    border: 1px solid var(--border-card);
+    background: var(--bg-input);
+    color: var(--text-lo);
+    font-size: 10.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.ej-chip-tipo:hover { color: var(--text-base); border-color: var(--accent); }
+
+.ej-chip-tipo.activo {
+    background: var(--bg-active);
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.ej-nota-demo {
+    font-size: 10.5px;
+    color: var(--text-lo);
+    line-height: 1.5;
+    background: var(--bg-input);
+    border: 1px dashed var(--border-card);
+    border-radius: 8px;
+    padding: 8px 10px;
+}
+
+.ej-nota-demo strong { color: var(--text-base); }
+
+/* ── Escenario del cuerpo (SVG + chips flotantes) ──────────── */
+.ej-escenario {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 300 / 620;
+    margin: 0 auto;
+    max-width: 300px;
+}
+
+.ej-escenario svg { width: 100%; height: 100%; display: block; overflow: visible; }
+
+/* Rejilla tipo "escáner", firma visual del módulo */
+.ej-escenario::before {
+    content: '';
+    position: absolute;
+    inset: -4%;
+    background-image:
+        linear-gradient(var(--border-card) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border-card) 1px, transparent 1px);
+    background-size: 12.5% 8%;
+    opacity: 0.35;
+    border-radius: 14px;
+    pointer-events: none;
+}
+
+.ej-scanline {
+    position: absolute;
+    left: -4%; right: -4%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    box-shadow: 0 0 12px var(--accent-glow);
+    animation: ejScan 3.4s linear infinite;
+    pointer-events: none;
+    opacity: 0.8;
+}
+
+@keyframes ejScan {
+    0%   { top: -2%; opacity: 0; }
+    8%   { opacity: 0.8; }
+    92%  { opacity: 0.8; }
+    100% { top: 100%; opacity: 0; }
+}
+
+/* Grupos musculares — base */
+.musculo {
+    cursor: pointer;
+    transition: opacity 0.18s, filter 0.18s;
+}
+
+.musculo .musculo-forma {
+    fill: var(--ej-piel-normal);
+    stroke: var(--border-card);
+    stroke-width: 2;
+    transition: fill 0.35s ease, stroke 0.2s ease, transform 0.35s ease;
+    transform-box: fill-box;
+    transform-origin: center;
+}
+
+.musculo:hover .musculo-forma {
+    stroke: var(--accent);
+    filter: brightness(1.12);
+}
+
+.musculo.seleccionado .musculo-forma {
+    stroke: var(--accent);
+    stroke-width: 3;
+    filter: drop-shadow(0 0 6px var(--accent-glow));
+}
+
+.musculo:focus-visible .musculo-forma {
+    stroke: var(--accent);
+    stroke-width: 3;
+}
+
+/* Líneas de "definición" muscular — su opacidad cambia según el tipo de cuerpo */
+.ej-definicion {
+    stroke: var(--ej-linea-def);
+    stroke-width: 1.4;
+    fill: none;
+    opacity: 0;
+    transition: opacity 0.35s ease;
+    pointer-events: none;
+}
+
+/* Partes no interactivas (cabeza, manos, pies) */
+.ej-parte-fija {
+    fill: var(--bg-input);
+    stroke: var(--border-card);
+    stroke-width: 2;
+}
+
+/* ── Estados de composición corporal ─────────────────────────
+   Controlados con data-tipo en el contenedor .ej-escenario     */
+.ej-escenario[data-tipo="flaco"] .musculo-forma          { fill: var(--ej-piel-flaco); }
+.ej-escenario[data-tipo="flaco"] .musculo-torso           { transform: scaleX(0.86); }
+.ej-escenario[data-tipo="flaco"] .musculo-brazo           { transform: scaleX(0.8); }
+.ej-escenario[data-tipo="flaco"] .musculo-pierna          { transform: scaleX(0.85); }
+
+.ej-escenario[data-tipo="normal"] .musculo-forma          { fill: var(--ej-piel-normal); }
+.ej-escenario[data-tipo="normal"] .ej-definicion          { opacity: 0.28; }
+
+.ej-escenario[data-tipo="sobrepeso"] .musculo-forma       { fill: var(--ej-piel-sobrepeso); }
+.ej-escenario[data-tipo="sobrepeso"] .musculo-torso       { transform: scale(1.22, 1.08); }
+.ej-escenario[data-tipo="sobrepeso"] .musculo-brazo       { transform: scaleX(1.12); }
+.ej-escenario[data-tipo="sobrepeso"] .musculo-pierna      { transform: scaleX(1.15); }
+
+.ej-escenario[data-tipo="musculoso"] .musculo-forma       { fill: var(--ej-piel-musculoso); }
+.ej-escenario[data-tipo="musculoso"] .musculo-torso       { transform: scale(1.14, 1.05); }
+.ej-escenario[data-tipo="musculoso"] .musculo-brazo       { transform: scaleX(1.22); }
+.ej-escenario[data-tipo="musculoso"] .musculo-pierna      { transform: scaleX(1.16); }
+.ej-escenario[data-tipo="musculoso"] .ej-definicion       { opacity: 0.65; }
+
+.ej-escenario[data-tipo="super"] .musculo-forma {
+    fill: var(--ej-piel-super);
+    filter: drop-shadow(0 0 5px var(--ej-power-glow));
+}
+.ej-escenario[data-tipo="super"] .musculo-torso  { transform: scale(1.28, 1.08); }
+.ej-escenario[data-tipo="super"] .musculo-brazo  { transform: scaleX(1.4); }
+.ej-escenario[data-tipo="super"] .musculo-pierna { transform: scaleX(1.3); }
+.ej-escenario[data-tipo="super"] .ej-definicion  { opacity: 1; stroke: var(--ej-power); }
+
+/* Vistas frontal / posterior */
+.ej-escenario[data-vista="frontal"] .ej-vista-posterior { display: none; }
+.ej-escenario[data-vista="posterior"] .ej-vista-frontal { display: none; }
+
+/* ── Chips de medida flotantes sobre el escenario ──────────── */
+.ej-chip-medida {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    color: var(--text-base);
+    font-size: 9.5px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 20px;
+    white-space: nowrap;
+    pointer-events: none;
+    box-shadow: var(--shadow-card);
+    letter-spacing: 0.2px;
+}
+
+.ej-chip-medida span { color: var(--text-lo); font-weight: 500; margin-left: 3px; }
+
+/* ============================================================
+   PANEL DE DETALLE DEL MÚSCULO SELECCIONADO
+   ============================================================ */
+.ej-detalle-card {
+    padding: 22px;
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.ej-detalle-vacio {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 10px;
+    color: var(--text-lo);
+    padding: 40px 20px;
+}
+
+.ej-detalle-vacio i { font-size: 30px; color: var(--text-lo); opacity: 0.6; }
+.ej-detalle-vacio p { font-size: 12.5px; max-width: 260px; line-height: 1.6; }
+
+.ej-detalle-contenido { display: none; flex-direction: column; gap: 18px; }
+.ej-detalle-contenido.activo { display: flex; }
+
+.ej-detalle-titulo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.ej-detalle-titulo h2 {
+    font-size: 19px;
+    font-weight: 700;
+    color: var(--text-hi);
+}
+
+.ej-detalle-titulo .badge-ok,
+.ej-detalle-titulo .badge-warn { font-size: 10px; }
+
+.ej-medida-actual {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+}
+
+.ej-medida-actual .valor {
+    font-size: 30px;
+    font-weight: 700;
+    color: var(--text-hi);
+    font-family: 'Share Tech Mono', monospace;
+}
+
+.ej-medida-actual .unidad { font-size: 13px; color: var(--text-lo); }
+
+.ej-tendencia {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--status-ok);
+}
+
+.ej-tendencia.baja { color: var(--status-danger); }
+
+/* Mini gráfico de progreso (placeholder de barras, listo para chart.js) */
+.ej-mini-progreso { display: flex; flex-direction: column; gap: 8px; }
+
+.ej-mini-progreso h4 {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--text-lo);
+}
+
+.ej-barras {
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+    height: 70px;
+    padding: 8px;
+    background: var(--bg-input);
+    border-radius: 10px;
+    border: 1px solid var(--border-card);
+}
+
+.ej-barra {
+    flex: 1;
+    background: linear-gradient(180deg, var(--accent), var(--accent-dim));
+    border-radius: 4px 4px 2px 2px;
+    min-height: 6px;
+    opacity: 0.85;
+}
+
+.ej-barra.actual { opacity: 1; box-shadow: 0 0 8px var(--accent-glow); }
+
+/* Ejercicios asociados al músculo */
+.ej-ejercicios-asociados { display: flex; flex-direction: column; gap: 8px; }
+
+.ej-ejercicios-asociados h4 {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--text-lo);
+}
+
+.ej-lista-ejercicios { display: flex; flex-direction: column; gap: 6px; }
+
+.ej-item-ejercicio {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 9px 12px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-card);
+    border-radius: 9px;
+}
+
+.ej-item-ejercicio .nombre {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text-base);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ej-item-ejercicio .nombre i { color: var(--accent); font-size: 14px; }
+
+.ej-item-ejercicio .meta { font-size: 11px; color: var(--text-lo); }
+
+/* ============================================================
+   RUTINAS Y DÍAS — GRILLA SEMANAL
+   ============================================================ */
+.ej-semana-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+}
+
+.ej-dia-card {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 200px;
+}
+
+.ej-dia-card.ej-dia-hoy { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+
+.ej-dia-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.ej-dia-header .nombre-dia {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--text-hi);
+}
+
+.ej-dia-header .fecha-dia { font-size: 10px; color: var(--text-lo); }
+
+.ej-anillo-progreso {
+    --pct: 0;
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    background: conic-gradient(var(--accent) calc(var(--pct) * 1%), var(--bg-input) 0);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+}
+
+.ej-anillo-progreso span {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: var(--bg-card);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 8.5px; font-weight: 700; color: var(--text-hi);
+}
+
+.ej-dia-descanso {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: var(--text-lo);
+    font-size: 11.5px;
+    gap: 6px;
+    flex-direction: column;
+}
+
+.ej-dia-descanso i { font-size: 20px; opacity: 0.6; }
+
+.ej-lista-dia { display: flex; flex-direction: column; gap: 7px; flex: 1; }
+
+.ej-tarea-ejercicio {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 9px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-card);
+    border-radius: 8px;
+    font-size: 11.5px;
+    color: var(--text-base);
+    cursor: pointer;
+    transition: border-color 0.15s, opacity 0.15s;
+}
+
+.ej-tarea-ejercicio:hover { border-color: var(--accent); }
+
+.ej-tarea-ejercicio .check {
+    width: 16px; height: 16px;
+    border-radius: 5px;
+    border: 1.5px solid var(--border-card);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    font-size: 10px;
+    color: transparent;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.ej-tarea-ejercicio.completada { opacity: 0.55; }
+.ej-tarea-ejercicio.completada .nombre-tarea { text-decoration: line-through; }
+.ej-tarea-ejercicio.completada .check {
+    background: var(--status-ok);
+    border-color: var(--status-ok);
+    color: var(--clr-white);
+}
+
+.ej-tarea-ejercicio .nombre-tarea { flex: 1; }
+.ej-tarea-ejercicio .cant-tarea { color: var(--text-lo); font-size: 10.5px; }
+
+.ej-btn-agregar-dia {
+    width: 100%;
+    padding: 8px;
+    border-radius: 8px;
+    border: 1px dashed var(--border-card);
+    background: transparent;
+    color: var(--text-lo);
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+    font-family: inherit;
+}
+
+.ej-btn-agregar-dia:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ============================================================
+   METAS
+   ============================================================ */
+.ej-metas-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 14px;
+}
+
+.ej-meta-card { padding: 18px; display: flex; flex-direction: column; gap: 12px; }
+
+.ej-meta-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+
+.ej-meta-header h4 { font-size: 13.5px; font-weight: 700; color: var(--text-hi); }
+.ej-meta-header p { font-size: 11px; color: var(--text-lo); margin-top: 2px; }
+
+.ej-meta-icono {
+    width: 34px; height: 34px;
+    border-radius: 9px;
+    background: var(--bg-active);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    color: var(--accent);
+    font-size: 16px;
+}
+
+.ej-meta-barra-track {
+    width: 100%;
+    height: 8px;
+    border-radius: 20px;
+    background: var(--bg-input);
+    overflow: hidden;
+}
+
+.ej-meta-barra-fill {
+    height: 100%;
+    border-radius: 20px;
+    background: linear-gradient(90deg, var(--accent-dim), var(--accent));
+}
+
+.ej-meta-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--text-lo);
+}
+
+.ej-meta-footer strong { color: var(--text-hi); font-weight: 700; }
+
+.ej-meta-card-nueva {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 8px;
+    border: 1.5px dashed var(--border-card);
+    background: transparent;
+    color: var(--text-lo);
+    cursor: pointer;
+    min-height: 140px;
+    transition: border-color 0.15s, color 0.15s;
+}
+
+.ej-meta-card-nueva:hover { border-color: var(--accent); color: var(--accent); }
+.ej-meta-card-nueva i { font-size: 22px; }
+.ej-meta-card-nueva span { font-size: 12px; font-weight: 600; }
+
+/* ============================================================
+   HISTORIAL — MAPA DE CUMPLIMIENTO (heatmap)
+   ============================================================ */
+.ej-historial-card { padding: 20px; }
+
+.ej-historial-top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
+.ej-racha {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-card);
+    border-radius: 10px;
+    padding: 10px 16px;
+}
+
+.ej-racha i { font-size: 20px; color: var(--clr-warning); }
+.ej-racha .num { font-size: 18px; font-weight: 700; color: var(--text-hi); }
+.ej-racha .lbl { font-size: 10px; color: var(--text-lo); }
+
+.ej-heatmap {
+    display: grid;
+    grid-template-columns: repeat(26, 1fr);
+    gap: 3px;
+}
+
+.ej-heatmap .celda {
+    aspect-ratio: 1;
+    border-radius: 3px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-card);
+}
+
+.ej-heatmap .celda.n1 { background: color-mix(in srgb, var(--accent) 20%, var(--bg-input)); border-color: transparent; }
+.ej-heatmap .celda.n2 { background: color-mix(in srgb, var(--accent) 45%, var(--bg-input)); border-color: transparent; }
+.ej-heatmap .celda.n3 { background: color-mix(in srgb, var(--accent) 70%, var(--bg-input)); border-color: transparent; }
+.ej-heatmap .celda.n4 { background: var(--accent); border-color: transparent; }
+
+.ej-heatmap-leyenda {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    justify-content: flex-end;
+    margin-top: 10px;
+    font-size: 10px;
+    color: var(--text-lo);
+}
+
+.ej-heatmap-leyenda .celda { width: 11px; height: 11px; }
+
+/* ============================================================
+   CONFIGURACIÓN — ASISTENTE POR PASOS
+   ============================================================ */
+.ej-config-pasos {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+    max-width: 720px;
+}
+
+.ej-paso { padding: 22px; }
+
+.ej-paso-titulo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.ej-paso-num {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: var(--bg-active);
+    color: var(--accent);
+    font-size: 12px;
+    font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+}
+
+.ej-paso-titulo h3 { font-size: 14px; font-weight: 700; color: var(--text-hi); }
+.ej-paso-titulo p { font-size: 11.5px; color: var(--text-lo); margin-top: 1px; }
+
+.ej-opciones-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 10px;
+}
+
+.ej-opcion-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 16px 10px;
+    border-radius: 11px;
+    border: 1.5px solid var(--border-card);
+    background: var(--bg-input);
+    cursor: pointer;
+    text-align: center;
+    transition: border-color 0.15s, background 0.15s;
+}
+
+.ej-opcion-card i { font-size: 22px; color: var(--text-lo); transition: color 0.15s; }
+.ej-opcion-card span { font-size: 11.5px; font-weight: 600; color: var(--text-base); }
+
+.ej-opcion-card:hover { border-color: var(--accent); }
+
+.ej-opcion-card.activo {
+    border-color: var(--accent);
+    background: var(--bg-active);
+}
+
+.ej-opcion-card.activo i { color: var(--accent); }
+
+.ej-chips-variante {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 6px;
+}
+
+.ej-chip-variante {
+    padding: 8px 14px;
+    border-radius: 20px;
+    border: 1px solid var(--border-card);
+    background: var(--bg-input);
+    color: var(--text-base);
+    font-size: 11.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+
+.ej-chip-variante:hover { border-color: var(--accent); }
+
+.ej-chip-variante.activo {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--clr-white);
+}
+
+.ej-variante-caption {
+    font-size: 10.5px;
+    color: var(--text-lo);
+    margin-top: 8px;
+}
+
+.ej-variante-caption strong { color: var(--accent); }
+
+.ej-progresion-opciones {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.ej-radio-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 13px 14px;
+    border-radius: 10px;
+    border: 1.5px solid var(--border-card);
+    background: var(--bg-input);
+    cursor: pointer;
+    transition: border-color 0.15s;
+}
+
+.ej-radio-card:hover { border-color: var(--accent); }
+.ej-radio-card.activo { border-color: var(--accent); background: var(--bg-active); }
+
+.ej-radio-dot {
+    width: 17px; height: 17px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border-card);
+    flex-shrink: 0;
+    position: relative;
+}
+
+.ej-radio-card.activo .ej-radio-dot { border-color: var(--accent); }
+.ej-radio-card.activo .ej-radio-dot::after {
+    content: '';
+    position: absolute;
+    inset: 3px;
+    border-radius: 50%;
+    background: var(--accent);
+}
+
+.ej-radio-texto strong { font-size: 12.5px; color: var(--text-hi); display: block; }
+.ej-radio-texto span { font-size: 11px; color: var(--text-lo); }
+
+.ej-subcampo {
+    display: none;
+    margin-top: 10px;
+    padding: 12px;
+    background: var(--bg-input);
+    border-radius: 9px;
+    border: 1px solid var(--border-card);
+}
+
+.ej-subcampo.activo { display: block; }
+
+.ej-form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+}
+
+.ej-campo label {
+    display: block;
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-lo);
+    margin-bottom: 6px;
+}
+
+.ej-stepper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ej-stepper button {
+    width: 30px; height: 30px;
+    border-radius: 7px;
+    border: 1px solid var(--border-card);
+    background: var(--bg-card);
+    color: var(--text-base);
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.ej-stepper input {
+    text-align: center;
+    width: 100%;
+}
+
+.ej-acciones-config {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 640px) {
+    .ej-heatmap { grid-template-columns: repeat(13, 1fr); }
+    .ej-medida-actual .valor { font-size: 24px; }
+}

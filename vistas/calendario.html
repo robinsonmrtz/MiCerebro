@@ -1,40 +1,64 @@
 <div class="cal-header-global">
     <div class="cal-nav-fechas">
-        <button class="nav-cal" onclick="window.cambiarDiaCalendario(-1)">❮</button>
+        <button class="nav-cal" onclick="window.cambiarPeriodo(-1)">❮</button>
         <div class="cal-fecha-display" onclick="document.getElementById('cal-input-fecha-oculto').showPicker()">
-            <h2 id="cal-dia-numero">1</h2>
-            <div class="cal-fecha-textos">
-                <span id="cal-dia-nombre">LUN</span>
-                <span id="cal-mes-anio">Junio 2026</span>
-            </div>
+            <span id="cal-titulo-periodo">Julio 2026</span>
             <input type="date" id="cal-input-fecha-oculto" onchange="window.irAFechaCalendario(this.value)">
         </div>
-        <button class="nav-cal" onclick="window.cambiarDiaCalendario(1)">❯</button>
+        <button class="nav-cal" onclick="window.cambiarPeriodo(1)">❯</button>
         <button class="btn-ghost" onclick="window.irAHoyCalendario()">Hoy</button>
     </div>
-    <button class="btn-primario" onclick="window.abrirModalEvento()">+ Crear evento</button>
+
+    <div class="cal-header-derecha">
+        <div class="cal-selector-vista" id="cal-selector-vista">
+            <button type="button" class="vista-btn" data-vista="dia" onclick="window.cambiarVista('dia')">Día</button>
+            <button type="button" class="vista-btn" data-vista="semana" onclick="window.cambiarVista('semana')">Semana</button>
+            <button type="button" class="vista-btn" data-vista="mes" onclick="window.cambiarVista('mes')">Mes</button>
+        </div>
+        <button class="btn-primario" onclick="window.abrirModalEvento()">+ Crear evento</button>
+    </div>
 </div>
 
 <div class="calendario-layout">
 
-    <div class="cal-sidebar-tareas">
-        <div class="task-board-container" id="contenedor-listas-tareas"></div>
-        <button class="btn-add-lista" id="btn-crear-lista" onclick="window.crearNuevaListaTareas()">+ Crear lista</button>
+    <!-- MINI CALENDARIO DE NAVEGACIÓN -->
+    <div class="cal-sidebar-mini">
+        <div class="mini-cal-card">
+            <div class="mini-cal-nav">
+                <span id="mini-cal-mes-anio">Julio 2026</span>
+                <div class="mini-cal-arrows">
+                    <button type="button" class="mini-cal-arrow" onclick="window.miniCalCambiarMes(-1)">❮</button>
+                    <button type="button" class="mini-cal-arrow" onclick="window.miniCalCambiarMes(1)">❯</button>
+                </div>
+            </div>
+            <div class="mini-cal-dias-nombres">
+                <span>L</span><span>M</span><span>X</span><span>J</span><span>V</span><span>S</span><span>D</span>
+            </div>
+            <div class="mini-cal-grid" id="mini-cal-grid"></div>
+        </div>
     </div>
 
     <div class="cal-main-calendario">
-        <div class="cal-grid-wrapper">
-            <div class="cal-timeline">
-                <div class="cal-horas" id="cal-columna-horas"></div>
-                <div class="cal-eventos-zona" id="cal-zona-arrastre">
-                    <div id="cal-lineas-grid"></div>
-                    <div id="cal-eventos-render"></div>
-                    <div id="cal-linea-ahora" class="cal-linea-ahora">
-                        <div class="cal-punto-ahora"></div>
-                    </div>
+
+        <!-- VISTAS DÍA / SEMANA (comparten la misma línea de tiempo) -->
+        <div id="vista-timeline-container">
+            <div class="cal-cabecera-columnas" id="cal-cabecera-columnas"></div>
+            <div class="cal-grid-wrapper">
+                <div class="cal-timeline">
+                    <div class="cal-horas" id="cal-columna-horas"></div>
+                    <div class="cal-columnas-zona" id="cal-columnas-zona"></div>
                 </div>
             </div>
         </div>
+
+        <!-- VISTA MES -->
+        <div class="cal-mes-wrapper" id="vista-mes-container" style="display:none;">
+            <div class="cal-mes-dias-nombres">
+                <span>LUN</span><span>MAR</span><span>MIÉ</span><span>JUE</span><span>VIE</span><span>SÁB</span><span>DOM</span>
+            </div>
+            <div class="cal-mes-grid" id="cal-mes-grid"></div>
+        </div>
+
     </div>
 </div>
 
@@ -62,6 +86,28 @@
                 <input type="time" id="modal-ev-inicio" class="input-base">
                 <span class="modal-time-sep">→</span>
                 <input type="time" id="modal-ev-fin" class="input-base">
+            </div>
+
+            <span class="modal-field-label">Repetir</span>
+            <select id="modal-ev-repetir" class="input-base select-repetir" onchange="window.actualizarPanelRepeticion()">
+                <option value="no">No se repite</option>
+                <option value="diaria">Cada día</option>
+                <option value="semanal">Cada semana</option>
+                <option value="mensual">Cada mes (mismo día)</option>
+            </select>
+
+            <div id="panel-dias-semana" class="panel-dias-semana" style="display:none;">
+                <span class="modal-field-label">¿Qué días?</span>
+                <div class="dias-semana-toggle" id="dias-semana-toggle">
+                    <button type="button" class="dia-toggle-btn" data-dia="1">L</button>
+                    <button type="button" class="dia-toggle-btn" data-dia="2">M</button>
+                    <button type="button" class="dia-toggle-btn" data-dia="3">X</button>
+                    <button type="button" class="dia-toggle-btn" data-dia="4">J</button>
+                    <button type="button" class="dia-toggle-btn" data-dia="5">V</button>
+                    <button type="button" class="dia-toggle-btn" data-dia="6">S</button>
+                    <button type="button" class="dia-toggle-btn" data-dia="0">D</button>
+                </div>
+                <button type="button" class="link-btn" onclick="window.marcarTodosLosDias()">Todos los días</button>
             </div>
 
             <span class="modal-field-label">Color</span>

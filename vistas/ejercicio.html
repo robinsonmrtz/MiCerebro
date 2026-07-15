@@ -1,0 +1,602 @@
+
+<div class="vista-ejercicio">
+
+    <!-- ===================== TABS ===================== -->
+    <div class="ej-tabs">
+        <button class="ej-tab-btn activo" data-ej-tab="dashboard"><i class="ti ti-user-scan"></i>Dashboard</button>
+        <button class="ej-tab-btn" data-ej-tab="rutinas"><i class="ti ti-calendar-week"></i>Rutinas</button>
+        <button class="ej-tab-btn" data-ej-tab="metas"><i class="ti ti-target-arrow"></i>Metas</button>
+        <button class="ej-tab-btn" data-ej-tab="historial"><i class="ti ti-flame"></i>Historial</button>
+        <button class="ej-tab-btn" data-ej-tab="configuracion"><i class="ti ti-settings"></i>Configuración</button>
+    </div>
+
+    <!-- ===================== PANEL: DASHBOARD ===================== -->
+    <div class="ej-panel activo" data-ej-panel="dashboard">
+        <div class="ej-dashboard-grid">
+
+            <!-- Figura humana -->
+            <div class="ej-figura-card card-surface">
+                <div class="ej-figura-header">
+                    <h3>Mapa corporal</h3>
+                    <div class="ej-toggle-vista" id="ej-toggle-vista">
+                        <button type="button" class="activo" data-ej-vista="frontal">Frontal</button>
+                        <button type="button" data-ej-vista="posterior">Posterior</button>
+                    </div>
+                </div>
+
+                <div class="ej-escenario" id="ej-escenario" data-tipo="normal" data-vista="frontal">
+                    <div class="ej-scanline"></div>
+
+                    <svg viewBox="0 0 300 620" xmlns="http://www.w3.org/2000/svg">
+
+                        <!-- ============ VISTA FRONTAL ============ -->
+                        <g class="ej-vista-frontal">
+                            <ellipse class="ej-parte-fija" cx="150" cy="45" rx="30" ry="34"></ellipse>
+                            <rect class="ej-parte-fija" x="136" y="74" width="28" height="20" rx="6"></rect>
+                            <circle class="ej-parte-fija" cx="48" cy="322" r="13"></circle>
+                            <circle class="ej-parte-fija" cx="252" cy="322" r="13"></circle>
+                            <ellipse class="ej-parte-fija" cx="118" cy="585" rx="22" ry="14"></ellipse>
+                            <ellipse class="ej-parte-fija" cx="182" cy="585" rx="22" ry="14"></ellipse>
+
+                            <g class="musculo" data-musculo="hombro-izq" data-nombre="Hombro izquierdo" tabindex="0" role="button">
+                                <ellipse class="musculo-forma musculo-brazo" cx="88" cy="116" rx="25" ry="23"></ellipse>
+                            </g>
+                            <g class="musculo" data-musculo="hombro-der" data-nombre="Hombro derecho" tabindex="0" role="button">
+                                <ellipse class="musculo-forma musculo-brazo" cx="212" cy="116" rx="25" ry="23"></ellipse>
+                            </g>
+
+                            <g class="musculo" data-musculo="pecho" data-nombre="Pecho" tabindex="0" role="button">
+                                <ellipse class="musculo-forma musculo-torso" cx="150" cy="150" rx="56" ry="36"></ellipse>
+                            </g>
+                            <path class="ej-definicion" d="M150,120 L150,180 M110,150 Q150,162 190,150"></path>
+
+                            <g class="musculo" data-musculo="biceps-izq" data-nombre="Bíceps izquierdo" tabindex="0" role="button">
+                                <ellipse class="musculo-forma musculo-brazo" cx="66" cy="192" rx="19" ry="44"></ellipse>
+                            </g>
+                            <g class="musculo" data-musculo="biceps-der" data-nombre="Bíceps derecho" tabindex="0" role="button">
+                                <ellipse class="musculo-forma musculo-brazo" cx="234" cy="192" rx="19" ry="44"></ellipse>
+                            </g>
+
+                            <g class="musculo" data-musculo="antebrazo-izq" data-nombre="Antebrazo izquierdo" tabindex="0" role="button">
+                                <ellipse class="musculo-forma musculo-brazo" cx="56" cy="268" rx="15" ry="38"></ellipse>
+                            </g>
+                            <g class="musculo" data-musculo="antebrazo-der" data-nombre="Antebrazo derecho" tabindex="0" role="button">
+                                <ellipse class="musculo-forma musculo-brazo" cx="244" cy="268" rx="15" ry="38"></ellipse>
+                            </g>
+
+                            <g class="musculo" data-musculo="abdomen" data-nombre="Abdomen" tabindex="0" role="button">
+                                <rect class="musculo-forma musculo-torso" x="122" y="188" width="56" height="84" rx="16"></rect>
+                            </g>
+                            <path class="ej-definicion" d="M150,192 L150,268 M124,210 L176,210 M124,232 L176,232 M124,254 L176,254"></path>
+
+                            <g class="musculo" data-musculo="oblicuo-izq" data-nombre="Oblicuo izquierdo" tabindex="0" role="button">
+                                <ellipse class="musculo-forma musculo-torso" cx="104" cy="222" rx="14" ry="54"></ellipse>
+                            </g>
+                            <g class="musculo" data-musculo="oblicuo-der" data-nombre="Oblicuo derecho" tabindex="0" role="button">
+                                <ellipse class="musculo-forma musculo-torso" cx="196" cy="222" rx="14" ry="54"></ellipse>
+                            </g>
+
+                            <g class="musculo" data-musculo="cuadriceps-izq" data-nombre="Cuádriceps izquierdo" tabindex="0" role="button">
+                                <ellipse class="musculo-forma musculo-pierna" cx="118" cy="378" rx="27" ry="72"></ellipse>
+                            </g>
+                            <g class="musculo" data-musculo="cuadriceps-der" data-nombre="Cuádriceps derecho" tabindex="0" role="button">
+                                <ellipse class="musculo-forma musculo-pierna" cx="182" cy="378" rx="27" ry="72"></ellipse>
+                            </g>
+                            <path class="ej-definicion" d="M118,315 L118,440 M182,315 L182,440"></path>
+
+                            <g class="musculo" data-musculo="gemelo-izq" data-nombre="Gemelo izquierdo" tabindex="0" role="button">
+                                <ellipse class="musculo-forma musculo-pierna" cx="118" cy="498" rx="18" ry="46"></ellipse>
+                            </g>
+                            <g class="musculo" data-musculo="gemelo-der" data-nombre="Gemelo derecho" tabindex="0" role="button">
+                                <ellipse class="musculo-forma musculo-pierna" cx="182" cy="498" rx="18" ry="46"></ellipse>
+                            </g>
+                        </g>
+
+                        <!-- ============ VISTA POSTERIOR ============ -->
+                        <g class="ej-vista-posterior">
+                            <ellipse class="ej-parte-fija" cx="150" cy="45" rx="30" ry="34"></ellipse>
+                            <rect class="ej-parte-fija" x="136" y="74" width="28" height="20" rx="6"></rect>
+                            <circle class="ej-parte-fija" cx="48" cy="322" r="13"></circle>
+                            <circle class="ej-parte-fija" cx="252" cy="322" r="13"></circle>
+                            <ellipse class="ej-parte-fija" cx="118" cy="585" rx="22" ry="14"></ellipse>
+                            <ellipse class="ej-parte-fija" cx="182" cy="585" rx="22" ry="14"></ellipse>
+
+                            <g class="musculo" data-musculo="trapecio" data-nombre="Trapecio" tabindex="0" role="button">
+                                <ellipse class="musculo-forma musculo-torso" cx="150" cy="108" rx="48" ry="28"></ellipse>
+                            </g>
+
+                            <g class="musculo" data-musculo="dorsales" data-nombre="Dorsales" tabindex="0" role="button">
+                                <ellipse class="musculo-forma musculo-torso" cx="150" cy="188" rx="58" ry="48"></ellipse>
+                            </g>
+                            <path class="ej-definicion" d="M150,150 L120,220 M150,150 L180,220 M150,150 L150,236"></path>
+
+                            <g class="musculo" data-musculo="triceps-izq" data-nombre="Tríceps izquierdo" tabindex="0" role="button">
+                                <ellipse class="musculo-forma musculo-brazo" cx="66" cy="192" rx="19" ry="44"></ellipse>
+                            </g>
+                            <g class="musculo" data-musculo="triceps-der" data-nombre="Tríceps derecho" tabindex="0" role="button">
+                                <ellipse class="musculo-forma musculo-brazo" cx="234" cy="192" rx="19" ry="44"></ellipse>
+                            </g>
+
+                            <g class="musculo" data-musculo="antebrazo-izq-post" data-nombre="Antebrazo izquierdo" tabindex="0" role="button">
+                                <ellipse class="musculo-forma musculo-brazo" cx="56" cy="268" rx="15" ry="38"></ellipse>
+                            </g>
+                            <g class="musculo" data-musculo="antebrazo-der-post" data-nombre="Antebrazo derecho" tabindex="0" role="button">
+                                <ellipse class="musculo-forma musculo-brazo" cx="244" cy="268" rx="15" ry="38"></ellipse>
+                            </g>
+
+                            <g class="musculo" data-musculo="lumbares" data-nombre="Lumbares" tabindex="0" role="button">
+                                <ellipse class="musculo-forma musculo-torso" cx="150" cy="252" rx="30" ry="20"></ellipse>
+                            </g>
+
+                            <g class="musculo" data-musculo="gluteos" data-nombre="Glúteos" tabindex="0" role="button">
+                                <ellipse class="musculo-forma musculo-pierna" cx="150" cy="300" rx="54" ry="32"></ellipse>
+                            </g>
+
+                            <g class="musculo" data-musculo="isquios-izq" data-nombre="Isquiotibiales izquierdo" tabindex="0" role="button">
+                                <ellipse class="musculo-forma musculo-pierna" cx="118" cy="378" rx="27" ry="72"></ellipse>
+                            </g>
+                            <g class="musculo" data-musculo="isquios-der" data-nombre="Isquiotibiales derecho" tabindex="0" role="button">
+                                <ellipse class="musculo-forma musculo-pierna" cx="182" cy="378" rx="27" ry="72"></ellipse>
+                            </g>
+
+                            <g class="musculo" data-musculo="gemelo-izq-post" data-nombre="Gemelo izquierdo" tabindex="0" role="button">
+                                <ellipse class="musculo-forma musculo-pierna" cx="118" cy="498" rx="18" ry="46"></ellipse>
+                            </g>
+                            <g class="musculo" data-musculo="gemelo-der-post" data-nombre="Gemelo derecho" tabindex="0" role="button">
+                                <ellipse class="musculo-forma musculo-pierna" cx="182" cy="498" rx="18" ry="46"></ellipse>
+                            </g>
+                        </g>
+                    </svg>
+
+                    <!-- Chips de medida — vista frontal -->
+                    <div class="ej-vista-frontal">
+                        <div class="ej-chip-medida" style="left:29.3%; top:15%;">45<span>cm</span></div>
+                        <div class="ej-chip-medida" style="left:70.7%; top:15%;">45<span>cm</span></div>
+                        <div class="ej-chip-medida" style="left:50%; top:24.2%;">96<span>cm</span></div>
+                        <div class="ej-chip-medida" style="left:12%; top:31%;">33<span>cm</span></div>
+                        <div class="ej-chip-medida" style="left:88%; top:31%;">33<span>cm</span></div>
+                        <div class="ej-chip-medida" style="left:50%; top:37%;">82<span>cm</span></div>
+                        <div class="ej-chip-medida" style="left:39.3%; top:61%;">54<span>cm</span></div>
+                        <div class="ej-chip-medida" style="left:60.7%; top:61%;">54<span>cm</span></div>
+                        <div class="ej-chip-medida" style="left:39.3%; top:80.3%;">36<span>cm</span></div>
+                        <div class="ej-chip-medida" style="left:60.7%; top:80.3%;">36<span>cm</span></div>
+                    </div>
+
+                    <!-- Chips de medida — vista posterior -->
+                    <div class="ej-vista-posterior">
+                        <div class="ej-chip-medida" style="left:50%; top:17.4%;">Trap.</div>
+                        <div class="ej-chip-medida" style="left:50%; top:30.3%;">Dors.</div>
+                        <div class="ej-chip-medida" style="left:12%; top:31%;">28<span>cm</span></div>
+                        <div class="ej-chip-medida" style="left:88%; top:31%;">28<span>cm</span></div>
+                        <div class="ej-chip-medida" style="left:50%; top:40.6%;">Lumb.</div>
+                        <div class="ej-chip-medida" style="left:50%; top:48.4%;">98<span>cm</span></div>
+                        <div class="ej-chip-medida" style="left:39.3%; top:61%;">54<span>cm</span></div>
+                        <div class="ej-chip-medida" style="left:60.7%; top:61%;">54<span>cm</span></div>
+                    </div>
+                </div>
+
+                <!-- Selector de tipo de cuerpo (demo de diseño) -->
+                <div>
+                    <div class="ej-selector-tipo" id="ej-selector-tipo">
+                        <button type="button" class="ej-chip-tipo" data-ej-tipo="flaco">Flaco</button>
+                        <button type="button" class="ej-chip-tipo activo" data-ej-tipo="normal">Normal</button>
+                        <button type="button" class="ej-chip-tipo" data-ej-tipo="sobrepeso">Sobrepeso</button>
+                        <button type="button" class="ej-chip-tipo" data-ej-tipo="musculoso">Musculoso</button>
+                        <button type="button" class="ej-chip-tipo" data-ej-tipo="super">Súper</button>
+                    </div>
+                </div>
+
+                <div class="ej-nota-demo">
+                    <i class="ti ti-info-circle"></i> <strong>Vista previa de diseño:</strong> esta silueta cambiará automáticamente
+                    según tus medidas reales una vez conectemos la funcionalidad. Por ahora puedes tocar los botones de arriba para
+                    ver los 5 estados.
+                </div>
+            </div>
+
+            <!-- Panel de detalle -->
+            <div class="ej-detalle-card card-surface" id="ej-panel-detalle">
+                <div class="ej-detalle-vacio" id="ej-detalle-vacio">
+                    <i class="ti ti-hand-click"></i>
+                    <p>Toca cualquier músculo en el mapa corporal para ver su medida, tendencia y los ejercicios que lo trabajan.</p>
+                </div>
+
+                <div class="ej-detalle-contenido" id="ej-detalle-contenido">
+                    <div class="ej-detalle-titulo">
+                        <h2 id="ej-detalle-nombre">Pecho</h2>
+                        <span class="badge-ok" id="ej-detalle-badge">↑ En progreso</span>
+                    </div>
+
+                    <div class="ej-medida-actual">
+                        <span class="valor" id="ej-detalle-valor">96</span>
+                        <span class="unidad">cm de contorno</span>
+                        <span class="ej-tendencia" id="ej-detalle-tendencia"><i class="ti ti-trending-up"></i>+1.2 cm / mes</span>
+                    </div>
+
+                    <div class="ej-mini-progreso">
+                        <h4>Últimas 6 mediciones</h4>
+                        <div class="ej-barras" id="ej-detalle-barras">
+                            <div class="ej-barra" style="height:40%"></div>
+                            <div class="ej-barra" style="height:48%"></div>
+                            <div class="ej-barra" style="height:55%"></div>
+                            <div class="ej-barra" style="height:60%"></div>
+                            <div class="ej-barra" style="height:72%"></div>
+                            <div class="ej-barra actual" style="height:100%"></div>
+                        </div>
+                    </div>
+
+                    <div class="ej-ejercicios-asociados">
+                        <h4>Ejercicios que trabajan este músculo</h4>
+                        <div class="ej-lista-ejercicios" id="ej-detalle-ejercicios">
+                            <div class="ej-item-ejercicio">
+                                <span class="nombre"><i class="ti ti-barbell"></i>Flexiones abiertas</span>
+                                <span class="meta">3 series</span>
+                            </div>
+                            <div class="ej-item-ejercicio">
+                                <span class="nombre"><i class="ti ti-barbell"></i>Flexiones diamante</span>
+                                <span class="meta">2 series</span>
+                            </div>
+                            <div class="ej-item-ejercicio">
+                                <span class="nombre"><i class="ti ti-barbell"></i>Fondos en silla</span>
+                                <span class="meta">Próximamente</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ===================== PANEL: RUTINAS ===================== -->
+    <div class="ej-panel" data-ej-panel="rutinas">
+        <div class="ej-semana-grid">
+
+            <div class="ej-dia-card card-surface ej-dia-hoy">
+                <div class="ej-dia-header">
+                    <div>
+                        <div class="nombre-dia">Lunes</div>
+                        <div class="fecha-dia">Hoy · 8 jul</div>
+                    </div>
+                    <div class="ej-anillo-progreso" style="--pct:33"><span>1/3</span></div>
+                </div>
+                <div class="ej-lista-dia">
+                    <div class="ej-tarea-ejercicio completada">
+                        <span class="check"><i class="ti ti-check"></i></span>
+                        <span class="nombre-tarea">Flexiones abiertas</span>
+                        <span class="cant-tarea">1 x 10</span>
+                    </div>
+                    <div class="ej-tarea-ejercicio">
+                        <span class="check"></span>
+                        <span class="nombre-tarea">Plancha</span>
+                        <span class="cant-tarea">20 s</span>
+                    </div>
+                    <div class="ej-tarea-ejercicio">
+                        <span class="check"></span>
+                        <span class="nombre-tarea">Sentadillas</span>
+                        <span class="cant-tarea">1 x 12</span>
+                    </div>
+                </div>
+                <button class="ej-btn-agregar-dia"><i class="ti ti-plus"></i> Agregar ejercicio</button>
+            </div>
+
+            <div class="ej-dia-card card-surface">
+                <div class="ej-dia-header">
+                    <div>
+                        <div class="nombre-dia">Martes</div>
+                        <div class="fecha-dia">9 jul</div>
+                    </div>
+                    <div class="ej-anillo-progreso" style="--pct:0"><span>0/2</span></div>
+                </div>
+                <div class="ej-lista-dia">
+                    <div class="ej-tarea-ejercicio">
+                        <span class="check"></span>
+                        <span class="nombre-tarea">Flexiones cerradas</span>
+                        <span class="cant-tarea">1 x 8</span>
+                    </div>
+                    <div class="ej-tarea-ejercicio">
+                        <span class="check"></span>
+                        <span class="nombre-tarea">Zancadas</span>
+                        <span class="cant-tarea">1 x 10</span>
+                    </div>
+                </div>
+                <button class="ej-btn-agregar-dia"><i class="ti ti-plus"></i> Agregar ejercicio</button>
+            </div>
+
+            <div class="ej-dia-card card-surface">
+                <div class="ej-dia-header">
+                    <div>
+                        <div class="nombre-dia">Miércoles</div>
+                        <div class="fecha-dia">10 jul</div>
+                    </div>
+                </div>
+                <div class="ej-dia-descanso">
+                    <i class="ti ti-moon-stars"></i>
+                    Día de descanso
+                </div>
+                <button class="ej-btn-agregar-dia"><i class="ti ti-plus"></i> Agregar ejercicio</button>
+            </div>
+
+            <div class="ej-dia-card card-surface">
+                <div class="ej-dia-header">
+                    <div>
+                        <div class="nombre-dia">Jueves</div>
+                        <div class="fecha-dia">11 jul</div>
+                    </div>
+                    <div class="ej-anillo-progreso" style="--pct:0"><span>0/3</span></div>
+                </div>
+                <div class="ej-lista-dia">
+                    <div class="ej-tarea-ejercicio">
+                        <span class="check"></span>
+                        <span class="nombre-tarea">Flexiones diamante</span>
+                        <span class="cant-tarea">1 x 6</span>
+                    </div>
+                    <div class="ej-tarea-ejercicio">
+                        <span class="check"></span>
+                        <span class="nombre-tarea">Plancha</span>
+                        <span class="cant-tarea">25 s</span>
+                    </div>
+                    <div class="ej-tarea-ejercicio">
+                        <span class="check"></span>
+                        <span class="nombre-tarea">Sentadillas</span>
+                        <span class="cant-tarea">1 x 14</span>
+                    </div>
+                </div>
+                <button class="ej-btn-agregar-dia"><i class="ti ti-plus"></i> Agregar ejercicio</button>
+            </div>
+
+            <div class="ej-dia-card card-surface">
+                <div class="ej-dia-header">
+                    <div>
+                        <div class="nombre-dia">Viernes</div>
+                        <div class="fecha-dia">12 jul</div>
+                    </div>
+                    <div class="ej-anillo-progreso" style="--pct:0"><span>0/2</span></div>
+                </div>
+                <div class="ej-lista-dia">
+                    <div class="ej-tarea-ejercicio">
+                        <span class="check"></span>
+                        <span class="nombre-tarea">Flexiones abiertas</span>
+                        <span class="cant-tarea">1 x 11</span>
+                    </div>
+                    <div class="ej-tarea-ejercicio">
+                        <span class="check"></span>
+                        <span class="nombre-tarea">Zancadas</span>
+                        <span class="cant-tarea">1 x 12</span>
+                    </div>
+                </div>
+                <button class="ej-btn-agregar-dia"><i class="ti ti-plus"></i> Agregar ejercicio</button>
+            </div>
+
+            <div class="ej-dia-card card-surface">
+                <div class="ej-dia-header">
+                    <div>
+                        <div class="nombre-dia">Sábado</div>
+                        <div class="fecha-dia">13 jul</div>
+                    </div>
+                </div>
+                <div class="ej-dia-descanso">
+                    <i class="ti ti-moon-stars"></i>
+                    Día de descanso
+                </div>
+                <button class="ej-btn-agregar-dia"><i class="ti ti-plus"></i> Agregar ejercicio</button>
+            </div>
+
+            <div class="ej-dia-card card-surface">
+                <div class="ej-dia-header">
+                    <div>
+                        <div class="nombre-dia">Domingo</div>
+                        <div class="fecha-dia">14 jul</div>
+                    </div>
+                </div>
+                <div class="ej-dia-descanso">
+                    <i class="ti ti-moon-stars"></i>
+                    Día de descanso
+                </div>
+                <button class="ej-btn-agregar-dia"><i class="ti ti-plus"></i> Agregar ejercicio</button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ===================== PANEL: METAS ===================== -->
+    <div class="ej-panel" data-ej-panel="metas">
+        <div class="ej-metas-grid">
+
+            <div class="ej-meta-card card-surface">
+                <div class="ej-meta-header">
+                    <div>
+                        <h4>20 flexiones seguidas</h4>
+                        <p>Meta de resistencia · Pecho</p>
+                    </div>
+                    <div class="ej-meta-icono"><i class="ti ti-target-arrow"></i></div>
+                </div>
+                <div class="ej-meta-barra-track"><div class="ej-meta-barra-fill" style="width:55%"></div></div>
+                <div class="ej-meta-footer"><span><strong>11</strong> / 20 reps</span><span>Faltan ~3 semanas</span></div>
+            </div>
+
+            <div class="ej-meta-card card-surface">
+                <div class="ej-meta-header">
+                    <div>
+                        <h4>Racha de 30 días</h4>
+                        <p>Constancia general</p>
+                    </div>
+                    <div class="ej-meta-icono"><i class="ti ti-flame"></i></div>
+                </div>
+                <div class="ej-meta-barra-track"><div class="ej-meta-barra-fill" style="width:23%"></div></div>
+                <div class="ej-meta-footer"><span><strong>7</strong> / 30 días</span><span>En curso</span></div>
+            </div>
+
+            <div class="ej-meta-card card-surface">
+                <div class="ej-meta-header">
+                    <div>
+                        <h4>Bíceps a 35 cm</h4>
+                        <p>Meta de medida</p>
+                    </div>
+                    <div class="ej-meta-icono"><i class="ti ti-ruler-2"></i></div>
+                </div>
+                <div class="ej-meta-barra-track"><div class="ej-meta-barra-fill" style="width:80%"></div></div>
+                <div class="ej-meta-footer"><span><strong>33</strong> / 35 cm</span><span>¡Ya casi!</span></div>
+            </div>
+
+            <button class="ej-meta-card-nueva card-surface" id="ej-btn-nueva-meta">
+                <i class="ti ti-plus"></i>
+                <span>Nueva meta</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- ===================== PANEL: HISTORIAL ===================== -->
+    <div class="ej-panel" data-ej-panel="historial">
+        <div class="ej-historial-card card-surface">
+            <div class="ej-historial-top">
+                <div>
+                    <h3 style="font-size:13px; font-weight:700; color:var(--text-hi); margin-bottom:2px;">Mapa de cumplimiento</h3>
+                    <p style="font-size:11.5px; color:var(--text-lo);">Últimas 14 semanas de actividad</p>
+                </div>
+                <div class="ej-racha">
+                    <i class="ti ti-flame"></i>
+                    <div>
+                        <div class="num">7</div>
+                        <div class="lbl">días seguidos</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="ej-heatmap" id="ej-heatmap"></div>
+
+            <div class="ej-heatmap-leyenda">
+                Menos
+                <span class="celda"></span>
+                <span class="celda n1"></span>
+                <span class="celda n2"></span>
+                <span class="celda n3"></span>
+                <span class="celda n4"></span>
+                Más
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================== PANEL: CONFIGURACIÓN ===================== -->
+    <div class="ej-panel" data-ej-panel="configuracion">
+        <div class="ej-config-pasos">
+
+            <!-- PASO 1: punto de partida -->
+            <div class="ej-paso card-surface">
+                <div class="ej-paso-titulo">
+                    <div class="ej-paso-num">1</div>
+                    <div>
+                        <h3>¿Con qué quieres empezar?</h3>
+                        <p>No necesitas elegir todo de una vez — puedes agregar más ejercicios después.</p>
+                    </div>
+                </div>
+                <div class="ej-opciones-grid" id="ej-opciones-inicio">
+                    <div class="ej-opcion-card activo" data-ej-inicio="flexiones"><i class="ti ti-yoga"></i><span>Flexiones</span></div>
+                    <div class="ej-opcion-card" data-ej-inicio="sentadillas"><i class="ti ti-stairs"></i><span>Sentadillas</span></div>
+                    <div class="ej-opcion-card" data-ej-inicio="plancha"><i class="ti ti-line"></i><span>Plancha</span></div>
+                    <div class="ej-opcion-card" data-ej-inicio="dominadas"><i class="ti ti-arrow-bar-up"></i><span>Dominadas</span></div>
+                    <div class="ej-opcion-card" data-ej-inicio="personalizado"><i class="ti ti-pencil"></i><span>Personalizado</span></div>
+                </div>
+            </div>
+
+            <!-- PASO 2: variante del ejercicio -->
+            <div class="ej-paso card-surface">
+                <div class="ej-paso-titulo">
+                    <div class="ej-paso-num">2</div>
+                    <div>
+                        <h3>Variante de flexión</h3>
+                        <p>Cada variante enfatiza músculos distintos — esto queda ligado a tu mapa corporal.</p>
+                    </div>
+                </div>
+                <div class="ej-chips-variante" id="ej-chips-variante">
+                    <button type="button" class="ej-chip-variante activo" data-ej-variante="abiertas" data-ej-trabaja="Pecho, Hombros">Abiertas</button>
+                    <button type="button" class="ej-chip-variante" data-ej-variante="cerradas" data-ej-trabaja="Tríceps, Pecho">Cerradas</button>
+                    <button type="button" class="ej-chip-variante" data-ej-variante="diamante" data-ej-trabaja="Tríceps">Diamante</button>
+                    <button type="button" class="ej-chip-variante" data-ej-variante="inclinadas" data-ej-trabaja="Pecho bajo">Inclinadas</button>
+                    <button type="button" class="ej-chip-variante" data-ej-variante="declinadas" data-ej-trabaja="Pecho alto, Hombros">Declinadas</button>
+                    <button type="button" class="ej-chip-variante" data-ej-variante="rodillas" data-ej-trabaja="Pecho (nivel inicial)">Con rodillas</button>
+                </div>
+                <p class="ej-variante-caption" id="ej-variante-caption">Trabaja principalmente: <strong>Pecho, Hombros</strong></p>
+            </div>
+
+            <!-- PASO 3: progresión -->
+            <div class="ej-paso card-surface">
+                <div class="ej-paso-titulo">
+                    <div class="ej-paso-num">3</div>
+                    <div>
+                        <h3>¿Cómo quieres progresar?</h3>
+                        <p>Define cada cuánto aumenta la exigencia.</p>
+                    </div>
+                </div>
+                <div class="ej-progresion-opciones" id="ej-progresion-opciones">
+                    <div class="ej-radio-card activo" data-ej-progresion="diario">
+                        <span class="ej-radio-dot"></span>
+                        <div class="ej-radio-texto"><strong>Diario</strong><span>Sumas repeticiones cada día</span></div>
+                    </div>
+                    <div class="ej-radio-card" data-ej-progresion="cada-x-dias">
+                        <span class="ej-radio-dot"></span>
+                        <div class="ej-radio-texto"><strong>Cada X días</strong><span>Aumentas cada cierto número de días</span></div>
+                        <div class="ej-subcampo" data-ej-subcampo-de="cada-x-dias" style="margin-left:auto;">
+                            <div class="ej-stepper"><button type="button">−</button><input class="input-base" type="number" value="3" style="width:44px;"><button type="button">+</button></div>
+                        </div>
+                    </div>
+                    <div class="ej-radio-card" data-ej-progresion="semanal">
+                        <span class="ej-radio-dot"></span>
+                        <div class="ej-radio-texto"><strong>Semanal</strong><span>Aumentas una vez por semana</span></div>
+                    </div>
+                    <div class="ej-radio-card" data-ej-progresion="personalizado">
+                        <span class="ej-radio-dot"></span>
+                        <div class="ej-radio-texto"><strong>Personalizado</strong><span>Tú defines el calendario exacto</span></div>
+                    </div>
+                </div>
+                <div class="ej-subcampo" data-ej-subcampo-de="cada-x-dias" id="ej-subcampo-visible">
+                    <div class="ej-form-grid">
+                        <div class="ej-campo">
+                            <label>Aumentar cada</label>
+                            <div class="ej-stepper"><button type="button">−</button><input class="input-base" type="number" value="3"><button type="button">+</button></div>
+                        </div>
+                        <div class="ej-campo">
+                            <label>Repeticiones a sumar</label>
+                            <div class="ej-stepper"><button type="button">−</button><input class="input-base" type="number" value="1"><button type="button">+</button></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PASO 4: punto de partida numérico -->
+            <div class="ej-paso card-surface">
+                <div class="ej-paso-titulo">
+                    <div class="ej-paso-num">4</div>
+                    <div>
+                        <h3>Tu punto de partida real</h3>
+                        <p>Sin trampas — lo que puedas hacer hoy, cómodamente.</p>
+                    </div>
+                </div>
+                <div class="ej-form-grid">
+                    <div class="ej-campo">
+                        <label>Series</label>
+                        <div class="ej-stepper"><button type="button">−</button><input class="input-base" type="number" value="1"><button type="button">+</button></div>
+                    </div>
+                    <div class="ej-campo">
+                        <label>Repeticiones por serie</label>
+                        <div class="ej-stepper"><button type="button">−</button><input class="input-base" type="number" value="5"><button type="button">+</button></div>
+                    </div>
+                    <div class="ej-campo">
+                        <label>Días por semana</label>
+                        <select class="filtro-select">
+                            <option>3 días</option>
+                            <option>4 días</option>
+                            <option>5 días</option>
+                            <option>Todos los días</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="ej-acciones-config">
+                <button class="btn-secundario">Cancelar</button>
+                <button class="btn-primario">Guardar configuración</button>
+            </div>
+        </div>
+    </div>
+
+</div>

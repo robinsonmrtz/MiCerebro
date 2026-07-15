@@ -101,6 +101,10 @@ async function cargarVista(nombreVista) {
                     if (typeof inicializarAjustes === 'function') inicializarAjustes();
                 }, 50);
             }
+            } else if (vistaSolicitada === 'ejercicio') {
+            setTimeout(() => {
+                if (typeof inicializarEjercicio === 'function') inicializarEjercicio();
+            }, 50);
             
         } else {
             contenedorVistas.innerHTML = "<h2>Error 404: Archivo no encontrado.</h2>";
