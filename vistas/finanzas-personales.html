@@ -116,6 +116,54 @@
         </div>
  
     </div>
+
+<!-- ▼▼▼ NUEVO: Gráfico de Gasto Diario ▼▼▼ -->
+    <div class="card-surface fz-res-diario-card">
+        <div class="fz-res-dona-header">
+            <span class="fz-res-dona-titulo">
+                <span class="fz-res-dona-badge gasto"></span>
+                Gasto Diario del Mes
+            </span>
+            <span class="fz-res-dona-subtotal" id="fz-res-diario-promedio" style="color: var(--text-lo); font-size:12px; font-weight:600;">
+                Promedio: $0
+            </span>
+        </div>
+        <div class="fz-res-diario-chart-wrap">
+            <canvas id="fz-grafico-diario" role="img" aria-label="Gráfico de barras de gasto diario"></canvas>
+        </div>
+    </div>
+    <!-- ▲▲▲ FIN NUEVO ▲▲▲ -->
+
+    <!-- ▼▼▼ NUEVO: Gastos e Ingresos Fijos ▼▼▼ -->
+    <div class="fz-res-donas-grid" style="margin-top: 18px;">
+
+        <!-- Card Gastos Fijos -->
+        <div class="card-surface fz-res-dona-card">
+            <div class="fz-res-dona-header">
+                <span class="fz-res-dona-titulo">
+                    <span class="fz-res-dona-badge gasto"></span>
+                    Gastos Fijos Mensuales
+                </span>
+                <span class="fz-res-dona-subtotal" id="fz-res-total-gastos-fijos" style="color: var(--status-danger);">$0</span>
+            </div>
+            <div id="fz-res-lista-gastos-fijos" class="fz-res-fijos-list"></div>
+        </div>
+
+        <!-- Card Ingresos Fijos -->
+        <div class="card-surface fz-res-dona-card">
+            <div class="fz-res-dona-header">
+                <span class="fz-res-dona-titulo">
+                    <span class="fz-res-dona-badge ingreso"></span>
+                    Ingresos Fijos Mensuales
+                </span>
+                <span class="fz-res-dona-subtotal" id="fz-res-total-ingresos-fijos" style="color: var(--status-ok);">$0</span>
+            </div>
+            <div id="fz-res-lista-ingresos-fijos" class="fz-res-fijos-list"></div>
+        </div>
+
+    </div>
+    <!-- ▲▲▲ FIN NUEVO ▲▲▲ -->
+     
 </div>
 
 

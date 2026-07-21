@@ -1394,8 +1394,8 @@ function fz_pintarCategorias() {
 
     const datos = fz_obtenerDatos();
     const todas = datos.categorias.filter(c => !c.archivada && c.tipo === fz_catTipoActual);
-    const padres = todas.filter(c => !c.parent_id);
-    const hijos  = todas.filter(c =>  c.parent_id);
+    const padres = todas.filter(c => !c.parent_id).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+    const hijos  = todas.filter(c =>  c.parent_id).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
 
     let filas = '';
     const esIngreso = fz_catTipoActual === 'ingreso';
@@ -1403,7 +1403,6 @@ function fz_pintarCategorias() {
     padres.forEach(padre => {
         const hijosDelPadre = hijos.filter(h => h.parent_id === padre.id);
         const padreMatch = padre.nombre.toLowerCase().includes(query);
-        const hijoMatch  = hijosDelPadre.some(h => h.nombre.toLowerCase().includes(query));
         if (query && !padreMatch && !hijoMatch) return;
 
         const emoji = padre.emoji || '🏷️';
@@ -1584,16 +1583,40 @@ window.fz_guardarFormularioCategoria = function() {
         emoji = document.getElementById('fz-cat-emoji-preview').textContent || '🏷️';
     }
 
+    const catId = idInput ? parseInt(idInput) : Date.now();
+
     fz_guardarCategoria({
-        id:        idInput ? parseInt(idInput) : Date.now(),
+        id: catId,
         nombre, tipo, color, emoji,
         parent_id: parentId ? parseInt(parentId) : null,
         archivada: false
     });
 
+    // Si es una categoría PADRE, propagamos su color/emoji a todas sus subcategorías existentes
+    if (!esSub) {
+        fz_sincronizarColorHijos(catId, color, emoji);
+    }
+
     document.getElementById('fz-modal-categoria').classList.remove('visible');
     fz_pintarCategorias();
 };
+
+// Sincroniza color y emoji de todas las subcategorías cuando el padre cambia
+function fz_sincronizarColorHijos(padreId, color, emoji) {
+    let datos = cargarDatos();
+    const hijos = datos.finanzas_personales.categorias.filter(c => c.parent_id === padreId);
+    let huboCambios = false;
+
+    hijos.forEach(h => {
+        if (h.color !== color || h.emoji !== emoji) {
+            h.color = color;
+            h.emoji = emoji;
+            huboCambios = true;
+        }
+    });
+
+    if (huboCambios) guardarDatos(datos);
+}
 
 window.fz_archivarCategoriaUI = function(id) {
     if (confirm("¿Archivar esta categoría? Sus subcategorías también se archivarán.")) {
@@ -1755,6 +1778,8 @@ function fz_pintarResumen() {
  
     fz_res_renderDona('gastos',   gastosDelMes,   datos.categorias);
     fz_res_renderDona('ingresos', ingresosDelMes, datos.categorias);
+    fz_res_renderGastoDiario(); 
+    fz_res_renderFijos(transDelMes, datos.categorias); 
 }
 
 // 4. Genera el gráfico de dona de Chart.js
@@ -1861,6 +1886,139 @@ function fz_res_renderDona(tipo, trans, categorias) {
     }
 }
  
+
+// Instancia del gráfico de gasto diario
+let fz_grafico_diario = null;
+
+function fz_res_renderGastoDiario() {
+    const canvas = document.getElementById('fz-grafico-diario');
+    if (!canvas) return;
+
+    const datos = fz_obtenerDatos();
+    const year  = fz_fechaActual.getFullYear();
+    const month = fz_fechaActual.getMonth(); // 0-indexado
+    const lastDay = new Date(year, month + 1, 0).getDate();
+
+    // Acumulador con TODOS los días del mes en cero (índice 1..lastDay)
+    const acumPorDia = new Array(lastDay + 1).fill(0);
+
+    const mesFiltro = `${year}-${String(month + 1).padStart(2, '0')}`;
+    (datos.transacciones || [])
+        .filter(t => !t.archivada && t.tipo === 'gasto' && t.fecha.startsWith(mesFiltro))
+        .forEach(t => {
+            const dia = parseInt(t.fecha.split('-')[2], 10);
+            if (dia >= 1 && dia <= lastDay) acumPorDia[dia] += t.monto;
+        });
+
+    const labels = [];
+    const data = [];
+    for (let d = 1; d <= lastDay; d++) {
+        labels.push(String(d));
+        data.push(acumPorDia[d]);
+    }
+
+    // Promedio diario (sobre TODOS los días del mes, incluyendo los de $0)
+    const totalMes = data.reduce((s, v) => s + v, 0);
+    const promedio = lastDay > 0 ? totalMes / lastDay : 0;
+    const promedioEl = document.getElementById('fz-res-diario-promedio');
+    if (promedioEl) promedioEl.textContent = `Promedio: ${formatearDinero(promedio)}`;
+
+    if (fz_grafico_diario) { fz_grafico_diario.destroy(); fz_grafico_diario = null; }
+
+    const colorDanger = getComputedStyle(document.body).getPropertyValue('--status-danger').trim() || '#e74c3c';
+    const colorGrid    = getComputedStyle(document.body).getPropertyValue('--border-card').trim() || '#e0e0e0';
+    const colorTexto   = getComputedStyle(document.body).getPropertyValue('--text-lo').trim() || '#888';
+
+fz_grafico_diario = new Chart(canvas, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Gasto',
+                data: data,
+                backgroundColor: colorDanger,
+                borderRadius: 4,
+                maxBarThickness: 22
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        title: ctx => `Día ${ctx[0].label}`,
+                        label: ctx => ` ${formatearDinero(ctx.raw)}`
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: { display: false },
+                    ticks: { color: colorTexto, font: { size: 10 }, maxRotation: 0, autoSkip: true }
+                },
+                y: {
+                    beginAtZero: true,
+                    grid: { color: colorGrid },
+                    ticks: {
+                        color: colorTexto,
+                        font: { size: 10 },
+                        callback: value => formatearDinero(value)
+                    }
+                }
+            }
+        }
+    });
+}
+
+// ==========================================
+// [NUEVO] GASTOS / INGRESOS FIJOS MENSUALES (Resumen)
+// ==========================================
+function fz_res_renderFijos(transDelMes, categorias) {
+    const gastosFijos   = transDelMes.filter(t => t.tipo === 'gasto'   && t.gasto_fijo === true);
+    const ingresosFijos = transDelMes.filter(t => t.tipo === 'ingreso' && t.gasto_fijo === true);
+
+    fz_res_pintarListaFijos('fz-res-lista-gastos-fijos',   'fz-res-total-gastos-fijos',   gastosFijos,   categorias, 'var(--status-danger)', '-');
+    fz_res_pintarListaFijos('fz-res-lista-ingresos-fijos', 'fz-res-total-ingresos-fijos', ingresosFijos, categorias, 'var(--status-ok)',      '+');
+}
+
+function fz_res_pintarListaFijos(listaId, totalId, items, categorias, colorMonto, signo) {
+    const contenedor = document.getElementById(listaId);
+    const totalEl = document.getElementById(totalId);
+    if (!contenedor || !totalEl) return;
+
+    const total = items.reduce((s, t) => s + t.monto, 0);
+    totalEl.textContent = formatearDinero(total);
+
+    if (items.length === 0) {
+        contenedor.innerHTML = `<div class="fz-res-fijo-vacio">Sin movimientos fijos este mes.</div>`;
+        return;
+    }
+
+    contenedor.innerHTML = items
+        .slice()
+        .sort((a, b) => b.monto - a.monto)
+        .map(t => {
+            const cat = categorias.find(c => c.id == t.categoria_id);
+            const emoji     = cat ? (cat.emoji || '🏷️') : '🏷️';
+            const color     = cat ? (cat.color || '#888') : '#888';
+            const nombreCat = cat ? cat.nombre : 'Sin categoría';
+            return `
+            <div class="fz-res-fijo-item">
+                <div class="fz-res-fijo-icon" style="background:${color}22; color:${color};">${emoji}</div>
+                <div class="fz-res-fijo-info">
+                    <span class="fz-res-fijo-desc">${t.descripcion}</span>
+                    <span class="fz-res-fijo-cat">${nombreCat}</span>
+                </div>
+                <span class="fz-res-fijo-monto" style="color:${colorMonto};">${signo}${formatearDinero(t.monto)}</span>
+            </div>`;
+        }).join('');
+}
+
+
+
+
 // ==========================================
 // [NUEVO] Modal de Acciones Rápidas
 // ==========================================
