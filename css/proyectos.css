@@ -1,0 +1,290 @@
+/* ============================================================
+   MICEREBRO — proyectos.css
+   Módulo de Proyectos (Fase 1: selector de tipo + form Video).
+   Modales base, botones y tablas viven en styles.css.
+   ============================================================ */
+
+.proyectos-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+/* ── Colores de estado adicionales (Fase 4: Guion/Locución/Edición/Render/Subido) ── */
+.bg-notion-purple {
+    background: color-mix(in srgb, #a78bfa 15%, transparent);
+    color: #a78bfa;
+}
+
+.bg-notion-accent {
+    background: color-mix(in srgb, var(--accent) 15%, transparent);
+    color: var(--accent);
+}
+
+
+/* ── Editor de Guion: barra de herramientas ─────────────────────────── */
+.guion-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-card);
+    border-radius: 10px 10px 0 0;
+    padding: 8px 10px;
+    flex-shrink: 0;
+}
+
+.guion-toolbar-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--text-base);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.15s;
+}
+
+.guion-toolbar-btn:hover {
+    background: var(--bg-active);
+    color: var(--accent);
+    border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+.guion-toolbar-sep {
+    width: 1px;
+    height: 20px;
+    background: var(--border-card);
+    margin: 0 4px;
+}
+
+.guion-toolbar-select {
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: 6px;
+    color: var(--text-base);
+    font-size: 12px;
+    padding: 5px 8px;
+    cursor: pointer;
+    outline: none;
+    font-family: inherit;
+}
+
+
+/* ── Editor de Guion: la "hoja" tipo Word ───────────────────────────── */
+.guion-hoja-wrap {
+    flex: 1;
+    overflow-y: auto;
+    background: #2a2d34;
+    border: 1px solid var(--border-card);
+    border-top: none;
+    border-radius: 0 0 10px 10px;
+    padding: 28px 16px;
+    display: flex;
+    justify-content: center;
+}
+
+.guion-hoja {
+    background: #ffffff;
+    color: #1a1a1a;
+    width: 100%;
+    max-width: 700px;
+    min-height: 820px;
+    padding: 64px 72px;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+    border-radius: 2px;
+    font-family: 'Georgia', 'Times New Roman', serif;
+    font-size: 15px;
+    line-height: 1.8;
+    outline: none;
+    flex-shrink: 0;
+}
+
+.guion-hoja:empty::before {
+    content: attr(data-placeholder);
+    color: #9aa0a6;
+    font-style: italic;
+    pointer-events: none;
+}
+
+@media (max-width: 768px) {
+    .guion-hoja {
+        padding: 32px 24px;
+        max-width: 100%;
+    }
+    .guion-hoja-wrap {
+        padding: 16px 8px;
+    }
+}
+
+
+/* ── Selector de tipo de proyecto ────────────────────── */
+.tipo-proyecto-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+
+.tipo-proyecto-card {
+    background: var(--bg-input);
+    border: 1px solid var(--border-card);
+    border-radius: 12px;
+    padding: 20px 14px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.tipo-proyecto-card:hover {
+    border-color: var(--accent);
+    background: var(--bg-hover);
+    transform: translateY(-2px);
+}
+
+.tipo-proyecto-icono {
+    font-size: 26px;
+    color: var(--accent);
+    margin-bottom: 10px;
+}
+
+.tipo-proyecto-nombre {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-hi);
+    margin-bottom: 4px;
+}
+
+.tipo-proyecto-desc {
+    font-size: 10.5px;
+    color: var(--text-lo);
+    line-height: 1.4;
+}
+
+.badge-construccion {
+    color: var(--status-warn);
+    font-weight: 600;
+}
+
+
+/* ── Lista de proyectos (filas horizontales, estilo clientes) ──────── */
+#lista-proyectos-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.proyecto-row {
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: 12px;
+    padding: 14px 18px;
+    display: grid;
+    grid-template-columns: 44px 1fr 110px 130px auto;
+    align-items: center;
+    gap: 16px;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.proyecto-row:hover {
+    background: var(--bg-hover);
+    border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+/* Avatar (reutiliza forma circular como en clientes) */
+.proyecto-row-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: var(--bg-input);
+    border: 1px solid var(--border-card);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--clr-white);
+}
+
+/* Nombre + tipo */
+.proyecto-row-nombre {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-hi);
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.proyecto-row-tipo {
+    font-size: 11px;
+    color: var(--text-lo);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.proyecto-row-tipo i { color: var(--accent); font-size: 12px; }
+
+/* Redes activas (íconos) */
+.proyecto-row-redes {
+    display: flex;
+    gap: 9px;
+    font-size: 15px;
+    color: var(--text-lo);
+    justify-content: center;
+}
+
+.proyecto-row-redes i.activa { color: var(--accent); }
+
+/* Seguidores totales */
+.proyecto-row-seguidores {
+    text-align: right;
+}
+
+.proyecto-row-seguidores-num {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-hi);
+}
+
+.proyecto-row-seguidores-lbl {
+    font-size: 10px;
+    color: var(--text-lo);
+    margin-top: 2px;
+}
+
+/* Acciones */
+.proyecto-row-acciones {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 5px;
+}
+
+@media (max-width: 768px) {
+    .proyecto-row {
+        grid-template-columns: 44px 1fr auto;
+    }
+    .proyecto-row-redes,
+    .proyecto-row-seguidores {
+        display: none;
+    }
+}
+
+
+/* ── Responsive ──────────────────────────────────────── */
+@media (max-width: 768px) {
+    .tipo-proyecto-grid { grid-template-columns: 1fr; }
+    .modal-video-grid-2 { grid-template-columns: 1fr; }
+}

@@ -1,0 +1,389 @@
+<div id="vista-lista-proyectos">
+
+<div class="seccion-titulo">
+    <h2>📁 Proyectos</h2>
+    <p>Crea y gestiona tus proyectos: canales de video, juegos de Roblox y aplicaciones.</p>
+</div>
+
+<div class="proyectos-header">
+    <div></div>
+    <button onclick="window.abrirModalSelectorTipo()" class="btn-primario">
+        <i class="ti ti-plus" aria-hidden="true"></i> Nuevo proyecto
+    </button>
+</div>
+
+<div id="lista-proyectos-grid"></div>
+
+</div>
+
+
+
+<!-- ============================================================ -->
+<!-- MODAL 1: SELECTOR DE TIPO DE PROYECTO -->
+<!-- ============================================================ -->
+<div id="modal-selector-tipo" class="modal-overlay" style="display:none;z-index:2000">
+    <div class="modal-caja" style="max-width:560px;width:92%">
+        <h3>¿Qué proyecto quieres crear hoy?</h3>
+        <p style="margin-bottom:20px">Elige el tipo. La interfaz se adapta según tu elección.</p>
+
+        <div class="tipo-proyecto-grid">
+            <div class="tipo-proyecto-card" onclick="window.seleccionarTipoProyecto('video')">
+                <div class="tipo-proyecto-icono"><i class="ti ti-video" aria-hidden="true"></i></div>
+                <div class="tipo-proyecto-nombre">Video</div>
+                <div class="tipo-proyecto-desc">Canal de YouTube, TikTok u otras redes</div>
+            </div>
+
+            <div class="tipo-proyecto-card" onclick="window.seleccionarTipoProyecto('roblox')">
+                <div class="tipo-proyecto-icono"><i class="ti ti-device-gamepad-2" aria-hidden="true"></i></div>
+                <div class="tipo-proyecto-nombre">Roblox</div>
+                <div class="tipo-proyecto-desc badge-construccion">🚧 Próximamente</div>
+            </div>
+
+            <div class="tipo-proyecto-card" onclick="window.seleccionarTipoProyecto('app')">
+                <div class="tipo-proyecto-icono"><i class="ti ti-apps" aria-hidden="true"></i></div>
+                <div class="tipo-proyecto-nombre">Aplicación</div>
+                <div class="tipo-proyecto-desc badge-construccion">🚧 Próximamente</div>
+            </div>
+        </div>
+
+        <div class="modal-botones-row" style="margin-top:22px">
+            <button class="btn-secondary" onclick="window.cerrarModalSelectorTipo()">Cancelar</button>
+        </div>
+    </div>
+</div>
+
+
+<!-- ============================================================ -->
+<!-- MODAL 2: FORMULARIO — PROYECTO TIPO VIDEO -->
+<!-- ============================================================ -->
+<div id="modal-proyecto-video" class="modal-overlay" style="display:none;z-index:2000">
+    <div class="modal-caja modal-ancho" style="max-width:640px">
+
+        <h3 id="modal-proyecto-video-titulo" style="margin-bottom:18px">Nuevo proyecto de Video</h3>
+        <input type="hidden" id="prv-id-edit">
+
+        <div class="avatar-preview-wrap" style="margin-bottom:16px">
+            <img id="prv-preview-foto" src="" alt="Preview" class="avatar-preview-img">
+        </div>
+
+        <div class="modal-video-section">
+            <div class="modal-video-section-title">Información general</div>
+            <div class="modal-cliente-grid" style="gap:12px">
+                <label>
+                    Nombre del proyecto
+                    <input type="text" id="prv-nombre" class="input-minimalista"
+                           placeholder="Ej. Canal de Terror en Español"
+                           oninput="window.actualizarAvatarPreviewProyecto()">
+                </label>
+                <label>
+                    URL foto de perfil <span style="font-weight:400;text-transform:none">(una sola, para todas las redes)</span>
+                    <input type="text" id="prv-foto" class="input-minimalista"
+                           placeholder="https://…"
+                           oninput="window.actualizarAvatarPreviewProyecto()">
+                </label>
+            </div>
+        </div>
+
+        <div class="modal-video-section">
+            <div class="modal-video-section-title">🌐 Redes sociales</div>
+            <div class="modal-video-grid-2" style="gap:12px">
+
+                <div class="red-card-modal">
+                    <div class="red-card-modal-title" style="color:#ff4757">
+                        <i class="ti ti-brand-youtube" aria-hidden="true"></i> YouTube
+                    </div>
+                    <label class="modal-video-label">Link <input type="text" id="prv-yt-url" class="input-minimalista" placeholder="https://youtube.com/@…"></label>
+                    <label class="modal-video-label" style="margin-top:8px">@usuario <input type="text" id="prv-yt-usuario" class="input-minimalista" placeholder="@canal"></label>
+                    <label class="modal-video-label" style="margin-top:8px">Seguidores actuales <input type="number" id="prv-yt-seguidores" class="input-minimalista" value="0"></label>
+                    <label class="modal-video-label" style="margin-top:8px">Fecha de creación <input type="date" id="prv-yt-fecha" class="input-minimalista"></label>
+                    <div style="display:flex;align-items:center;gap:8px;margin-top:8px;background:var(--bg-card);border:1px solid var(--border-card);border-radius:8px;padding:8px 10px">
+                        <input type="checkbox" id="prv-monetizado" style="width:15px;height:15px;cursor:pointer;accent-color:var(--accent)">
+                        <span style="font-size:11px;color:var(--text-base);font-weight:600">Canal monetizado</span>
+                    </div>
+                    <label class="modal-video-label" style="margin-top:8px">CPM (USD) <span style="font-weight:400">por cada 1000 vistas</span> <input type="number" id="prv-cpm" class="input-minimalista" placeholder="Ej. 2.50" step="0.01" value="0"></label>
+                </div>
+
+                <div class="red-card-modal">
+                    <div class="red-card-modal-title" style="color:var(--text-base)">
+                        <i class="ti ti-brand-tiktok" aria-hidden="true"></i> TikTok
+                    </div>
+                    <label class="modal-video-label">Link <input type="text" id="prv-tk-url" class="input-minimalista" placeholder="https://tiktok.com/@…"></label>
+                    <label class="modal-video-label" style="margin-top:8px">@usuario <input type="text" id="prv-tk-usuario" class="input-minimalista" placeholder="@canal"></label>
+                    <label class="modal-video-label" style="margin-top:8px">Seguidores actuales <input type="number" id="prv-tk-seguidores" class="input-minimalista" value="0"></label>
+                    <label class="modal-video-label" style="margin-top:8px">Fecha de creación <input type="date" id="prv-tk-fecha" class="input-minimalista"></label>
+                </div>
+
+                <div class="red-card-modal">
+                    <div class="red-card-modal-title" style="color:#1877f2">
+                        <i class="ti ti-brand-facebook" aria-hidden="true"></i> Facebook
+                    </div>
+                    <label class="modal-video-label">Link <input type="text" id="prv-fb-url" class="input-minimalista" placeholder="https://facebook.com/…"></label>
+                    <label class="modal-video-label" style="margin-top:8px">@usuario <input type="text" id="prv-fb-usuario" class="input-minimalista" placeholder="@pagina"></label>
+                    <label class="modal-video-label" style="margin-top:8px">Seguidores actuales <input type="number" id="prv-fb-seguidores" class="input-minimalista" value="0"></label>
+                    <label class="modal-video-label" style="margin-top:8px">Fecha de creación <input type="date" id="prv-fb-fecha" class="input-minimalista"></label>
+                </div>
+
+                <div class="red-card-modal">
+                    <div class="red-card-modal-title" style="color:#e1306c">
+                        <i class="ti ti-brand-instagram" aria-hidden="true"></i> Instagram
+                    </div>
+                    <label class="modal-video-label">Link <input type="text" id="prv-ig-url" class="input-minimalista" placeholder="https://instagram.com/…"></label>
+                    <label class="modal-video-label" style="margin-top:8px">@usuario <input type="text" id="prv-ig-usuario" class="input-minimalista" placeholder="@cuenta"></label>
+                    <label class="modal-video-label" style="margin-top:8px">Seguidores actuales <input type="number" id="prv-ig-seguidores" class="input-minimalista" value="0"></label>
+                    <label class="modal-video-label" style="margin-top:8px">Fecha de creación <input type="date" id="prv-ig-fecha" class="input-minimalista"></label>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="modal-botones-row">
+            <button class="btn-secondary" onclick="window.cerrarModalProyectoVideo()">Cancelar</button>
+            <button class="btn-primary" onclick="window.guardarProyectoVideo()">Guardar proyecto</button>
+        </div>
+
+    </div>
+</div>
+
+
+<!-- ============================================================ -->
+<!-- VISTA 2: PANEL DEL PROYECTO (Fase 3) — tabla de videos -->
+<!-- ============================================================ -->
+<div id="vista-panel-proyecto" style="display:none">
+
+    <button class="back-btn" onclick="window.cerrarPanelProyecto()">
+        <i class="ti ti-arrow-left" aria-hidden="true"></i> Volver a proyectos
+    </button>
+
+    <div class="panel-cliente-header">
+        <div class="cliente-avatar" id="pv-panel-avatar" style="width:52px;height:52px;font-size:18px;flex-shrink:0"></div>
+        <div class="panel-ch-info">
+            <div class="panel-ch-name" id="pv-titulo-panel">Cargando…</div>
+            <div class="panel-ch-meta" id="pv-panel-meta">—</div>
+        </div>
+        <div class="panel-kpis" id="pv-panel-kpis">
+            <div class="panel-kpi">
+                <div class="panel-kpi-val" id="pv-kpi-total">0</div>
+                <div class="panel-kpi-label">Videos totales</div>
+            </div>
+            <div class="panel-kpi">
+                <div class="panel-kpi-val" id="pv-kpi-pendientes">0</div>
+                <div class="panel-kpi-label">Pendientes</div>
+            </div>
+            <div class="panel-kpi">
+                <div class="panel-kpi-val" id="pv-kpi-porsubir">0</div>
+                <div class="panel-kpi-label">Por subir</div>
+            </div>
+            <div class="panel-kpi">
+                <div class="panel-kpi-val" id="pv-kpi-subidos">0</div>
+                <div class="panel-kpi-label">Subidos</div>
+            </div>
+            <div class="panel-kpi">
+                <div class="panel-kpi-val" id="pv-kpi-seguidores">0</div>
+                <div class="panel-kpi-label">Seguidores totales</div>
+            </div>
+        </div>
+        <div style="display:flex; gap:10px; flex-shrink:0; align-items:center;">
+            <button onclick="window.abrirModalProyectoVideo(idProyectoActivo)" class="btn-secondary">
+                <i class="ti ti-pencil" aria-hidden="true"></i> Editar proyecto
+            </button>
+            <button onclick="window.abrirModalNuevoVideoProyecto()" class="btn-primary">
+                <i class="ti ti-plus" aria-hidden="true"></i> Video
+            </button>
+        </div>
+    </div>
+
+    <div class="notion-filter-bar">
+        <div class="notion-search-wrapper">
+            <input type="text" id="pv-buscar-video" placeholder="Buscar video por título…"
+                   oninput="window.filtrarVideosProyectoPorTexto(this.value)">
+        </div>
+        <div class="notion-pills-wrapper">
+            <button onclick="window.filtrarVideosProyectoPorEstado('todos')"    class="btn-notion-pill active" id="pv-pill-todos">Todo</button>
+            <button onclick="window.filtrarVideosProyectoPorEstado('guion')"    class="btn-notion-pill"        id="pv-pill-guion">Guion</button>
+            <button onclick="window.filtrarVideosProyectoPorEstado('locucion')" class="btn-notion-pill"        id="pv-pill-locucion">Locución</button>
+            <button onclick="window.filtrarVideosProyectoPorEstado('edicion')"  class="btn-notion-pill"        id="pv-pill-edicion">Edición</button>
+            <button onclick="window.filtrarVideosProyectoPorEstado('render')"   class="btn-notion-pill"        id="pv-pill-render">Render</button>
+            <button onclick="window.filtrarVideosProyectoPorEstado('subido')"   class="btn-notion-pill"        id="pv-pill-subido">Subido</button>
+        </div>
+    </div>
+
+    <div class="tabla-contenedor" style="overflow-x:auto">
+        <table class="tabla-historial" style="min-width:820px">
+            <thead>
+                <tr>
+                    <th style="width:55px;text-align:center" onclick="window.cambiarOrdenVideosProyecto('numero')" class="th-clickable">
+                        # <span id="pv-sort-numero" class="th-sort-indicator"></span>
+                    </th>
+                    <th onclick="window.cambiarOrdenVideosProyecto('nombre')" class="th-clickable">
+                        Nombre del video <span id="pv-sort-nombre" class="th-sort-indicator"></span>
+                    </th>
+                    <th>Estado</th>
+                    <th onclick="window.cambiarOrdenVideosProyecto('subido')" class="th-clickable">
+                        Subido <span id="pv-sort-subido" class="th-sort-indicator"></span>
+                    </th>
+                    <th>Métricas</th>
+                    <th>Últ. edición</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody id="pv-tabla-videos"></tbody>
+        </table>
+    </div>
+
+</div>
+
+
+<!-- ============================================================ -->
+<!-- MODAL: NUEVO/EDITAR VIDEO DEL PROYECTO -->
+<!-- ============================================================ -->
+<div id="modal-video-proyecto" class="modal-overlay" style="display:none;z-index:2000">
+    <div class="modal-caja modal-ancho">
+
+        <h3 id="pv-modal-video-titulo" style="margin-bottom:18px">Agregar video</h3>
+        <input type="hidden" id="pv-id-edit">
+
+        <div class="modal-video-section">
+            <div class="modal-video-section-title">Información general</div>
+            <div style="display:grid;grid-template-columns:70px 1fr 160px;gap:12px;margin-bottom:12px">
+                <label class="modal-video-label">
+                    Nº
+                    <input type="number" id="pv-numero" class="input-minimalista" style="text-align:center">
+                </label>
+                <label class="modal-video-label">
+                    Título del video
+                    <input type="text" id="pv-nombre" class="input-minimalista" placeholder="Ej. El misterio de…">
+                </label>
+                <label class="modal-video-label">
+                    Estado
+                    <select id="pv-estado" class="input-minimalista">
+                        <option value="guion">Guion</option>
+                        <option value="locucion">Locución</option>
+                        <option value="edicion">Edición</option>
+                        <option value="render">Render</option>
+                        <option value="subido">Subido</option>
+                    </select>
+                </label>
+            </div>
+            <div style="max-width:220px">
+                <label class="modal-video-label">Subido <input type="date" id="pv-f-subido" class="input-minimalista"></label>
+            </div>
+        </div>
+
+        <div class="modal-video-section">
+            <div class="modal-video-section-title">📊 Métricas de redes sociales</div>
+            <div class="modal-video-grid-4">
+
+                <div class="red-card-modal">
+                    <div class="red-card-modal-title" style="color:#ff4757">
+                        <i class="ti ti-brand-youtube" aria-hidden="true"></i> YouTube
+                    </div>
+                    <label class="modal-video-label">Vistas   <input type="number" id="pv-yt-vistas" class="input-minimalista" value="0"></label>
+                    <label class="modal-video-label" style="margin-top:8px">Likes    <input type="number" id="pv-yt-likes"  class="input-minimalista" value="0"></label>
+                    <label class="modal-video-label" style="margin-top:8px">URL      <input type="text"   id="pv-yt-url"    class="input-minimalista" placeholder="https://…"></label>
+                    <label class="modal-video-label" style="margin-top:8px">Nota     <input type="text"   id="pv-yt-nota"   class="input-minimalista" placeholder="Opcional…"></label>
+                </div>
+
+                <div class="red-card-modal">
+                    <div class="red-card-modal-title" style="color:#1877f2">
+                        <i class="ti ti-brand-facebook" aria-hidden="true"></i> Facebook
+                    </div>
+                    <label class="modal-video-label">Vistas   <input type="number" id="pv-fb-vistas" class="input-minimalista" value="0"></label>
+                    <label class="modal-video-label" style="margin-top:8px">Likes    <input type="number" id="pv-fb-likes"  class="input-minimalista" value="0"></label>
+                    <label class="modal-video-label" style="margin-top:8px">URL      <input type="text"   id="pv-fb-url"    class="input-minimalista" placeholder="https://…"></label>
+                    <label class="modal-video-label" style="margin-top:8px">Nota     <input type="text"   id="pv-fb-nota"   class="input-minimalista" placeholder="Opcional…"></label>
+                </div>
+
+                <div class="red-card-modal">
+                    <div class="red-card-modal-title" style="color:var(--text-base)">
+                        <i class="ti ti-brand-tiktok" aria-hidden="true"></i> TikTok
+                    </div>
+                    <label class="modal-video-label">Vistas   <input type="number" id="pv-tk-vistas" class="input-minimalista" value="0"></label>
+                    <label class="modal-video-label" style="margin-top:8px">Likes    <input type="number" id="pv-tk-likes"  class="input-minimalista" value="0"></label>
+                    <label class="modal-video-label" style="margin-top:8px">URL      <input type="text"   id="pv-tk-url"    class="input-minimalista" placeholder="https://…"></label>
+                    <label class="modal-video-label" style="margin-top:8px">Nota     <input type="text"   id="pv-tk-nota"   class="input-minimalista" placeholder="Opcional…"></label>
+                </div>
+
+                <div class="red-card-modal">
+                    <div class="red-card-modal-title" style="color:#e1306c">
+                        <i class="ti ti-brand-instagram" aria-hidden="true"></i> Instagram
+                    </div>
+                    <label class="modal-video-label">Vistas   <input type="number" id="pv-ig-vistas" class="input-minimalista" value="0"></label>
+                    <label class="modal-video-label" style="margin-top:8px">Likes    <input type="number" id="pv-ig-likes"  class="input-minimalista" value="0"></label>
+                    <label class="modal-video-label" style="margin-top:8px">URL      <input type="text"   id="pv-ig-url"    class="input-minimalista" placeholder="https://…"></label>
+                    <label class="modal-video-label" style="margin-top:8px">Nota     <input type="text"   id="pv-ig-nota"   class="input-minimalista" placeholder="Opcional…"></label>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="modal-botones-row">
+            <button class="btn-secondary" onclick="window.cerrarModalVideoProyecto()">Cancelar</button>
+            <button class="btn-primary"   onclick="window.guardarVideoProyecto()">Guardar video</button>
+        </div>
+
+    </div>
+</div>
+
+
+<!-- ============================================================ -->
+<!-- MODAL: EDITOR DE GUION (Fase 4 — editor tipo hoja de Word) -->
+<!-- ============================================================ -->
+<div id="modal-guion-proyecto" class="modal-overlay" style="display:none;z-index:2100">
+    <div class="modal-caja guion-modal-caja" style="max-width:880px;width:95%;text-align:left;max-height:92vh;display:flex;flex-direction:column">
+
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:12px;flex-shrink:0">
+            <div>
+                <h3 style="margin-bottom:2px">Guion — <span id="pv-guion-nombre-video">Video</span></h3>
+                <p style="margin-bottom:0">Selecciona texto para darle formato, igual que en un editor normal.</p>
+            </div>
+            <span id="pv-guion-contador" style="font-size:12px;font-weight:700;color:var(--accent);white-space:nowrap;padding-top:2px">0 palabras</span>
+        </div>
+        <input type="hidden" id="pv-guion-id-video">
+
+        <!-- Barra de herramientas -->
+        <div class="guion-toolbar">
+            <button type="button" class="guion-toolbar-btn" onmousedown="event.preventDefault()" onclick="window.formatoGuion('bold')" title="Negrita"><i class="ti ti-bold" aria-hidden="true"></i></button>
+            <button type="button" class="guion-toolbar-btn" onmousedown="event.preventDefault()" onclick="window.formatoGuion('italic')" title="Cursiva"><i class="ti ti-italic" aria-hidden="true"></i></button>
+            <button type="button" class="guion-toolbar-btn" onmousedown="event.preventDefault()" onclick="window.formatoGuion('underline')" title="Subrayado"><i class="ti ti-underline" aria-hidden="true"></i></button>
+            <span class="guion-toolbar-sep"></span>
+            <select class="guion-toolbar-select" onmousedown="event.stopPropagation()" onchange="window.cambiarTamanoFuenteGuion(this.value)" title="Tamaño de letra">
+                <option value="2">Pequeño</option>
+                <option value="3" selected>Normal</option>
+                <option value="4">Mediano</option>
+                <option value="5">Grande</option>
+                <option value="6">Muy grande</option>
+            </select>
+            <span class="guion-toolbar-sep"></span>
+            <button type="button" class="guion-toolbar-btn" onmousedown="event.preventDefault()" onclick="window.formatoGuion('justifyLeft')" title="Alinear izquierda"><i class="ti ti-align-left" aria-hidden="true"></i></button>
+            <button type="button" class="guion-toolbar-btn" onmousedown="event.preventDefault()" onclick="window.formatoGuion('justifyCenter')" title="Centrar"><i class="ti ti-align-center" aria-hidden="true"></i></button>
+        </div>
+
+        <!-- La "hoja" -->
+        <div class="guion-hoja-wrap">
+            <div id="pv-guion-pagina" class="guion-hoja" contenteditable="true"
+                 oninput="window.actualizarContadorGuion()"
+                 data-placeholder="Empieza a escribir el guion aquí…"></div>
+        </div>
+
+        <div class="modal-botones-row" style="flex-shrink:0">
+            <button class="btn-secondary" onclick="window.cerrarModalGuionProyecto()">Cancelar</button>
+            <button class="btn-primary" onclick="window.guardarGuionProyecto()">Guardar guion</button>
+        </div>
+
+    </div>
+</div>
+
+
+<!-- ============================================================ -->
+<!-- MODAL 3: PLACEHOLDER "EN CONSTRUCCIÓN" (Roblox / App) -->
+<!-- ============================================================ -->
+<div id="modal-en-construccion" class="modal-overlay" style="display:none;z-index:2000">
+    <div class="modal-caja" style="max-width:380px">
+        <div style="font-size:38px;margin-bottom:10px">🚧</div>
+        <h3>Aún en construcción</h3>
+        <p>Este tipo de proyecto todavía no tiene su interfaz dedicada. ¡Pronto llegará!</p>
+        <div class="modal-botones-row">
+            <button class="btn-primary" style="flex:1" onclick="document.getElementById('modal-en-construccion').style.display='none'">Entendido</button>
+        </div>
+    </div>
+</div>

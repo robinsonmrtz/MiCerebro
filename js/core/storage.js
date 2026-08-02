@@ -1,15 +1,16 @@
 // ==========================================
 // CORE: storage.js (El Almacén de Datos)
-// VERSIÓN: 2.2 — Agrega campo "pausado" (pausas explícitas) al registro de trabajo
+// VERSIÓN: 2.3 — Agrega módulo de Proyectos (Fase 1)
 // ==========================================
 
-const VERSION_DATOS = "2.2";
+const VERSION_DATOS = "2.3";
 
 function cargarDatos() {
     const datos = localStorage.getItem('datos_cerebro');
     if (datos) {
         let parseado = JSON.parse(datos);
-        if (!parseado.clientes) parseado.clientes = []; 
+        if (!parseado.clientes) parseado.clientes = [];
+        if (!parseado.proyectos) parseado.proyectos = [];
         // 👇 NUEVA ESTRUCTURA PARA FINANZAS PERSONALES
         if (!parseado.finanzas_personales) {
             parseado.finanzas_personales = {
@@ -33,6 +34,7 @@ function cargarDatos() {
         registro_habitos: {},
         config_habitos: null,
         clientes: [],
+        proyectos: [],
         // Base de datos virgen para el nuevo módulo
         finanzas_personales: {
             cuentas: [],
@@ -249,10 +251,62 @@ function fz_eliminarCategoriaDefinitiva(id, targetCategoriaId = null) {
     guardarDatos(datos);
 }
 
-// ====================================================
-// RUTA DEL ARCHIVO: js/core/storage.js
-// ====================================================
-// ... código previo de finanzas y eliminación definitiva ...
+// ==========================================
+// MÓDULO: PROYECTOS — STORAGE (Fase 1)
+// ==========================================
+
+// Plantilla de un proyecto nuevo. La usamos como base para no olvidar campos.
+function pr_plantillaProyecto(tipo) {
+    return {
+        id: Date.now(),
+        tipo: tipo,                 // 'video' | 'roblox' | 'app'
+        nombre: '',
+        imagen: '',
+        monetizado: false,
+        cpm: 0,
+        fecha_creacion: new Date().toISOString(),
+        redes: {
+            youtube:   { url: '', usuario: '', seguidores: 0, fecha_creacion: '' },
+            tiktok:    { url: '', usuario: '', seguidores: 0, fecha_creacion: '' },
+            facebook:  { url: '', usuario: '', seguidores: 0, fecha_creacion: '' },
+            instagram: { url: '', usuario: '', seguidores: 0, fecha_creacion: '' }
+        },
+        videos: []   // se activa en Fase 3, para tipo 'video'
+    };
+}
+
+function pr_obtenerProyectos() {
+    let datos = cargarDatos();
+    return datos.proyectos || [];
+}
+
+function pr_obtenerProyecto(id) {
+    let datos = cargarDatos();
+    return (datos.proyectos || []).find(p => p.id === id) || null;
+}
+
+// Crea o edita (si el objeto trae id existente, actualiza)
+function pr_guardarProyecto(proyecto) {
+    let datos = cargarDatos();
+    if (!datos.proyectos) datos.proyectos = [];
+    let index = datos.proyectos.findIndex(p => p.id === proyecto.id);
+    if (index > -1) datos.proyectos[index] = proyecto;
+    else datos.proyectos.push(proyecto);
+    guardarDatos(datos);
+    return proyecto;
+}
+
+function pr_eliminarProyecto(id) {
+    let datos = cargarDatos();
+    if (!datos.proyectos) return;
+    datos.proyectos = datos.proyectos.filter(p => p.id !== id);
+    guardarDatos(datos);
+}
+
+// ==========================================
+// CORE: storage.js (El Almacén de Datos)
+// ==========================================
+// ... código previo de finanzas, proyectos y eliminación definitiva ...
 
 // --- SISTEMA DE PURGA POR MÓDULO INDIVIDUAL ---
 function reiniciarModulo(modulo) {
@@ -269,6 +323,9 @@ function reiniciarModulo(modulo) {
             break;
         case 'clientes':
             datos.clientes = [];
+            break;
+        case 'proyectos':
+            datos.proyectos = [];
             break;
         case 'finanzas_personales':
             datos.finanzas_personales = {

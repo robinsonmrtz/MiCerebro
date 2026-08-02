@@ -71,6 +71,11 @@ async function cargarVista(nombreVista) {
                     if (typeof inicializarClientes === 'function') inicializarClientes();
                 }, 50);
                 
+            } else if (vistaSolicitada === 'proyectos') {
+                setTimeout(() => {
+                if (typeof inicializarProyectos === 'function') inicializarProyectos();
+                }, 50);
+
             } else if (vistaSolicitada === 'habitos') {
                 setTimeout(() => {
                     if (typeof inicializarHabitos === 'function') inicializarHabitos();
