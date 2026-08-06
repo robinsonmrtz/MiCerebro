@@ -161,7 +161,7 @@
 
 .estado-inactivo    { color: var(--text-lo); }
 .estado-trabajando  { color: var(--status-ok); }
-.estado-descansando { color: var(--status-warn); }
+.estado-pausando    { color: var(--status-warn); }
 
 /* Barra de progreso hacia la meta */
 .barra-meta-wrap {
@@ -260,7 +260,7 @@
     animation: pulse-dot 2s infinite;
 }
 
-.status-dot.descansando {
+.status-dot.pausando {
     background: var(--status-warn);
 }
 
@@ -425,10 +425,4 @@
 .btn-borrar-trabajo:hover {
     background: var(--clr-danger);
     color: var(--clr-white);
-}
-
-.estado-pausado { color: var(--status-warn); }
-
-.status-dot.interrumpido {
-    background: var(--status-warn);
 }

@@ -32,7 +32,7 @@
 
         <div class="configuracion-tiempo">
             <label>⏰ Aviso trabajo (min): <input type="number" id="input-bloque" value="60"></label>
-            <label>☕ Límite descanso (min): <input type="number" id="input-descanso" value="20"></label>
+            <label>⏸ Límite pausa (min): <input type="number" id="input-pausa" value="20"></label>
             <label>🎯 Meta diaria (horas): <input type="number" id="input-meta" value="8" step="0.5"></label>
         </div>
 
@@ -52,7 +52,6 @@
         <div class="controles">
             <button id="btn-trabajar" class="btn-primario">▶ Trabajar</button>
             <button id="btn-pausar" class="btn-secundario">⏸ Pausar</button>
-            <button id="btn-descansar" class="btn-secundario">☕ Descansar</button>
             <button id="btn-detener" class="btn-peligro">⏹ Terminar día</button>
         </div>
 
@@ -77,11 +76,7 @@
                 <span class="sesion-stat-value" id="panel-trabajado">00:00:00</span>
             </div>
             <div class="sesion-stat-row">
-                <span class="sesion-stat-label">Tiempo descansado</span>
-                <span class="sesion-stat-value" id="panel-descansado">00:00:00</span>
-            </div>
-            <div class="sesion-stat-row">
-                <span class="sesion-stat-label">Tiempo en pausas</span>
+                <span class="sesion-stat-label">Tiempo en pausa</span>
                 <span class="sesion-stat-value" id="panel-pausado">00:00:00</span>
             </div>
             <div class="sesion-stat-row">
